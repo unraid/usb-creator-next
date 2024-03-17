@@ -19,7 +19,7 @@ ApplicationWindow {
     minimumWidth: imageWriter.isEmbeddedMode() ? -1 : 680
     minimumHeight: imageWriter.isEmbeddedMode() ? -1 : 420
 
-    title: qsTr("Raspberry Pi Imager v%1").arg(imageWriter.constantVersion())
+    title: qsTr("Unraid Imager v%1").arg(imageWriter.constantVersion())
 
     FontLoader {id: roboto;      source: "fonts/Roboto-Regular.ttf"}
     FontLoader {id: robotoLight; source: "fonts/Roboto-Light.ttf"}
@@ -56,11 +56,11 @@ ApplicationWindow {
 
         Rectangle {
             id: logoContainer
-            implicitHeight: window.height/4
+            implicitHeight: window.height/6
 
             Image {
                 id: image
-                source: "icons/logo_sxs_imager.png"
+                source: "icons/UN-logotype-gradient.png"
 
                 // Specify the maximum size of the image
                 width: window.width * 0.45
@@ -78,7 +78,7 @@ ApplicationWindow {
                 // Keep the left side of the image 40 pixels from the left
                 // edge
                 anchors.left: logoContainer.left
-                anchors.leftMargin: 40
+                anchors.leftMargin: 10
 
                 // Equal padding above and below the image
                 anchors.top: logoContainer.top
@@ -89,9 +89,9 @@ ApplicationWindow {
         }
 
         Rectangle {
-            color: "#cd2355"
+            color: "#1C1B1B"
             implicitWidth: window.width
-            implicitHeight: window.height * (1 - 1/4)
+            implicitHeight: window.height * (1 - 1/6)
 
             GridLayout {
                 id: gridLayout
