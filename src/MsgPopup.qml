@@ -26,11 +26,11 @@ Popup {
     property bool noButton: false
     signal yes()
     signal no()
-	
-	background: Rectangle {
-		color: "#1C1B1B"
-		border.color: "#2B2A29"
-	}
+    
+    background: Rectangle {
+        color: "#1C1B1B"
+        border.color: "#2B2A29"
+    }
 
     // background of title
     Rectangle {
@@ -51,7 +51,7 @@ Popup {
     Text {
         id: msgx
         text: "X"
-		color: "#FFFFFF"
+        color: "#FFFFFF"
         anchors.right: parent.right
         anchors.top: parent.top
         anchors.rightMargin: 25
@@ -80,7 +80,7 @@ Popup {
             Layout.topMargin: 10
             font.family: roboto.name
             font.bold: true
-			color: "#FFFFFF"
+            color: "#FFFFFF"
         }
 
         Text {
@@ -94,7 +94,7 @@ Popup {
             Layout.leftMargin: 25
             Layout.topMargin: 25
             Accessible.name: text.replace(/<\/?[^>]+(>|$)/g, "")
-			color: "#FFFFFF"
+            color: "#FFFFFF"
         }
 
         RowLayout {

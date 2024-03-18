@@ -61,7 +61,7 @@ ApplicationWindow {
 
             Image {
                 id: image
-                source: "icons/UN-logotype-gradient.png"
+                source: "icons/UN-logotype-gradient.svg"
 
                 // Specify the maximum size of the image
                 width: window.width * 0.45

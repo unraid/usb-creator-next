@@ -14,6 +14,7 @@ Button {
     background: Rectangle {
         implicitWidth: 100
         implicitHeight: 40
+        opacity: enabled ? 1.0 : 0.3
         color: parent.hovered ? "#FF8C2F" : "#1C1B1B"
         border.color: "#FF8C2F"
         border.width: 1
