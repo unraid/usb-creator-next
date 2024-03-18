@@ -18,6 +18,11 @@ Popup {
     padding: 0
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
     modal: true
+        
+    background: Rectangle {
+        color: "#1C1B1B"
+        border.color: "#2B2A29"
+    }
 
     property bool hasSavedSettings: false
 
@@ -29,7 +34,7 @@ Popup {
 
     // background of title
     Rectangle {
-        color: "#f5f5f5"
+        color: "#2B2A29"
         anchors.right: parent.right
         anchors.top: parent.top
         height: 35
@@ -37,7 +42,7 @@ Popup {
     }
     // line under title
     Rectangle {
-        color: "#afafaf"
+        color: "#2B2A29"
         width: parent.width
         y: 35
         implicitHeight: 1
@@ -46,6 +51,7 @@ Popup {
     Text {
         id: msgx
         text: "X"
+        color: "#FFFFFF"
         anchors.right: parent.right
         anchors.top: parent.top
         anchors.rightMargin: 25
@@ -75,6 +81,7 @@ Popup {
             font.family: roboto.name
             font.bold: true
             text: qsTr("Use OS customization?")
+            color: "#FFFFFF"
         }
 
         Text {
@@ -90,6 +97,7 @@ Popup {
             Layout.alignment: Qt.AlignVCenter | Qt.AlignHCenter
             Accessible.name: text.replace(/<\/?[^>]+(>|$)/g, "")
             text: qsTr("Would you like to apply OS customization settings?")
+            color: "#FFFFFF"
         }
 
         RowLayout {
@@ -98,7 +106,7 @@ Popup {
             spacing: 20
             id: buttons
 
-            ImButtonRed {
+            ImButton {
                 text: qsTr("EDIT SETTINGS")
                 onClicked: {
                     // Don't close this dialog when "edit settings" is
@@ -110,7 +118,7 @@ Popup {
                 }
             }
 
-            ImButtonRed {
+            ImButton {
                 id: noAndClearButton
                 text: qsTr("NO, CLEAR SETTINGS")
                 onClicked: {
@@ -120,7 +128,7 @@ Popup {
                 enabled: hasSavedSettings
             }
 
-            ImButtonRed {
+            ImButton {
                 id: yesButton
                 text: qsTr("YES")
                 onClicked: {
@@ -130,7 +138,7 @@ Popup {
                 enabled: hasSavedSettings
             }
 
-            ImButtonRed {
+            ImButton {
                 text: qsTr("NO")
                 onClicked: {
                     msgpopup.close()

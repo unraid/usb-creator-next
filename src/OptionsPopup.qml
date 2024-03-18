@@ -395,7 +395,7 @@ Window {
             Layout.bottomMargin: 10
             spacing: 20
 
-            ImButtonRed {
+            ImButton {
                 text: qsTr("SAVE")
                 onClicked: {
                     if (chkSetUser.checked && fieldUserPassword.text.length == 0)
