@@ -246,7 +246,6 @@ ApplicationWindow {
                         id: progressBar
                         Layout.fillWidth: true
                         visible: false
-                        Material.background: "#d15d7d"
                     }
                 }
 
@@ -348,7 +347,10 @@ ApplicationWindow {
                     visible: imageWriter.isEmbeddedMode()
                     implicitWidth: langbar.width
                     implicitHeight: langbar.height
-                    color: "#ffffe3"
+                    color: "#2B2A29"
+                    Material.theme: Material.Dark
+                    Material.background: "#1C1B1B"
+                    Material.accent: "#FF8C2F"
                     radius: 5
 
                     RowLayout {
@@ -362,8 +364,10 @@ ApplicationWindow {
                             Layout.leftMargin: 30
                             Layout.topMargin: 10
                             Layout.bottomMargin: 10
+                            color: "#FFFFFF"
                         }
                         ComboBox {
+                            id: languageselector
                             font.pixelSize: 12
                             font.family: roboto.name
                             model: imageWriter.getTranslations()
@@ -377,6 +381,28 @@ ApplicationWindow {
                             }
                             Layout.topMargin: 10
                             Layout.bottomMargin: 10
+                            popup: Popup {
+                                y: languageselector.height - 1
+                                width: languageselector.width
+                                implicitHeight: contentItem.implicitHeight
+                                padding: 1
+                                Material.theme: Material.Dark
+                                Material.accent: "#FF8C2F"
+
+                                contentItem: ListView {
+                                    clip: true
+                                    implicitHeight: contentHeight
+                                    model: languageselector.popup.visible ? languageselector.delegateModel : null
+                                    currentIndex: languageselector.highlightedIndex
+
+                                    ScrollIndicator.vertical: ScrollIndicator { }
+                                }
+
+                                background: Rectangle {
+                                    color: "#1C1B1B"
+                                    radius: 2
+                                }
+                            }
                         }
                         Text {
                             font.pixelSize: 12
@@ -384,6 +410,7 @@ ApplicationWindow {
                             text: qsTr("Keyboard: ")
                             Layout.topMargin: 10
                             Layout.bottomMargin: 10
+                            color: "#FFFFFF"
                         }
                         ComboBox {
                             enabled: imageWriter.isEmbeddedMode()
@@ -400,6 +427,28 @@ ApplicationWindow {
                             Layout.topMargin: 10
                             Layout.bottomMargin: 10
                             Layout.rightMargin: 30
+                            popup: Popup {
+                                y: languageselector.height - 1
+                                width: languageselector.width
+                                implicitHeight: contentItem.implicitHeight
+                                padding: 1
+                                Material.theme: Material.Dark
+                                Material.accent: "#FF8C2F"
+
+                                contentItem: ListView {
+                                    clip: true
+                                    implicitHeight: contentHeight
+                                    model: languageselector.popup.visible ? languageselector.delegateModel : null
+                                    currentIndex: languageselector.highlightedIndex
+
+                                    ScrollIndicator.vertical: ScrollIndicator { }
+                                }
+
+                                background: Rectangle {
+                                    color: "#1C1B1B"
+                                    radius: 2
+                                }
+                            }
                         }
                     }
                 }
@@ -1203,7 +1252,7 @@ ApplicationWindow {
             progressText.visible = true
             progressBar.visible = true
             progressBar.indeterminate = true
-            progressBar.Material.accent = "#ffffff"
+            progressBar.Material.accent = "#FF8C2F"
             osbutton.enabled = false
             dstbutton.enabled = false
             hwbutton.enabled = false
@@ -1304,7 +1353,7 @@ ApplicationWindow {
                 return
 
             progressText.text = qsTr("Verifying... %1%").arg(Math.floor(newPos*100))
-            progressBar.Material.accent = "#6cc04a"
+            progressBar.Material.accent = "#FF8C2F"
             progressBar.value = newPos
         }
     }
