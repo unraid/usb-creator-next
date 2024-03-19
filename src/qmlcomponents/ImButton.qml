@@ -15,7 +15,7 @@ Button {
         implicitWidth: 100
         implicitHeight: 40
         opacity: enabled ? 1.0 : 0.3
-        color: parent.hovered ? UnColors.orange : "#1C1B1B"
+        color: parent.hovered ? UnColors.orange : UnColors.darkGray
         border.color: UnColors.orange
         border.width: 1
         radius: 25
@@ -24,7 +24,7 @@ Button {
         text: parent.text
         font: parent.font
         opacity: enabled ? 1.0 : 0.3
-        color: parent.hovered ? "#1C1B1B" : "#FFFFFF"
+        color: parent.hovered ? UnColors.darkGray : "#FFFFFF"
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
         elide: Text.ElideRight

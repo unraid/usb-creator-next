@@ -90,7 +90,7 @@ ApplicationWindow {
         }
 
         Rectangle {
-            color: "#1C1B1B"
+            color: UnColors.darkGray
             implicitWidth: window.width
             implicitHeight: window.height * (1 - 1/6)
 
@@ -349,7 +349,7 @@ ApplicationWindow {
                     implicitHeight: langbar.height
                     color: UnColors.mediumGray
                     Material.theme: Material.Dark
-                    Material.background: "#1C1B1B"
+                    Material.background: UnColors.darkGray
                     Material.accent: UnColors.orange
                     radius: 5
 
@@ -399,7 +399,7 @@ ApplicationWindow {
                                 }
 
                                 background: Rectangle {
-                                    color: "#1C1B1B"
+                                    color: UnColors.darkGray
                                     radius: 2
                                 }
                             }
@@ -445,7 +445,7 @@ ApplicationWindow {
                                 }
 
                                 background: Rectangle {
-                                    color: "#1C1B1B"
+                                    color: UnColors.darkGray
                                     radius: 2
                                 }
                             }
@@ -491,7 +491,7 @@ ApplicationWindow {
         property string hwselected: ""
         
         background: Rectangle {
-            color: "#1C1B1B"
+            color: UnColors.darkGray
             border.color: UnColors.mediumGray
         }
 
@@ -600,7 +600,7 @@ ApplicationWindow {
         property string categorySelected : ""
         
         background: Rectangle {
-            color: "#1C1B1B"
+            color: UnColors.darkGray
             border.color: UnColors.mediumGray
         }
 
@@ -792,7 +792,7 @@ ApplicationWindow {
             Rectangle {
                id: bgrect
                anchors.fill: parent
-               color: mouseOver ? UnColors.orange : "#1C1B1B"
+               color: mouseOver ? UnColors.orange : UnColors.darkGray
                visible: mouseOver && parent.ListView.view.currentIndex !== index
                property bool mouseOver: false
                border.color: UnColors.mediumGray
@@ -829,7 +829,7 @@ ApplicationWindow {
                 ColorOverlay {
                     anchors.fill: iconimage
                     source: iconimage
-                    color: bgrect.mouseOver ? "#1C1B1B" : UnColors.orange
+                    color: bgrect.mouseOver ? UnColors.darkGray : UnColors.orange
                 }
                 ColumnLayout {
                     Layout.fillWidth: true
@@ -839,7 +839,7 @@ ApplicationWindow {
                         elide: Text.ElideRight
                         font.family: roboto.name
                         font.bold: true
-                        color: bgrect.mouseOver ? "#1C1B1B" : "#FFFFFF"
+                        color: bgrect.mouseOver ? UnColors.darkGray : "#FFFFFF"
                     }
 
                     Text {
@@ -847,7 +847,7 @@ ApplicationWindow {
                         font.family: roboto.name
                         text: description
                         wrapMode: Text.WordWrap
-                        color: bgrect.mouseOver ? "#1C1B1B" : "#FFFFFF"
+                        color: bgrect.mouseOver ? UnColors.darkGray : "#FFFFFF"
                     }
 
                     ToolTip {
@@ -891,7 +891,7 @@ ApplicationWindow {
             Rectangle {
                id: bgrect
                anchors.fill: parent
-               color: mouseOver ? UnColors.orange : "#1C1B1B"
+               color: mouseOver ? UnColors.orange : UnColors.darkGray
                visible: mouseOver && parent.ListView.view.currentIndex !== index
                property bool mouseOver: false
                border.color: UnColors.mediumGray
@@ -928,7 +928,7 @@ ApplicationWindow {
                 ColorOverlay {
                     anchors.fill: iconimage
                     source: iconimage
-                    color: bgrect.mouseOver ? "#1C1B1B" : UnColors.orange
+                    color: bgrect.mouseOver ? UnColors.darkGray : UnColors.orange
                 }
                 ColumnLayout {
                     Layout.fillWidth: true
@@ -940,7 +940,7 @@ ApplicationWindow {
                             elide: Text.ElideRight
                             font.family: roboto.name
                             font.bold: true
-                            color: bgrect.mouseOver ? "#1C1B1B" : "#FFFFFF"
+                            color: bgrect.mouseOver ? UnColors.darkGray : "#FFFFFF"
                         }
                         Image {
                             source: "icons/ic_info_16px.png"
@@ -962,13 +962,13 @@ ApplicationWindow {
                         font.family: roboto.name
                         text: description
                         wrapMode: Text.WordWrap
-                        color: bgrect.mouseOver ? "#1C1B1B" : "#FFFFFF"
+                        color: bgrect.mouseOver ? UnColors.darkGray : "#FFFFFF"
                     }
 
                     Text {
                         Layout.fillWidth: true
                         elide: Text.ElideRight
-                        color: bgrect.mouseOver ? "#1C1B1B" : "#FFFFFF"
+                        color: bgrect.mouseOver ? UnColors.darkGray : "#FFFFFF"
                         font.weight: Font.Light
                         visible: typeof(release_date) == "string" && release_date
                         text: qsTr("Released: %1").arg(release_date)
@@ -976,7 +976,7 @@ ApplicationWindow {
                     Text {
                         Layout.fillWidth: true
                         elide: Text.ElideRight
-                        color: bgrect.mouseOver ? "#1C1B1B" : "#FFFFFF"
+                        color: bgrect.mouseOver ? UnColors.darkGray : "#FFFFFF"
                         font.weight: Font.Light
                         visible: typeof(url) == "string" && url != "" && url != "internal://format"
                         text: !url ? "" :
@@ -1019,7 +1019,7 @@ ApplicationWindow {
         onClosed: imageWriter.stopDriveListPolling()
 
         background: Rectangle {
-            color: "#1C1B1B"
+            color: UnColors.darkGray
             border.color: UnColors.mediumGray
         }
 
@@ -1137,7 +1137,7 @@ ApplicationWindow {
             Rectangle {
                id: dstbgrect
                anchors.fill: parent
-               color: mouseOver ? UnColors.orange : "#1C1B1B"
+               color: mouseOver ? UnColors.orange : UnColors.darkGray
                visible: mouseOver && parent.ListView.view.currentIndex !== index
                property bool mouseOver: false
                border.color: UnColors.mediumGray
@@ -1190,7 +1190,7 @@ ApplicationWindow {
                             }
                             return txt;
                         }
-                        color: dstbgrect.mouseOver ? "#1C1B1B" : "#FFFFFF"
+                        color: dstbgrect.mouseOver ? UnColors.darkGray : "#FFFFFF"
                     }
                 }
             }

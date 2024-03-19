@@ -19,9 +19,9 @@ Window {
     height: Math.min(750, cl.implicitHeight)
     title: qsTr("OS Customization")
     
-    color: "#1C1B1B"
+    color: UnColors.darkGray
     Material.theme: Material.Dark
-    Material.background: "#1C1B1B"
+    Material.background: UnColors.darkGray
     Material.accent: UnColors.orange
 
     property bool initialized: false

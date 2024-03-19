@@ -28,7 +28,7 @@ Popup {
     signal no()
     
     background: Rectangle {
-        color: "#1C1B1B"
+        color: UnColors.darkGray
         border.color: UnColors.mediumGray
     }
 
