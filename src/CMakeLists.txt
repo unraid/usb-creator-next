@@ -51,7 +51,7 @@ elseif (UNIX)
 elseif (WIN32)
     set(DEPENDENCIES acceleratedcryptographichash.cpp dependencies/mountutils/src/windows/functions.cpp dependencies/drivelist/src/windows/list.cpp
         windows/winfile.cpp windows/winfile.h windows/winwlancredentials.h windows/winwlancredentials.cpp
-        windows/rpi-imager.rc wlanapi_delayed.lib)
+        windows/unraid-imager.rc wlanapi_delayed.lib)
     set(EXTRALIBS setupapi ${CMAKE_CURRENT_BINARY_DIR}/wlanapi_delayed.lib)
     add_custom_command(
         OUTPUT wlanapi_delayed.lib
@@ -349,7 +349,7 @@ else()
         @ONLY)
 
     install(TARGETS rpi-imager DESTINATION bin)
-    install(FILES icons/rpi-imager.png DESTINATION share/icons/hicolor/128x128/apps)
+    install(FILES icons/unraid128.png DESTINATION share/icons/hicolor/128x128/apps)
     install(FILES linux/org.raspberrypi.rpi-imager.desktop DESTINATION share/applications)
     install(FILES "${CMAKE_CURRENT_BINARY_DIR}/rpi-imager.metainfo.xml" DESTINATION share/metainfo)
 endif()
