@@ -26,6 +26,11 @@ Window {
     //maximumHeight: height
 
     title: qsTr("OS Customization")
+    
+    color: Style.unraidPrimaryBgColor
+    Material.theme: Material.Dark
+    Material.background: Style.unraidPrimaryBgColor
+    Material.accent: Style.unraidAccentColor
 
     modality: Qt.WindowModal
 

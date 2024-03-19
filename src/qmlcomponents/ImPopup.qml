@@ -51,10 +51,17 @@ Popup {
         contentItem.forceActiveFocus()
     }
 
+// Might need to add this from Unraid's code. -- Ajit
+//Also might need to add this to the mainpopup component -- Ajit
+    // background: Rectangle {
+    //     color: UnColors.darkGray
+    //     border.color: UnColors.mediumGray
+    // }
+
     // background of title
     Rectangle {
         id: msgpopup_title_background
-        color: Style.titleBackgroundColor
+        color: Style.unraidSecondaryBgColor
         anchors.left: parent.left
         anchors.top: parent.top
         height: 35
@@ -67,6 +74,7 @@ Popup {
             anchors.topMargin: 10
             font.family: Style.fontFamily
             font.bold: true
+            color: Style.unraidTextColor
         }
 
         ImCloseButton {
@@ -79,7 +87,7 @@ Popup {
     // line under title
     Rectangle {
         id: msgpopup_title_separator
-        color: Style.titleSeparatorColor
+        color: Style.unraidSecondaryBgColor
         width: parent.width
         anchors.top: msgpopup_title_background.bottom
         height: 1

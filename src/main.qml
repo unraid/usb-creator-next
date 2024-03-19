@@ -18,7 +18,7 @@ ApplicationWindow {
 
     required property ImageWriter imageWriter
     readonly property DriveListModel driveListModel: imageWriter.getDriveList()
-    
+
     property string selectedOsName: ""
     property string selectedStorageName: ""
     property bool isCacheVerifying: false
@@ -26,12 +26,12 @@ ApplicationWindow {
     Item {
         id: focusAnchor
         focus: true
-        Keys.onPressed: (event) => {
+        Keys.onPressed: event => {
             if (event.key === Qt.Key_Tab) {
                 if (event.modifiers & Qt.ShiftModifier) {
-                    window.getPreviousFocusableElement(null).forceActiveFocus()
+                    window.getPreviousFocusableElement(null).forceActiveFocus();
                 } else {
-                    window.getNextFocusableElement(null).forceActiveFocus()
+                    window.getNextFocusableElement(null).forceActiveFocus();
                 }
                 event.accepted = true;
             }
@@ -43,30 +43,31 @@ ApplicationWindow {
     minimumWidth: imageWriter.isEmbeddedMode() ? -1 : 680
     minimumHeight: imageWriter.isEmbeddedMode() ? -1 : 420
 
-    title: qsTr("Raspberry Pi Imager v%1").arg(imageWriter.constantVersion())
-    
+    title: qsTr("Unraid Imager v%1").arg(imageWriter.constantVersion())
+
     Component.onCompleted: {
         // Set initial focus to the anchor
-        focusAnchor.forceActiveFocus()
+        focusAnchor.forceActiveFocus();
     }
-    
+
     // Helper function to get the next focusable element
     function getNextFocusableElement(startElement) {
-        var order = [ hwbutton, osbutton, dstbutton, writebutton, cancelwritebutton, cancelverifybutton, skipcachebutton, languageCombo, keyboardCombo ]
-        var focusableItems = order.filter(function(item) {
-            if (!item) return false;
+        var order = [hwbutton, osbutton, dstbutton, writebutton, cancelwritebutton, cancelverifybutton, skipcachebutton, languageCombo, keyboardCombo];
+        var focusableItems = order.filter(function (item) {
+            if (!item)
+                return false;
             // Special handling for language bar items, which are inside a container
             if (item === languageCombo || item === keyboardCombo) {
-                return langbarRect.visible && item.enabled
+                return langbarRect.visible && item.enabled;
             }
-            return item.visible && item.enabled
-        })
+            return item.visible && item.enabled;
+        });
 
         if (focusableItems.length === 0) {
             return startElement;
         }
 
-        var currentIndex = focusableItems.indexOf(startElement)
+        var currentIndex = focusableItems.indexOf(startElement);
         if (currentIndex === -1) {
             return focusableItems[0];
         }
@@ -78,25 +79,26 @@ ApplicationWindow {
 
     // Helper function to get the previous focusable element
     function getPreviousFocusableElement(startElement) {
-        var order = [ hwbutton, osbutton, dstbutton, writebutton, cancelwritebutton, cancelverifybutton, skipcachebutton, languageCombo, keyboardCombo ]
-        var focusableItems = order.filter(function(item) {
-            if (!item) return false;
+        var order = [hwbutton, osbutton, dstbutton, writebutton, cancelwritebutton, cancelverifybutton, skipcachebutton, languageCombo, keyboardCombo];
+        var focusableItems = order.filter(function (item) {
+            if (!item)
+                return false;
             // Special handling for language bar items, which are inside a container
             if (item === languageCombo || item === keyboardCombo) {
-                return langbarRect.visible && item.enabled
+                return langbarRect.visible && item.enabled;
             }
-            return item.visible && item.enabled
-        })
+            return item.visible && item.enabled;
+        });
 
         if (focusableItems.length === 0) {
             return startElement;
         }
 
-        var currentIndex = focusableItems.indexOf(startElement)
+        var currentIndex = focusableItems.indexOf(startElement);
         if (currentIndex === -1) {
             return focusableItems[focusableItems.length - 1];
         }
-        
+
         var prevIndex = (currentIndex - 1 + focusableItems.length) % focusableItems.length;
         var prevElement = focusableItems[prevIndex];
         return prevElement;
@@ -104,17 +106,17 @@ ApplicationWindow {
 
     onClosing: {
         if (progressBar.visible) {
-            close.accepted = false
-            quitpopup.open()
+            close.accepted = false;
+            quitpopup.open();
         }
     }
-    
+
     Shortcut {
         sequence: StandardKey.Quit
         context: Qt.ApplicationShortcut
         onActivated: {
             if (!progressBar.visible) {
-                Qt.quit()
+                Qt.quit();
             }
         }
     }
@@ -123,7 +125,7 @@ ApplicationWindow {
         sequences: ["Shift+Ctrl+X", "Shift+Meta+X"]
         context: Qt.ApplicationShortcut
         onActivated: {
-            optionspopup.show()
+            optionspopup.show();
         }
     }
 
@@ -134,11 +136,11 @@ ApplicationWindow {
 
         Rectangle {
             id: logoContainer
-            implicitHeight: window.height/4
+            implicitHeight: window.height / 6
 
             Image {
                 id: image
-                source: "icons/logo_sxs_imager.png"
+                source: "icons/UN-logotype-gradient.svg"
 
                 // Specify the maximum size of the image
                 width: window.width * 0.45
@@ -156,7 +158,7 @@ ApplicationWindow {
                 // Keep the left side of the image 40 pixels from the left
                 // edge
                 anchors.left: logoContainer.left
-                anchors.leftMargin: 40
+                anchors.leftMargin: 10
 
                 // Equal padding above and below the image
                 anchors.top: logoContainer.top
@@ -167,9 +169,9 @@ ApplicationWindow {
         }
 
         Rectangle {
-            color: Style.mainBackgroundColor
+            color: Style.unraidPrimaryBgColor
             implicitWidth: window.width
-            implicitHeight: window.height * (1 - 1/4)
+            implicitHeight: window.height * (1 - 1 / 6)
 
             GridLayout {
                 id: gridLayout
@@ -185,6 +187,7 @@ ApplicationWindow {
                 columns: 3
                 columnSpacing: 15
 
+                // Will probably need to delete this ColumnLayout- Ajit
                 ColumnLayout {
                     id: columnLayout0
                     spacing: 0
@@ -195,7 +198,7 @@ ApplicationWindow {
 
                     Text {
                         id: text0
-                        color: Style.subtitleColor
+                        color: Style.unraidTextColor
                         text: qsTr("Raspberry Pi Device")
                         Layout.fillWidth: true
                         Layout.preferredHeight: 17
@@ -216,20 +219,21 @@ ApplicationWindow {
                         Layout.minimumHeight: 40
                         Layout.fillWidth: true
                         onClicked: {
-                            hwpopup.open()
-                            hwpopup.hwlist.forceActiveFocus()
+                            hwpopup.open();
+                            hwpopup.hwlist.forceActiveFocus();
                         }
                         Accessible.ignored: ospopup.visible || dstpopup.visible || hwpopup.visible
                         Accessible.description: qsTr("Select this button to choose your target Raspberry Pi")
-                        
-                        Keys.onPressed: (event) => {
-                            if (!hwbutton.focus) return
+
+                        Keys.onPressed: event => {
+                            if (!hwbutton.focus)
+                                return;
                             if (event.key === Qt.Key_Backtab || (event.key === Qt.Key_Tab && event.modifiers & Qt.ShiftModifier)) {
-                                window.getPreviousFocusableElement(hwbutton).forceActiveFocus()
-                                event.accepted = true
+                                window.getPreviousFocusableElement(hwbutton).forceActiveFocus();
+                                event.accepted = true;
                             } else if (event.key === Qt.Key_Tab) {
-                                window.getNextFocusableElement(hwbutton).forceActiveFocus()
-                                event.accepted = true
+                                window.getNextFocusableElement(hwbutton).forceActiveFocus();
+                                event.accepted = true;
                             }
                         }
                     }
@@ -245,7 +249,7 @@ ApplicationWindow {
 
                     Text {
                         id: text1
-                        color: Style.subtitleColor
+                        color: Style.unraidTextColor
                         text: qsTr("Operating System")
                         Layout.fillWidth: true
                         Layout.preferredHeight: 17
@@ -265,20 +269,21 @@ ApplicationWindow {
                         Layout.minimumHeight: 40
                         Layout.fillWidth: true
                         onClicked: {
-                            ospopup.open()
-                            ospopup.osswipeview.currentItem.forceActiveFocus()
+                            ospopup.open();
+                            ospopup.osswipeview.currentItem.forceActiveFocus();
                         }
                         Accessible.ignored: ospopup.visible || dstpopup.visible || hwpopup.visible
                         Accessible.description: qsTr("Select this button to change the operating system")
-                        
-                        Keys.onPressed: (event) => {
-                            if (!osbutton.focus) return
+
+                        Keys.onPressed: event => {
+                            if (!osbutton.focus)
+                                return;
                             if (event.key === Qt.Key_Backtab || (event.key === Qt.Key_Tab && event.modifiers & Qt.ShiftModifier)) {
-                                window.getPreviousFocusableElement(osbutton).forceActiveFocus()
-                                event.accepted = true
+                                window.getPreviousFocusableElement(osbutton).forceActiveFocus();
+                                event.accepted = true;
                             } else if (event.key === Qt.Key_Tab) {
-                                window.getNextFocusableElement(osbutton).forceActiveFocus()
-                                event.accepted = true
+                                window.getNextFocusableElement(osbutton).forceActiveFocus();
+                                event.accepted = true;
                             }
                         }
                     }
@@ -294,7 +299,7 @@ ApplicationWindow {
 
                     Text {
                         id: text2
-                        color: Style.subtitleColor
+                        color: Style.unraidTextColor
                         text: qsTr("Storage")
                         Layout.fillWidth: true
                         Layout.preferredHeight: 17
@@ -315,21 +320,22 @@ ApplicationWindow {
                         Layout.preferredWidth: 200
                         Layout.fillWidth: true
                         onClicked: {
-                            window.imageWriter.startDriveListPolling()
-                            dstpopup.open()
-                            dstpopup.dstlist.forceActiveFocus()
+                            window.imageWriter.startDriveListPolling();
+                            dstpopup.open();
+                            dstpopup.dstlist.forceActiveFocus();
                         }
                         Accessible.ignored: ospopup.visible || dstpopup.visible || hwpopup.visible
                         Accessible.description: qsTr("Select this button to change the destination storage device")
-                        
-                        Keys.onPressed: (event) => {
-                            if (!dstbutton.focus) return
+
+                        Keys.onPressed: event => {
+                            if (!dstbutton.focus)
+                                return;
                             if (event.key === Qt.Key_Backtab || (event.key === Qt.Key_Tab && event.modifiers & Qt.ShiftModifier)) {
-                                window.getPreviousFocusableElement(dstbutton).forceActiveFocus()
-                                event.accepted = true
+                                window.getPreviousFocusableElement(dstbutton).forceActiveFocus();
+                                event.accepted = true;
                             } else if (event.key === Qt.Key_Tab) {
-                                window.getNextFocusableElement(dstbutton).forceActiveFocus()
-                                event.accepted = true
+                                window.getNextFocusableElement(dstbutton).forceActiveFocus();
+                                event.accepted = true;
                             }
                         }
                     }
@@ -358,12 +364,13 @@ ApplicationWindow {
                     }
 
                     ProgressBar {
-                        Layout.bottomMargin: 25
                         id: progressBar
+                        Layout.bottomMargin: 25
                         Layout.fillWidth: true
                         visible: false
                         activeFocusOnTab: false
                         focus: false
+                        // Will have to change this color to match Unraid theme -- Ajit
                         Material.background: Style.progressBarBackgroundColor
                     }
                 }
@@ -377,80 +384,80 @@ ApplicationWindow {
                     activeFocusOnTab: false
 
                     ImButton {
+                        id: cancelwritebutton
                         Layout.bottomMargin: 25
                         Layout.minimumHeight: 40
                         Layout.preferredWidth: 200
                         padding: 5
-                        id: cancelwritebutton
                         text: qsTr("CANCEL WRITE")
                         onClicked: {
-                            enabled = false
-                            progressText.text = qsTr("Cancelling...")
-                            window.imageWriter.cancelWrite()
-                            focusAnchor.forceActiveFocus()
+                            enabled = false;
+                            progressText.text = qsTr("Cancelling...");
+                            window.imageWriter.cancelWrite();
+                            focusAnchor.forceActiveFocus();
                         }
                         Layout.alignment: Qt.AlignRight
                         visible: false
-                        
-                        Keys.onPressed: (event) => {
+
+                        Keys.onPressed: event => {
                             if (event.key === Qt.Key_Backtab || (event.key === Qt.Key_Tab && event.modifiers & Qt.ShiftModifier)) {
-                                window.getPreviousFocusableElement(cancelwritebutton).forceActiveFocus()
-                                event.accepted = true
+                                window.getPreviousFocusableElement(cancelwritebutton).forceActiveFocus();
+                                event.accepted = true;
                             } else if (event.key === Qt.Key_Tab) {
-                                window.getNextFocusableElement(cancelwritebutton).forceActiveFocus()
-                                event.accepted = true
+                                window.getNextFocusableElement(cancelwritebutton).forceActiveFocus();
+                                event.accepted = true;
                             }
                         }
                     }
                     ImButton {
+                        id: cancelverifybutton
                         Layout.bottomMargin: 25
                         Layout.minimumHeight: 40
                         Layout.preferredWidth: 200
                         padding: 5
-                        id: cancelverifybutton
                         text: qsTr("CANCEL VERIFY")
                         onClicked: {
-                            enabled = false
-                            progressText.text = qsTr("Finalizing...")
-                            window.imageWriter.setVerifyEnabled(false)
-                            focusAnchor.forceActiveFocus()
+                            enabled = false;
+                            progressText.text = qsTr("Finalizing...");
+                            window.imageWriter.setVerifyEnabled(false);
+                            focusAnchor.forceActiveFocus();
                         }
                         Layout.alignment: Qt.AlignRight
                         visible: false
-                        
-                        Keys.onPressed: (event) => {
+
+                        Keys.onPressed: event => {
                             if (event.key === Qt.Key_Backtab || (event.key === Qt.Key_Tab && event.modifiers & Qt.ShiftModifier)) {
-                                window.getPreviousFocusableElement(cancelverifybutton).forceActiveFocus()
-                                event.accepted = true
+                                window.getPreviousFocusableElement(cancelverifybutton).forceActiveFocus();
+                                event.accepted = true;
                             } else if (event.key === Qt.Key_Tab) {
-                                window.getNextFocusableElement(cancelverifybutton).forceActiveFocus()
-                                event.accepted = true
+                                window.getNextFocusableElement(cancelverifybutton).forceActiveFocus();
+                                event.accepted = true;
                             }
                         }
                     }
                     ImButton {
+                        id: skipcachebutton
                         Layout.bottomMargin: 25
                         Layout.minimumHeight: 40
                         Layout.preferredWidth: 200
                         padding: 5
-                        id: skipcachebutton
                         text: qsTr("SKIP CACHE VERIFICATION")
                         onClicked: {
-                            enabled = false
-                            progressText.text = qsTr("Starting download...")
-                            window.imageWriter.skipCacheVerification()
-                            focusAnchor.forceActiveFocus()
+                            enabled = false;
+                            progressText.text = qsTr("Starting download...");
+                            window.imageWriter.skipCacheVerification();
+                            focusAnchor.forceActiveFocus();
                         }
                         Layout.alignment: Qt.AlignRight
                         visible: false
-                        
-                        Keys.onPressed: (event) => {
+
+                        Keys.onPressed: event => {
                             if (event.key === Qt.Key_Backtab || (event.key === Qt.Key_Tab && event.modifiers & Qt.ShiftModifier)) {
-                                window.getPreviousFocusableElement(skipcachebutton).forceActiveFocus()
-                                event.accepted = true
+                                window.getPreviousFocusableElement(skipcachebutton).forceActiveFocus();
+                                event.accepted = true;
                             } else if (event.key === Qt.Key_Tab) {
-                                window.getNextFocusableElement(skipcachebutton).forceActiveFocus()
-                                event.accepted = true
+                                window.getNextFocusableElement(skipcachebutton).forceActiveFocus();
+                                event.accepted = true;
                             }
                         }
                     }
@@ -467,25 +474,26 @@ ApplicationWindow {
                         enabled: false
                         onClicked: {
                             if (!window.imageWriter.readyToWrite()) {
-                                return
+                                return;
                             }
-                            focusAnchor.forceActiveFocus()
+                            focusAnchor.forceActiveFocus();
 
                             if (!optionspopup.visible && window.imageWriter.imageSupportsCustomization()) {
-                                usesavedsettingspopup.open()
+                                usesavedsettingspopup.open();
                             } else {
-                                confirmwritepopup.askForConfirmation()
+                                confirmwritepopup.askForConfirmation();
                             }
                         }
-                        
-                        Keys.onPressed: (event) => {
-                            if (!writebutton.focus) return
+
+                        Keys.onPressed: event => {
+                            if (!writebutton.focus)
+                                return;
                             if (event.key === Qt.Key_Backtab || (event.key === Qt.Key_Tab && event.modifiers & Qt.ShiftModifier)) {
-                                window.getPreviousFocusableElement(writebutton).forceActiveFocus()
-                                event.accepted = true
+                                window.getPreviousFocusableElement(writebutton).forceActiveFocus();
+                                event.accepted = true;
                             } else if (event.key === Qt.Key_Tab) {
-                                window.getNextFocusableElement(writebutton).forceActiveFocus()
-                                event.accepted = true
+                                window.getNextFocusableElement(writebutton).forceActiveFocus();
+                                event.accepted = true;
                             }
                         }
                     }
@@ -527,7 +535,13 @@ ApplicationWindow {
                     visible: window.imageWriter.isEmbeddedMode()
                     implicitWidth: langbar.width
                     implicitHeight: langbar.height
-                    color: Style.lanbarBackgroundColor
+
+                    // Accepted Unraid version, not current -- Ajit
+                    // Also, make sure there's a language selector button somewhere at the bottom. Maybe that comes in a later commit?
+                    color: Style.unraidSecondaryBgColor
+                    Material.theme: Material.Dark
+                    Material.background: Style.unraidPrimaryBgColor
+                    Material.accent: Style.unraidAccentColor
                     radius: 5
 
                     RowLayout {
@@ -542,6 +556,7 @@ ApplicationWindow {
                             Layout.leftMargin: 30
                             Layout.topMargin: 10
                             Layout.bottomMargin: 10
+                            color: "white"
                         }
                         ComboBox {
                             id: languageCombo
@@ -552,23 +567,50 @@ ApplicationWindow {
                             currentIndex: -1
                             activeFocusOnTab: true
                             Component.onCompleted: {
-                                currentIndex = find(window.imageWriter.getCurrentLanguage())
+                                currentIndex = find(window.imageWriter.getCurrentLanguage());
                             }
                             onActivated: {
-                                window.imageWriter.changeLanguage(editText)
+                                window.imageWriter.changeLanguage(editText);
                             }
                             Layout.topMargin: 10
                             Layout.bottomMargin: 10
 
-                            Keys.onPressed: (event) => {
+                            // Accepted Both changes -- Ajit
+                            // This was from current -- Ajit
+                            Keys.onPressed: event => {
                                 if (event.key === Qt.Key_Backtab || (event.key === Qt.Key_Tab && event.modifiers & Qt.ShiftModifier)) {
-                                    window.getPreviousFocusableElement(languageCombo).forceActiveFocus()
-                                    event.accepted = true
+                                    window.getPreviousFocusableElement(languageCombo).forceActiveFocus();
+                                    event.accepted = true;
                                 } else if (event.key === Qt.Key_Tab) {
-                                    window.getNextFocusableElement(languageCombo).forceActiveFocus()
-                                    event.accepted = true
+                                    window.getNextFocusableElement(languageCombo).forceActiveFocus();
+                                    event.accepted = true;
                                 }
                             }
+                            // This was from Unraid changes -- Ajit
+                            popup: Popup {
+                                y: languageCombo.height - 1
+                                width: languageCombo.width
+                                implicitHeight: contentItem.implicitHeight
+                                padding: 1
+                                Material.theme: Material.Dark
+                                Material.accent: Style.unraidAccentColor
+
+                                contentItem: ListView {
+                                    clip: true
+                                    implicitHeight: contentHeight
+                                    model: languageCombo.popup.visible ? languageCombo.delegateModel : null
+                                    currentIndex: languageCombo.highlightedIndex
+
+                                    ScrollIndicator.vertical: ScrollIndicator {}
+                                }
+
+                                background: Rectangle {
+                                    color: Style.unraidPrimaryBgColor
+                                    radius: 2
+                                }
+                            }
+                            // End of Unraid changes -- Ajit
+
                         }
                         Text {
                             font.pixelSize: 12
@@ -576,6 +618,7 @@ ApplicationWindow {
                             text: qsTr("Keyboard: ")
                             Layout.topMargin: 10
                             Layout.bottomMargin: 10
+                            color: "white"
                         }
                         ComboBox {
                             id: keyboardCombo
@@ -586,24 +629,49 @@ ApplicationWindow {
                             currentIndex: -1
                             activeFocusOnTab: true
                             Component.onCompleted: {
-                                currentIndex = find(window.imageWriter.getCurrentKeyboard())
+                                currentIndex = find(window.imageWriter.getCurrentKeyboard());
                             }
                             onActivated: {
-                                window.imageWriter.changeKeyboard(editText)
+                                window.imageWriter.changeKeyboard(editText);
                             }
                             Layout.topMargin: 10
                             Layout.bottomMargin: 10
                             Layout.rightMargin: 30
-
-                            Keys.onPressed: (event) => {
+                            // Accepted Both changes -- Ajit
+                            // This was from current -- Ajit
+                            Keys.onPressed: event => {
                                 if (event.key === Qt.Key_Backtab || (event.key === Qt.Key_Tab && event.modifiers & Qt.ShiftModifier)) {
-                                    window.getPreviousFocusableElement(keyboardCombo).forceActiveFocus()
-                                    event.accepted = true
+                                    window.getPreviousFocusableElement(keyboardCombo).forceActiveFocus();
+                                    event.accepted = true;
                                 } else if (event.key === Qt.Key_Tab) {
-                                    window.getNextFocusableElement(keyboardCombo).forceActiveFocus()
-                                    event.accepted = true
+                                    window.getNextFocusableElement(keyboardCombo).forceActiveFocus();
+                                    event.accepted = true;
                                 }
                             }
+                            // This was from Unraid changes, but changed from languageselector to keyboardCombo -- Ajit
+                            popup: Popup {
+                                y: keyboardCombo.height - 1
+                                width: keyboardCombo.width
+                                implicitHeight: contentItem.implicitHeight
+                                padding: 1
+                                Material.theme: Material.Dark
+                                Material.accent: Style.unraidAccentColor
+
+                                contentItem: ListView {
+                                    clip: true
+                                    implicitHeight: contentHeight
+                                    model: keyboardCombo.popup.visible ? keyboardCombo.delegateModel : null
+                                    currentIndex: keyboardCombo.highlightedIndex
+
+                                    ScrollIndicator.vertical: ScrollIndicator {}
+                                }
+
+                                background: Rectangle {
+                                    color: Style.unraidPrimaryBgColor
+                                    radius: 2
+                                }
+                            }
+                            // End of Unraid changes -- Ajit
                         }
                     }
                 }
@@ -614,58 +682,42 @@ ApplicationWindow {
                     sequences: ["Shift+Ctrl+L", "Shift+Meta+L"]
                     context: Qt.ApplicationShortcut
                     onActivated: {
-                        langbarRect.visible = true
+                        langbarRect.visible = true;
                     }
                 }
             }
 
             DropArea {
                 anchors.fill: parent
-                onEntered: (drag) => {
+                onEntered: drag => {
                     if (Drag.active && drag.hasUrls) {
-                        drag.acceptProposedAction()
+                        drag.acceptProposedAction();
                     }
                 }
-                onDropped: (drop) => {
+                onDropped: drop => {
                     if (drop.urls && drop.urls.length > 0) {
-                        window.onFileSelected(drop.urls[0].toString())
+                        window.onFileSelected(drop.urls[0].toString());
                     }
                 }
             }
         }
     }
 
-    HwPopup {
-        id: hwpopup
-        windowWidth: window.width
-        imageWriter: window.imageWriter
-
-        onDeviceSelected: {
-            // When the HW device is changed, reset the OS selection otherwise
-            // you get a weird effect with the selection moving around in the list
-            // when the user next opens the OS list, and the user could still have
-            // an OS selected which isn't compatible with this HW device
-            ospopup.oslist.currentIndex = -1
-            ospopup.osswipeview.currentIndex = 0
-            window.imageWriter.setSrc("")
-            window.selectedOsName = ""
-            writebutton.enabled = false
-        }
-    }
+    // Completely removed HWPopup as it's not needed for Unraid -- Ajit
 
     OSPopup {
         id: ospopup
         windowWidth: window.width
         imageWriter: window.imageWriter
 
-        onUpdatePopupRequested: (url) => {
-            updatepopup.url = url
-            updatepopup.open()
+        onUpdatePopupRequested: url => {
+            updatepopup.url = url;
+            updatepopup.open();
         }
 
-        onDefaultEmbeddedDriveRequested: (drive) => {
-            setDefaultDest.drive = drive
-            setDefaultDest.start()
+        onDefaultEmbeddedDriveRequested: drive => {
+            setDefaultDest.drive = drive;
+            setDefaultDest.start();
         }
     }
 
@@ -678,12 +730,12 @@ ApplicationWindow {
     MsgPopup {
         id: msgpopup
         onOpened: {
-            forceActiveFocus()
+            forceActiveFocus();
         }
         onClosed: {
-            window.imageWriter.setDst("")
-            window.selectedStorageName = ""
-            window.resetWriteButton()
+            window.imageWriter.setDst("");
+            window.selectedStorageName = "";
+            window.resetWriteButton();
         }
     }
 
@@ -693,9 +745,9 @@ ApplicationWindow {
         yesButton: true
         noButton: true
         title: qsTr("Are you sure you want to quit?")
-        text: qsTr("Raspberry Pi Imager is still busy.<br>Are you sure you want to quit?")
+        text: qsTr("Unraid USB Creator is still busy.<br>Are you sure you want to quit?")
         onYes: {
-            Qt.quit()
+            Qt.quit();
         }
     }
 
@@ -707,32 +759,31 @@ ApplicationWindow {
         title: qsTr("Warning")
         modal: true
         onYes: {
-            langbarRect.visible = false
-            writebutton.visible = false
-            writebutton.enabled = false
-            cancelwritebutton.enabled = true
-            cancelwritebutton.visible = true
-            cancelverifybutton.enabled = true
+            langbarRect.visible = false;
+            writebutton.visible = false;
+            writebutton.enabled = false;
+            cancelwritebutton.enabled = true;
+            cancelwritebutton.visible = true;
+            cancelverifybutton.enabled = true;
             progressText.text = qsTr("Preparing to write...");
-            progressText.visible = true
-            progressBar.visible = true
-            progressBar.indeterminate = true
-            progressBar.Material.accent = "#ffffff"
-            osbutton.enabled = false
-            dstbutton.enabled = false
-            hwbutton.enabled = false
-            window.imageWriter.setVerifyEnabled(true)
-            window.imageWriter.startWrite()
+            progressText.visible = true;
+            progressBar.visible = true;
+            progressBar.indeterminate = true;
+            progressBar.Material.accent = Style.unraidAccentColor;
+            osbutton.enabled = false;
+            dstbutton.enabled = false;
+            hwbutton.enabled = false;
+            window.imageWriter.setVerifyEnabled(true);
+            window.imageWriter.startWrite();
         }
 
-        function askForConfirmation()
-        {
-            text = qsTr("All existing data on '%1' will be erased.<br>Are you sure you want to continue?").arg(dstbutton.text)
-            open()
+        function askForConfirmation() {
+            text = qsTr("All existing data on '%1' will be erased.<br>Are you sure you want to continue?").arg(dstbutton.text);
+            open();
         }
 
         onOpened: {
-            forceActiveFocus()
+            forceActiveFocus();
         }
     }
 
@@ -745,7 +796,7 @@ ApplicationWindow {
         title: qsTr("Update available")
         text: qsTr("There is a newer version of Imager available.<br>Would you like to visit the website to download it?")
         onYes: {
-            Qt.openUrlExternally(url)
+            Qt.openUrlExternally(url);
         }
     }
 
@@ -756,9 +807,9 @@ ApplicationWindow {
 
         imageWriter: window.imageWriter
 
-        onSaveSettingsSignal: (settings) => {
-            window.imageWriter.setSavedCustomizationSettings(settings)
-            usesavedsettingspopup.hasSavedSettings = true
+        onSaveSettingsSignal: settings => {
+            window.imageWriter.setSavedCustomizationSettings(settings);
+            usesavedsettingspopup.hasSavedSettings = true;
         }
     }
 
@@ -767,203 +818,200 @@ ApplicationWindow {
         imageWriter: window.imageWriter
 
         onYes: {
-            optionspopup.initialize()
-            optionspopup.applySettings()
-            confirmwritepopup.askForConfirmation()
+            optionspopup.initialize();
+            optionspopup.applySettings();
+            confirmwritepopup.askForConfirmation();
         }
         onNo: {
-            window.imageWriter.setImageCustomization("", "", "", "", "")
-            confirmwritepopup.askForConfirmation()
+            window.imageWriter.setImageCustomization("", "", "", "", "");
+            confirmwritepopup.askForConfirmation();
         }
         onNoClearSettings: {
-            hasSavedSettings = false
-            optionspopup.clearCustomizationFields()
-            window.imageWriter.clearSavedCustomizationSettings()
-            confirmwritepopup.askForConfirmation()
+            hasSavedSettings = false;
+            optionspopup.clearCustomizationFields();
+            window.imageWriter.clearSavedCustomizationSettings();
+            confirmwritepopup.askForConfirmation();
         }
         onEditSettings: {
-            optionspopup.show()
+            optionspopup.show();
         }
         onCloseSettings: {
-            optionspopup.close()
+            optionspopup.close();
         }
     }
 
     /* Slots for signals imagewrite emits */
-    function onDownloadProgress(now,total) {
-        var newPos
+    function onDownloadProgress(now, total) {
+        var newPos;
         if (total) {
-            newPos = now/(total+1)
+            newPos = now / (total + 1);
         } else {
-            newPos = 0
+            newPos = 0;
         }
         if (progressBar.value !== newPos) {
             if (progressText.text === qsTr("Cancelling..."))
-                return
+                return;
 
             // Ensure we're in write mode, not cache verification mode
             if (isCacheVerifying) {
-                isCacheVerifying = false
-                skipcachebutton.visible = false
-                cancelwritebutton.visible = true
-                cancelwritebutton.enabled = true
+                isCacheVerifying = false;
+                skipcachebutton.visible = false;
+                cancelwritebutton.visible = true;
+                cancelwritebutton.enabled = true;
             }
-            
+
             // Ensure progress bar is set to write color
-            progressBar.Material.accent = "#ffffff"
-            progressText.text = qsTr("Writing... %1%").arg(Math.floor(newPos*100))
-            progressBar.indeterminate = false
-            progressBar.value = newPos
+            progressBar.Material.accent = "#ffffff";
+            progressText.text = qsTr("Writing... %1%").arg(Math.floor(newPos * 100));
+            progressBar.indeterminate = false;
+            progressBar.value = newPos;
         }
     }
 
-    function onVerifyProgress(now,total) {
-        var newPos
+    function onVerifyProgress(now, total) {
+        var newPos;
         if (total) {
-            newPos = now/total
+            newPos = now / total;
         } else {
-            newPos = 0
+            newPos = 0;
         }
 
         if (progressBar.value !== newPos) {
             if (cancelwritebutton.visible && !isCacheVerifying) {
-                cancelwritebutton.visible = false
-                cancelverifybutton.visible = true
+                cancelwritebutton.visible = false;
+                cancelverifybutton.visible = true;
             }
 
             if (progressText.text === qsTr("Finalizing..."))
-                return
-
+                return;
             if (isCacheVerifying) {
-                progressText.text = qsTr("Verifying cached file... %1%").arg(Math.floor(newPos*100))
+                progressText.text = qsTr("Verifying cached file... %1%").arg(Math.floor(newPos * 100));
             } else {
-                progressText.text = qsTr("Verifying... %1%").arg(Math.floor(newPos*100))
+                progressText.text = qsTr("Verifying... %1%").arg(Math.floor(newPos * 100));
             }
-            progressBar.Material.accent = Style.progressBarVerifyForegroundColor
-            progressBar.value = newPos
+            progressBar.Material.accent = Style.unraidAccentColor;
+            progressBar.value = newPos;
         }
     }
 
     function onPreparationStatusUpdate(msg) {
-        progressText.text = qsTr("Preparing to write... (%1)").arg(msg)
+        progressText.text = qsTr("Preparing to write... (%1)").arg(msg);
     }
 
     function onOsListPrepared() {
-        ospopup.fetchOSlist()
+        ospopup.fetchOSlist();
     }
 
     function resetWriteButton() {
-        progressText.visible = false
-        progressBar.visible = false
-        osbutton.enabled = true
-        dstbutton.enabled = true
-        hwbutton.enabled = true
-        writebutton.visible = true
-        writebutton.enabled = imageWriter.readyToWrite()
-        cancelwritebutton.visible = false
-        cancelverifybutton.visible = false
-        skipcachebutton.visible = false
-        focusAnchor.forceActiveFocus()
+        progressText.visible = false;
+        progressBar.visible = false;
+        osbutton.enabled = true;
+        dstbutton.enabled = true;
+        hwbutton.enabled = true;
+        writebutton.visible = true;
+        writebutton.enabled = imageWriter.readyToWrite();
+        cancelwritebutton.visible = false;
+        cancelverifybutton.visible = false;
+        skipcachebutton.visible = false;
+        focusAnchor.forceActiveFocus();
     }
 
     function onError(msg) {
-        msgpopup.title = qsTr("Error")
-        msgpopup.text = msg
-        msgpopup.open()
-        resetWriteButton()
+        msgpopup.title = qsTr("Error");
+        msgpopup.text = msg;
+        msgpopup.open();
+        resetWriteButton();
     }
 
     function onSuccess() {
-        msgpopup.title = qsTr("Write Successful")
+        msgpopup.title = qsTr("Write Successful");
         if (osbutton.text === qsTr("Erase"))
-            msgpopup.text = qsTr("<b>%1</b> has been erased<br><br>You can now remove the SD card from the reader").arg(dstbutton.text)
+            msgpopup.text = qsTr("<b>%1</b> has been erased<br><br>You can now remove the SD card from the reader").arg(dstbutton.text);
         else if (imageWriter.isEmbeddedMode()) {
             //msgpopup.text = qsTr("<b>%1</b> has been written to <b>%2</b>").arg(osbutton.text).arg(dstbutton.text)
             /* Just reboot to the installed OS */
-            Qt.quit()
-        }
-        else
-            msgpopup.text = qsTr("<b>%1</b> has been written to <b>%2</b><br><br>You can now remove the SD card from the reader").arg(osbutton.text).arg(dstbutton.text)
+            Qt.quit();
+        } else
+            msgpopup.text = qsTr("<b>%1</b> has been written to <b>%2</b><br><br>You can now remove the SD card from the reader").arg(osbutton.text).arg(dstbutton.text);
         if (imageWriter.isEmbeddedMode()) {
-            msgpopup.continueButton = false
-            msgpopup.quitButton = true
+            msgpopup.continueButton = false;
+            msgpopup.quitButton = true;
         }
 
-        msgpopup.open()
+        msgpopup.open();
     }
 
     function onFileSelected(file) {
-        imageWriter.setSrc(file)
-        window.selectedOsName = imageWriter.srcFileName()
-        ospopup.close()
-        ospopup.osswipeview.decrementCurrentIndex()
+        imageWriter.setSrc(file);
+        window.selectedOsName = imageWriter.srcFileName();
+        ospopup.close();
+        ospopup.osswipeview.decrementCurrentIndex();
         if (imageWriter.readyToWrite()) {
-            writebutton.enabled = true
+            writebutton.enabled = true;
         }
     }
 
     function onCancelled() {
-        resetWriteButton()
+        resetWriteButton();
     }
 
     function onFinalizing() {
-        progressText.text = qsTr("Finalizing...")
+        progressText.text = qsTr("Finalizing...");
     }
 
     function onNetworkInfo(msg) {
-        networkInfo.text = msg
+        networkInfo.text = msg;
     }
 
     function onCacheVerificationStarted() {
         // Set cache verification state
-        isCacheVerifying = true
-        
+        isCacheVerifying = true;
+
         // Hide write/cancel write buttons, show skip cache button
-        cancelwritebutton.visible = false
-        skipcachebutton.visible = true
-        skipcachebutton.enabled = true
-        progressText.text = qsTr("Verifying cached file...")
-        progressBar.Material.accent = Style.progressBarVerifyForegroundColor
-        progressBar.indeterminate = false
-        focusAnchor.forceActiveFocus()
+        cancelwritebutton.visible = false;
+        skipcachebutton.visible = true;
+        skipcachebutton.enabled = true;
+        progressText.text = qsTr("Verifying cached file...");
+        progressBar.Material.accent = Style.progressBarVerifyForegroundColor;
+        progressBar.indeterminate = false;
+        focusAnchor.forceActiveFocus();
     }
 
     function onCacheVerificationFinished() {
         // Clear cache verification state
-        isCacheVerifying = false
-        
+        isCacheVerifying = false;
+
         // Hide skip cache button
-        skipcachebutton.visible = false
-        
+        skipcachebutton.visible = false;
+
         // Reset progress bar color to write color and show write phase UI
-        progressBar.Material.accent = "#ffffff"
-        progressText.text = qsTr("Starting write...")
-        progressBar.indeterminate = true
-        progressBar.value = 0
-        
+        progressBar.Material.accent = "#ffffff";
+        progressText.text = qsTr("Starting write...");
+        progressBar.indeterminate = true;
+        progressBar.value = 0;
+
         // Show appropriate buttons for write phase
-        cancelwritebutton.visible = true
-        cancelwritebutton.enabled = true
+        cancelwritebutton.visible = true;
+        cancelwritebutton.enabled = true;
     }
 
     Timer {
         /* Verify if default drive is in our list after 100 ms */
         id: setDefaultDest
-        property string drive : ""
+        property string drive: ""
         interval: 100
         onTriggered: {
-            for (var i = 0; i < window.driveListModel.rowCount(); i++)
-            {
+            for (var i = 0; i < window.driveListModel.rowCount(); i++) {
                 /* FIXME: there should be a better way to iterate drivelist than
                    fetch data by numeric role number */
-                if (window.driveListModel.data(window.driveListModel.index(i,0), 0x101) === drive) {
+                if (window.driveListModel.data(window.driveListModel.index(i, 0), 0x101) === drive) {
                     dstpopup.selectDstItem({
-                                      device: drive,
-                                      description: window.driveListModel.data(window.driveListModel.index(i,0), 0x102),
-                                      size: window.driveListModel.data(window.driveListModel.index(i,0), 0x103),
-                                      readonly: false
-                                  })
-                    break
+                        device: drive,
+                        description: window.driveListModel.data(window.driveListModel.index(i, 0), 0x102),
+                        size: window.driveListModel.data(window.driveListModel.index(i, 0), 0x103),
+                        readonly: false
+                    });
+                    break;
                 }
             }
         }
@@ -971,6 +1019,6 @@ ApplicationWindow {
 
     // Called from C++
     function fetchOSlist() {
-        ospopup.fetchOSlist()
+        ospopup.fetchOSlist();
     }
 }

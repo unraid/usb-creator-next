@@ -10,6 +10,14 @@ import QtQuick 2.15
 Item {
     id: root
 
+    readonly property color unraidAccentColor: "#FF8C2F"
+
+    readonly property color unraidPrimaryBgColor: "#1C1B1B"
+    readonly property color unraidSecondaryBgColor: "#2B2A29"
+
+    readonly property color unraidTextColor: "#ffffff"
+    readonly property color unraidTextFocusColor: "#1C1B1B"
+
     readonly property color mainBackgroundColor: "#cd2355"
 
     readonly property color buttonBackgroundColor: "#ffffff"
@@ -54,8 +62,16 @@ Item {
     readonly property alias fontFamilyLight: robotoLight.name
     readonly property alias fontFamilyBold: robotoBold.name
 
-    FontLoader { id: roboto;      source: "fonts/Roboto-Regular.ttf" }
-    FontLoader { id: robotoLight; source: "fonts/Roboto-Light.ttf" }
-    FontLoader { id: robotoBold;  source: "fonts/Roboto-Bold.ttf" }
-
+    FontLoader {
+        id: roboto
+        source: "fonts/Roboto-Regular.ttf"
+    }
+    FontLoader {
+        id: robotoLight
+        source: "fonts/Roboto-Light.ttf"
+    }
+    FontLoader {
+        id: robotoBold
+        source: "fonts/Roboto-Bold.ttf"
+    }
 }

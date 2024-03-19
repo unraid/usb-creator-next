@@ -128,6 +128,6 @@ ImPopup {
         // Close the advanced options window if this msgbox is dismissed,
         // in order to prevent the user from starting writing while the
         // advanced options window is open.
-        closeSettings()
+        closeSettings();
     }
 }

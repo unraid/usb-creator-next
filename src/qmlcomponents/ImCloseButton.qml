@@ -14,6 +14,7 @@ Text {
     signal clicked
 
     text: "X"
+    color: Style.unraidTextColor
 
     // Layouting is here as all usage sites use the same code, so we save some lines.
     // Move it out usage once different usage is needed

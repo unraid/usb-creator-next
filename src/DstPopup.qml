@@ -18,29 +18,33 @@ MainPopupBase {
 
     // Provide implementation for the base popup's navigation functions
     function getNextFocusableElement(startElement) {
-        var focusableItems = [dstlist, filterSystemDrives, root.closeButton].filter(function(item) {
-            return item.visible && item.enabled
-        })
+        var focusableItems = [dstlist, filterSystemDrives, root.closeButton].filter(function (item) {
+            return item.visible && item.enabled;
+        });
 
-        if (focusableItems.length === 0) return startElement;
-        
-        var currentIndex = focusableItems.indexOf(startElement)
-        if (currentIndex === -1) return focusableItems[0];
+        if (focusableItems.length === 0)
+            return startElement;
+
+        var currentIndex = focusableItems.indexOf(startElement);
+        if (currentIndex === -1)
+            return focusableItems[0];
 
         var nextIndex = (currentIndex + 1) % focusableItems.length;
         return focusableItems[nextIndex];
     }
 
     function getPreviousFocusableElement(startElement) {
-        var focusableItems = [dstlist, filterSystemDrives, root.closeButton].filter(function(item) {
-            return item.visible && item.enabled
-        })
+        var focusableItems = [dstlist, filterSystemDrives, root.closeButton].filter(function (item) {
+            return item.visible && item.enabled;
+        });
 
-        if (focusableItems.length === 0) return startElement;
+        if (focusableItems.length === 0)
+            return startElement;
 
-        var currentIndex = focusableItems.indexOf(startElement)
-        if (currentIndex === -1) return focusableItems[focusableItems.length - 1];
-        
+        var currentIndex = focusableItems.indexOf(startElement);
+        if (currentIndex === -1)
+            return focusableItems[focusableItems.length - 1];
+
         var prevIndex = (currentIndex - 1 + focusableItems.length) % focusableItems.length;
         return focusableItems[prevIndex];
     }
@@ -61,7 +65,7 @@ MainPopupBase {
 
         onActiveFocusChanged: {
             if (activeFocus && currentIndex === -1 && count > 0) {
-                currentIndex = 0
+                currentIndex = 0;
             }
         }
 
@@ -74,28 +78,28 @@ MainPopupBase {
             font.bold: true
         }
 
-        Keys.onPressed: (event) => {
+        Keys.onPressed: event => {
             if (event.key === Qt.Key_Backtab || (event.key === Qt.Key_Tab && event.modifiers & Qt.ShiftModifier)) {
-                root.getPreviousFocusableElement(dstlist).forceActiveFocus()
-                event.accepted = true
+                root.getPreviousFocusableElement(dstlist).forceActiveFocus();
+                event.accepted = true;
             } else if (event.key === Qt.Key_Tab) {
-                root.getNextFocusableElement(dstlist).forceActiveFocus()
-                event.accepted = true
+                root.getNextFocusableElement(dstlist).forceActiveFocus();
+                event.accepted = true;
             } else {
                 // Allow default up/down arrow processing
-                event.accepted = false
+                event.accepted = false;
             }
         }
 
         Keys.onSpacePressed: {
             if (currentIndex == -1)
-                return
-            root.selectDstItem(currentItem)
+                return;
+            root.selectDstItem(currentItem);
         }
         Accessible.onPressAction: {
             if (currentIndex == -1)
-                return
-            root.selectDstItem(currentItem)
+                return;
+            root.selectDstItem(currentItem);
         }
     }
 
@@ -114,13 +118,13 @@ MainPopupBase {
             checked: true
             text: qsTr("Exclude System Drives")
 
-            Keys.onPressed: (event) => {
+            Keys.onPressed: event => {
                 if (event.key === Qt.Key_Backtab || (event.key === Qt.Key_Tab && event.modifiers & Qt.ShiftModifier)) {
-                    root.getPreviousFocusableElement(filterSystemDrives).forceActiveFocus()
-                    event.accepted = true
+                    root.getPreviousFocusableElement(filterSystemDrives).forceActiveFocus();
+                    event.accepted = true;
                 } else if (event.key === Qt.Key_Tab) {
-                    root.getNextFocusableElement(filterSystemDrives).forceActiveFocus()
-                    event.accepted = true
+                    root.getNextFocusableElement(filterSystemDrives).forceActiveFocus();
+                    event.accepted = true;
                 }
             }
         }
@@ -152,13 +156,12 @@ MainPopupBase {
             height: shouldHide ? 0 : 61
             visible: !shouldHide
             Accessible.name: {
-                var txt = description+" - "+(size/1000000000).toFixed(1)+ " " + qsTr("gigabytes")
+                var txt = description + " - " + (size / 1000000000).toFixed(1) + " " + qsTr("gigabytes");
                 if (mountpoints.length > 0) {
-                    txt += qsTr("Mounted as %1").arg(mountpoints.join(", "))
+                    txt += qsTr("Mounted as %1").arg(mountpoints.join(", "));
                 }
                 return txt;
             }
-
 
             Rectangle {
                 id: dstbgrect
@@ -166,11 +169,9 @@ MainPopupBase {
                 anchors.left: parent ? parent.left : undefined
                 anchors.right: parent ? parent.right : undefined
                 height: 60
-
-                color: (dstitem.ListView.view && dstitem.ListView.view.activeFocus && dstitem.ListView.view.currentIndex == index)
-                       ? Style.listViewHighlightColor
-                       : (mouseOver ? Style.listViewHoverRowBackgroundColor : Style.listViewRowBackgroundColor)
+                color: mouseOver ? Style.unraidAccentColor : Style.unraidPrimaryBgColor
                 property bool mouseOver: false
+                border.color: Style.unraidSecondaryBgColor
 
                 RowLayout {
                     anchors.fill: parent
@@ -181,7 +182,7 @@ MainPopupBase {
 
                     Image {
                         id: dstitem_image
-                        source: dstitem.isUsb ? "icons/ic_usb_40px.svg" : dstitem.isScsi ? "icons/ic_storage_40px.svg" : "icons/ic_sd_storage_40px.svg"
+                        source: dstitem.isUsb ? (dstbgrect.mouseOver ? "icons/ic_usb_40px.svg" : "icons/ic_usb_40px_orange.svg") : dstitem.isScsi ? (dstbgrect.mouseOver ? "icons/ic_storage_40px.svg" : "icons/ic_storage_40px_orange.svg") : (dstbgrect.mouseOver ? "icons/ic_sd_storage_40px.svg" : "icons/ic_sd_storage_40px_orange.svg")
                         verticalAlignment: Image.AlignVCenter
                         fillMode: Image.Pad
                     }
@@ -197,22 +198,42 @@ MainPopupBase {
                             Layout.fillWidth: true
                             font.family: Style.fontFamily
                             font.pointSize: 16
-                            color: !dstitem.unselectable ? "" : Style.formLabelDisabledColor;
+                            color: dstbgrect.mouseOver ? Style.unraidTextFocusColor : Style.unraidTextColor
                             text: {
-                                var sizeStr = (dstitem.size/1000000000).toFixed(1)+ " " + qsTr("GB");
+                                var sizeStr = (dstitem.size / 1000000000).toFixed(1) + " " + qsTr("GB");
                                 return dstitem.description + " - " + sizeStr;
                             }
-
+                            // Changed this text to Unraid's version -- Ajit
+                            // text: {
+                            //     var sizeStr = (dstitem.size / 1000000000).toFixed(1) + " GB";
+                            //     var txt;
+                            //     if (dstitem.isReadOnly) {
+                            //         txt = "<p><font size='4'>" + dstitem.description + " - " + sizeStr + "</font></p>";
+                            //         if (dstitem.mountpoints.length > 0) {
+                            //             txt += qsTr("Mounted as %1").arg(dstitem.mountpoints.join(", ")) + " ";
+                            //         }
+                            //         txt += qsTr("[WRITE PROTECTED]") + "</font>";
+                            //     } else {
+                            //         txt = "<p><font size='4'>" + dstitem.description + " - " + sizeStr + "</font></p>";
+                            //         if (dstitem.mountpoints.length > 0) {
+                            //             txt += qsTr("Mounted as %1").arg(dstitem.mountpoints.join(", ")) + "</font>";
+                            //         }
+                            //     }
+                            //     return txt;
+                            // }
                         }
+
+
+                        
                         Text {
                             textFormat: Text.StyledText
                             verticalAlignment: Text.AlignVCenter
                             Layout.fillWidth: true
                             font.family: Style.fontFamily
                             font.pointSize: 12
-                            color: !dstitem.unselectable ? "" : Style.formLabelDisabledColor;
+                            color: dstbgrect.mouseOver ? Style.unraidTextFocusColor : Style.unraidTextColor
                             text: {
-                                var txt= qsTr("Mounted as %1").arg(dstitem.mountpoints.join(", "));
+                                var txt = qsTr("Mounted as %1").arg(dstitem.mountpoints.join(", "));
                                 if (dstitem.isReadOnly) {
                                     txt += " " + qsTr("[WRITE PROTECTED]");
                                 } else if (dstitem.isSystem) {
@@ -223,7 +244,6 @@ MainPopupBase {
                         }
                     }
                 }
-
             }
             Rectangle {
                 id: dstborderrect
@@ -231,7 +251,7 @@ MainPopupBase {
                 anchors.left: parent ? parent.left : undefined
                 anchors.right: parent ? parent.right : undefined
                 height: 1
-                color: Style.popupBorderColor
+                color: Style.unraidSecondaryBgColor
             }
 
             MouseArea {
@@ -241,15 +261,15 @@ MainPopupBase {
                 enabled: !dstitem.unselectable
 
                 onEntered: {
-                    dstbgrect.mouseOver = true
+                    dstbgrect.mouseOver = true;
                 }
 
                 onExited: {
-                    dstbgrect.mouseOver = false
+                    dstbgrect.mouseOver = false;
                 }
 
                 onClicked: {
-                    root.selectDstItem(dstitem.modelData)
+                    root.selectDstItem(dstitem.modelData);
                 }
             }
         }
@@ -257,18 +277,18 @@ MainPopupBase {
 
     function selectDstItem(d) {
         if (d.isReadOnly) {
-            onError(qsTr("SD card is write protected.<br>Push the lock switch on the left side of the card upwards, and try again."))
-            return
+            onError(qsTr("SD card is write protected.<br>Push the lock switch on the left side of the card upwards, and try again."));
+            return;
         }
-        imageWriter.setDst(d.device)
-        window.selectedStorageName = d.description
+        imageWriter.setDst(d.device);
+        window.selectedStorageName = d.description;
         if (imageWriter.readyToWrite()) {
-            writebutton.enabled = true
+            writebutton.enabled = true;
         }
-        root.close()
+        root.close();
     }
 
     onOpened: {
-        root.contentItem.forceActiveFocus()
+        root.contentItem.forceActiveFocus();
     }
 }

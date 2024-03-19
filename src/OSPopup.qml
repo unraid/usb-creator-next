@@ -16,27 +16,31 @@ import RpiImager
 MainPopupBase {
     id: root
 
-    property string categorySelected : ""
+    property string categorySelected: ""
     property alias oslist: oslist
     property alias osswipeview: osswipeview
 
     // Provide implementation for the base popup's navigation functions
     function getNextFocusableElement(startElement) {
-        if (!startElement || !startElement.visible) startElement = root.closeButton;
-        var order = [ osswipeview, root.closeButton, ]
-        var currentIndex = order.indexOf(startElement)
-        if (currentIndex === -1) return osswipeview;
-        var nextElement = order[(currentIndex + 1) % order.length]
-        return nextElement.visible && nextElement.enabled ? nextElement : startElement
+        if (!startElement || !startElement.visible)
+            startElement = root.closeButton;
+        var order = [osswipeview, root.closeButton,];
+        var currentIndex = order.indexOf(startElement);
+        if (currentIndex === -1)
+            return osswipeview;
+        var nextElement = order[(currentIndex + 1) % order.length];
+        return nextElement.visible && nextElement.enabled ? nextElement : startElement;
     }
 
     function getPreviousFocusableElement(startElement) {
-        if (!startElement || !startElement.visible) startElement = root.closeButton;
-        var order = [  osswipeview, root.closeButton ]
-        var currentIndex = order.indexOf(startElement)
-        if (currentIndex === -1) return osswipeview;
-        var prevElement = order[(currentIndex - 1 + order.length) % order.length]
-        return prevElement.visible && prevElement.enabled ? prevElement : startElement
+        if (!startElement || !startElement.visible)
+            startElement = root.closeButton;
+        var order = [osswipeview, root.closeButton];
+        var currentIndex = order.indexOf(startElement);
+        if (currentIndex === -1)
+            return osswipeview;
+        var prevElement = order[(currentIndex - 1 + order.length) % order.length];
+        return prevElement.visible && prevElement.enabled ? prevElement : startElement;
     }
 
     required property ImageWriter imageWriter
@@ -49,22 +53,22 @@ MainPopupBase {
     title: qsTr("Operating System")
 
     onClosed: {
-        osswipeview.decrementCurrentIndex()
+        osswipeview.decrementCurrentIndex();
     }
 
     function _focusFirstItemInCurrentView() {
-        var currentView = osswipeview.currentItem
+        var currentView = osswipeview.currentItem;
         if (osswipeview.activeFocus && currentView && currentView.count > 0 && currentView.currentIndex === -1) {
-            currentView.currentIndex = 0
+            currentView.currentIndex = 0;
         }
     }
 
     SwipeView {
+        id: osswipeview
         anchors.top: root.title_separator.bottom
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-        id: osswipeview
         interactive: false
         clip: true
 
@@ -81,25 +85,25 @@ MainPopupBase {
 
             Keys.onSpacePressed: {
                 if (currentIndex != -1) {
-                    var item = oslist.itemAtIndex(currentIndex)
+                    var item = oslist.itemAtIndex(currentIndex);
                     if (item)
-                        root.selectOSitem(item.model, true)
+                        root.selectOSitem(item.model, true);
                 }
             }
             Accessible.onPressAction: {
                 if (currentIndex != -1) {
-                    var item = oslist.itemAtIndex(currentIndex)
+                    var item = oslist.itemAtIndex(currentIndex);
                     if (item)
-                        root.selectOSitem(item.model, true)
+                        root.selectOSitem(item.model, true);
                 }
             }
 
             Keys.onRightPressed: {
                 // Navigate into sublists but don't select an OS entry
                 if (currentIndex != -1) {
-                    var item = oslist.itemAtIndex(currentIndex)
+                    var item = oslist.itemAtIndex(currentIndex);
                     if (item && root.isOSsublist(item.model))
-                        root.selectOSitem(item.model, true)
+                        root.selectOSitem(item.model, true);
                 }
             }
         }
@@ -139,29 +143,36 @@ MainPopupBase {
             delegate: osdelegate
 
             boundsBehavior: Flickable.StopAtBounds
-            highlight: Rectangle { color: Style.listViewHighlightColor; radius: 5 }
+            highlight: Rectangle {
+                color: Style.listViewHighlightColor
+                radius: 5
+            }
             ScrollBar.vertical: ScrollBar {
                 width: 10
                 policy: sublistview.contentHeight > parent.height ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
             }
             Keys.onSpacePressed: {
                 if (currentIndex != -1)
-                    root.selectOSitem(model.get(currentIndex))
+                    root.selectOSitem(model.get(currentIndex));
             }
             Accessible.onPressAction: {
                 if (currentIndex != -1)
-                    root.selectOSitem(model.get(currentIndex))
+                    root.selectOSitem(model.get(currentIndex));
             }
-            Keys.onEnterPressed: (event) => { Keys.spacePressed(event) }
-            Keys.onReturnPressed: (event) => { Keys.spacePressed(event) }
+            Keys.onEnterPressed: event => {
+                Keys.spacePressed(event);
+            }
+            Keys.onReturnPressed: event => {
+                Keys.spacePressed(event);
+            }
             Keys.onRightPressed: {
                 // Navigate into sublists but don't select an OS entry
                 if (currentIndex != -1 && root.isOSsublist(model.get(currentIndex)))
-                    root.selectOSitem(model.get(currentIndex), true)
+                    root.selectOSitem(model.get(currentIndex), true);
             }
             Keys.onLeftPressed: {
-                osswipeview.decrementCurrentIndex()
-                root.categorySelected = ""
+                osswipeview.decrementCurrentIndex();
+                root.categorySelected = "";
             }
         }
     }
@@ -189,7 +200,7 @@ MainPopupBase {
 
             width: root.windowWidth - 100
             height: contentLayout.implicitHeight + 24
-            Accessible.name: name+".\n"+description
+            Accessible.name: name + ".\n" + description
 
             MouseArea {
                 id: osMouseArea
@@ -198,22 +209,22 @@ MainPopupBase {
                 hoverEnabled: true
 
                 onEntered: {
-                    bgrect.mouseOver = true
+                    bgrect.mouseOver = true;
                 }
 
                 onExited: {
-                    bgrect.mouseOver = false
+                    bgrect.mouseOver = false;
                 }
 
                 onClicked: {
-                    root.selectOSitem(delegateItem.model)
+                    root.selectOSitem(delegateItem.model);
                 }
             }
 
             Rectangle {
                 id: bgrect
                 anchors.fill: parent
-                color: Style.titleBackgroundColor
+                color: mouseOver ? Style.unraidAccentColor : Style.unraidPrimaryBgColor
                 visible: mouseOver && parent.ListView.view.currentIndex !== delegateItem.index
                 property bool mouseOver: false
             }
@@ -221,7 +232,7 @@ MainPopupBase {
                 id: borderrect
                 implicitHeight: 1
                 implicitWidth: parent.width
-                color: Style.popupBorderColor
+                color: Style.unraidSecondaryBgColor
                 y: parent.height
             }
 
@@ -235,8 +246,9 @@ MainPopupBase {
                 }
                 spacing: 12
 
+                // Might need to find a way to change this color as ColorOverlay not working/requires more troubleshooting in QT 6 -- Ajit
                 Image {
-                    source: delegateItem.icon == "icons/ic_build_48px.svg" ? "icons/cat_misc_utility_images.png": delegateItem.icon
+                    source: delegateItem.icon == "icons/ic_build_48px.svg" ? "icons/cat_misc_utility_images.png" : delegateItem.icon
                     Layout.preferredHeight: 40
                     Layout.preferredWidth: 40
                     sourceSize.width: 40
@@ -255,12 +267,13 @@ MainPopupBase {
                             elide: Text.ElideRight
                             font.family: Style.fontFamily
                             font.bold: true
+                            color: bgrect.mouseOver ? Style.unraidTextFocusColor : Style.unraidTextColor
                         }
                         Image {
                             source: "icons/ic_info_16px.png"
                             Layout.preferredHeight: 16
                             Layout.preferredWidth: 16
-                            visible: typeof(website) == "string" && delegateItem.website
+                            visible: typeof (website) == "string" && delegateItem.website
                             MouseArea {
                                 anchors.fill: parent
                                 onClicked: Qt.openUrlExternally(delegateItem.website)
@@ -276,41 +289,36 @@ MainPopupBase {
                         font.family: Style.fontFamily
                         text: delegateItem.description
                         wrapMode: Text.WordWrap
-                        color: Style.textDescriptionColor
+                        color: bgrect.mouseOver ? Style.unraidTextFocusColor : Style.unraidTextColor
                     }
 
                     Text {
                         Layout.fillWidth: true
                         elide: Text.ElideRight
-                        color: Style.textMetadataColor
+                        color: bgrect.mouseOver ? Style.unraidTextFocusColor : Style.unraidTextColor
                         font.weight: Font.Light
-                        visible: typeof(delegateItem.release_date) == "string" && delegateItem.release_date
+                        visible: typeof (delegateItem.release_date) == "string" && delegateItem.release_date
                         text: qsTr("Released: %1").arg(delegateItem.release_date)
                     }
                     Text {
                         Layout.fillWidth: true
                         elide: Text.ElideRight
-                        color: Style.textMetadataColor
+                        color: bgrect.mouseOver ? Style.unraidTextFocusColor : Style.unraidTextColor
                         font.weight: Font.Light
-                        visible: typeof(delegateItem.url) == "string" && delegateItem.url != "" && delegateItem.url != "internal://format"
-                        text: !delegateItem.url ? "" :
-                                     typeof(delegateItem.extract_sha256) != "undefined" && root.imageWriter.isCached(delegateItem.url, delegateItem.extract_sha256)
-                                     ? qsTr("Cached on your computer")
-                                     : delegateItem.url.startsWith("file://")
-                                       ? qsTr("Local file")
-                                       : qsTr("Online - %1 GB download").arg((delegateItem.image_download_size/1073741824).toFixed(1))
+                        visible: typeof (delegateItem.url) == "string" && delegateItem.url != "" && delegateItem.url != "internal://format"
+                        text: !delegateItem.url ? "" : typeof (delegateItem.extract_sha256) != "undefined" && root.imageWriter.isCached(delegateItem.url, delegateItem.extract_sha256) ? qsTr("Cached on your computer") : delegateItem.url.startsWith("file://") ? qsTr("Local file") : qsTr("Online - %1 GB download").arg((delegateItem.image_download_size / 1073741824).toFixed(1))
                     }
 
                     ToolTip {
-                        visible: osMouseArea.containsMouse && typeof(delegateItem.tooltip) == "string" && delegateItem.tooltip != ""
+                        visible: osMouseArea.containsMouse && typeof (delegateItem.tooltip) == "string" && delegateItem.tooltip != ""
                         delay: 1000
-                        text: typeof(delegateItem.tooltip) == "string" ? delegateItem.tooltip : ""
+                        text: typeof (delegateItem.tooltip) == "string" ? delegateItem.tooltip : ""
                         clip: false
                     }
                 }
                 Image {
                     source: "icons/ic_chevron_right_40px.svg"
-                    visible: (typeof(delegateItem.subitems_json) == "string" && delegateItem.subitems_json != "") || (typeof(delegateItem.subitems_url) == "string" && delegateItem.subitems_url != "" && delegateItem.subitems_url != "internal://back")
+                    visible: (typeof (delegateItem.subitems_json) == "string" && delegateItem.subitems_json != "") || (typeof (delegateItem.subitems_url) == "string" && delegateItem.subitems_url != "" && delegateItem.subitems_url != "internal://back")
                     Layout.preferredHeight: 40
                     Layout.preferredWidth: 40
                     fillMode: Image.PreserveAspectFit
@@ -319,149 +327,135 @@ MainPopupBase {
         }
     }
 
-    function selectNamedOS(name, collection)
-    {
+    function selectNamedOS(name, collection) {
         for (var i = 0; i < collection.count; i++) {
-            var os = collection.get(i)
+            var os = collection.get(i);
 
-            if (typeof(os.subitems_json) == "string" && os.subitems_json != "") {
-                selectNamedOS(name, os.subitems_json)
-            }
-            else if (typeof(os.url) !== "undefined" && name === os.name) {
-                selectOSitem(os, false)
-                break
+            if (typeof (os.subitems_json) == "string" && os.subitems_json != "") {
+                selectNamedOS(name, os.subitems_json);
+            } else if (typeof (os.url) !== "undefined" && name === os.name) {
+                selectOSitem(os, false);
+                break;
             }
         }
     }
 
-    function selectOSitem(d, selectFirstSubitem)
-    {
-        if (typeof(d.subitems_json) == "string" && d.subitems_json !== "") {
-            var m = newSublist()
-            var subitems = JSON.parse(d.subitems_json)
+    function selectOSitem(d, selectFirstSubitem) {
+        if (typeof (d.subitems_json) == "string" && d.subitems_json !== "") {
+            var m = newSublist();
+            var subitems = JSON.parse(d.subitems_json);
 
-            for (var i in subitems)
-            {
+            for (var i in subitems) {
                 var entry = subitems[i];
                 if ("subitems" in entry) {
                     /* Flatten sub-subitems entry */
-                    entry["subitems_json"] = JSON.stringify(entry["subitems"])
-                    delete entry["subitems"]
+                    entry["subitems_json"] = JSON.stringify(entry["subitems"]);
+                    delete entry["subitems"];
                 }
-                m.append(entry)
+                m.append(entry);
             }
 
-            osswipeview.itemAt(osswipeview.currentIndex+1).currentIndex = (selectFirstSubitem === true) ? 0 : -1
-            osswipeview.incrementCurrentIndex()
-            root.categorySelected = d.name
-        } else if (typeof(d.subitems_url) == "string" && d.subitems_url !== "") {
-            if (d.subitems_url === "internal://back")
-            {
-                osswipeview.decrementCurrentIndex()
-                root.categorySelected = ""
-            }
-            else
-            {
+            osswipeview.itemAt(osswipeview.currentIndex + 1).currentIndex = (selectFirstSubitem === true) ? 0 : -1;
+            osswipeview.incrementCurrentIndex();
+            root.categorySelected = d.name;
+        } else if (typeof (d.subitems_url) == "string" && d.subitems_url !== "") {
+            if (d.subitems_url === "internal://back") {
+                osswipeview.decrementCurrentIndex();
+                root.categorySelected = "";
+            } else {
                 console.log("Failure: Backend should have pre-flattened the JSON!");
 
-                osswipeview.itemAt(osswipeview.currentIndex+1).currentIndex = (selectFirstSubitem === true) ? 0 : -1
-                osswipeview.incrementCurrentIndex()
+                osswipeview.itemAt(osswipeview.currentIndex + 1).currentIndex = (selectFirstSubitem === true) ? 0 : -1;
+                osswipeview.incrementCurrentIndex();
             }
         } else if (d.url === "") {
             if (!root.imageWriter.isEmbeddedMode()) {
-                root.imageWriter.openFileDialog()
-            }
-            else {
+                root.imageWriter.openFileDialog();
+            } else {
                 if (root.imageWriter.mountUsbSourceMedia()) {
-                    var m = newSublist()
+                    var m = newSublist();
 
-                    var usboslist = JSON.parse(root.imageWriter.getUsbSourceOSlist())
+                    var usboslist = JSON.parse(root.imageWriter.getUsbSourceOSlist());
                     for (var i in usboslist) {
-                        m.append(usboslist[i])
+                        m.append(usboslist[i]);
                     }
-                    osswipeview.itemAt(osswipeview.currentIndex+1).currentIndex = (selectFirstSubitem === true) ? 0 : -1
-                    osswipeview.incrementCurrentIndex()
-                }
-                else
-                {
-                    onError(qsTr("Connect an USB stick containing images first.<br>The images must be located in the root folder of the USB stick."))
+                    osswipeview.itemAt(osswipeview.currentIndex + 1).currentIndex = (selectFirstSubitem === true) ? 0 : -1;
+                    osswipeview.incrementCurrentIndex();
+                } else {
+                    onError(qsTr("Connect an USB stick containing images first.<br>The images must be located in the root folder of the USB stick."));
                 }
             }
         } else {
-            root.imageWriter.setSrc(d.url, d.image_download_size, d.extract_size, typeof(d.extract_sha256) != "undefined" ? d.extract_sha256 : "", typeof(d.contains_multiple_files) != "undefined" ? d.contains_multiple_files : false, root.categorySelected, d.name, typeof(d.init_format) != "undefined" ? d.init_format : "")
-            window.selectedOsName = d.name
-            root.close()
-            osswipeview.decrementCurrentIndex()
+            root.imageWriter.setSrc(d.url, d.image_download_size, d.extract_size, typeof (d.extract_sha256) != "undefined" ? d.extract_sha256 : "", typeof (d.contains_multiple_files) != "undefined" ? d.contains_multiple_files : false, root.categorySelected, d.name, typeof (d.init_format) != "undefined" ? d.init_format : "");
+            window.selectedOsName = d.name;
+            root.close();
+            osswipeview.decrementCurrentIndex();
             if (root.imageWriter.readyToWrite()) {
-                writebutton.enabled = true
+                writebutton.enabled = true;
             }
         }
     }
 
     function newSublist() {
-        if (osswipeview.currentIndex == (osswipeview.count-1))
-        {
-            var newlist = suboslist.createObject(osswipeview)
-            osswipeview.addItem(newlist)
+        if (osswipeview.currentIndex == (osswipeview.count - 1)) {
+            var newlist = suboslist.createObject(osswipeview);
+            osswipeview.addItem(newlist);
         }
 
-        var m = osswipeview.itemAt(osswipeview.currentIndex+1).model // qmllint disable missing-property
+        var m = osswipeview.itemAt(osswipeview.currentIndex + 1).model; // qmllint disable missing-property
 
-        if (m.count>1)
-        {
-            m.remove(1, m.count-1)
+        if (m.count > 1) {
+            m.remove(1, m.count - 1);
         }
 
-        return m
+        return m;
     }
 
     /// Returns whether this item has children
     function isOSsublist(d) {
         // Top level category
-        if (typeof(d.subitems_json) == "string" && d.subitems_json !== "") {
-            return true
+        if (typeof (d.subitems_json) == "string" && d.subitems_json !== "") {
+            return true;
         }
 
         // Sub-category
-        if (typeof(d.subitems_url) == "string" && d.subitems_url !== ""
-                && d.subitems_url !== "internal://back")
-        {
-            return true
+        if (typeof (d.subitems_url) == "string" && d.subitems_url !== "" && d.subitems_url !== "internal://back") {
+            return true;
         }
 
-        return false
+        return false;
     }
 
     function fetchOSlist() {
         /// Reload OS model and HW model as well due to filtering
-        root.osmodel.reload()
-        root.hwmodel.reload()
+        root.osmodel.reload();
+        root.hwmodel.reload();
 
-        var o = JSON.parse(root.imageWriter.getFilteredOSlist())
+        var o = JSON.parse(root.imageWriter.getFilteredOSlist());
         if ("imager" in o) {
-            var imager = o["imager"]
+            var imager = o["imager"];
 
             if (root.imageWriter.getBoolSetting("check_version") && "latest_version" in imager && "url" in imager) {
                 if (!root.imageWriter.isEmbeddedMode() && root.imageWriter.isVersionNewer(imager["latest_version"])) {
-                    root.updatePopupRequested(imager["url"])
+                    root.updatePopupRequested(imager["url"]);
                 }
             }
             if ("default_os" in imager) {
-                selectNamedOS(imager["default_os"], osmodel)
+                selectNamedOS(imager["default_os"], osmodel);
             }
             if (root.imageWriter.isEmbeddedMode()) {
                 if ("embedded_default_os" in imager) {
-                    selectNamedOS(imager["embedded_default_os"], osmodel)
+                    selectNamedOS(imager["embedded_default_os"], osmodel);
                 }
                 if ("embedded_default_destination" in imager) {
-                    root.imageWriter.startDriveListPolling()
-                    root.defaultEmbeddedDriveRequested(imager["embedded_default_destination"])
+                    root.imageWriter.startDriveListPolling();
+                    root.defaultEmbeddedDriveRequested(imager["embedded_default_destination"]);
                 }
             }
         }
     }
 
     onOpened: {
-        osswipeview.forceActiveFocus()
+        osswipeview.forceActiveFocus();
     }
 }
