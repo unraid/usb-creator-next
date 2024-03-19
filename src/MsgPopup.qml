@@ -29,12 +29,12 @@ Popup {
     
     background: Rectangle {
         color: "#1C1B1B"
-        border.color: "#2B2A29"
+        border.color: UnColors.mediumGray
     }
 
     // background of title
     Rectangle {
-        color: "#2B2A29"
+        color: UnColors.mediumGray
         anchors.right: parent.right
         anchors.top: parent.top
         height: 35
@@ -42,7 +42,7 @@ Popup {
     }
     // line under title
     Rectangle {
-        color: "#2B2A29"
+        color: UnColors.mediumGray
         width: parent.width
         y: 35
         implicitHeight: 1

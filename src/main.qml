@@ -347,7 +347,7 @@ ApplicationWindow {
                     visible: imageWriter.isEmbeddedMode()
                     implicitWidth: langbar.width
                     implicitHeight: langbar.height
-                    color: "#2B2A29"
+                    color: UnColors.mediumGray
                     Material.theme: Material.Dark
                     Material.background: "#1C1B1B"
                     Material.accent: "#FF8C2F"
@@ -492,12 +492,12 @@ ApplicationWindow {
         
         background: Rectangle {
             color: "#1C1B1B"
-            border.color: "#2B2A29"
+            border.color: UnColors.mediumGray
         }
 
         // background of title
         Rectangle {
-            color: "#2B2A29"
+            color: UnColors.mediumGray
             anchors.right: parent.right
             anchors.top: parent.top
             height: 35
@@ -505,7 +505,7 @@ ApplicationWindow {
         }
         // line under title
         Rectangle {
-            color: "#2B2A29"
+            color: UnColors.mediumGray
             width: parent.width
             y: 35
             implicitHeight: 1
@@ -601,12 +601,12 @@ ApplicationWindow {
         
         background: Rectangle {
             color: "#1C1B1B"
-            border.color: "#2B2A29"
+            border.color: UnColors.mediumGray
         }
 
         // background of title
         Rectangle {
-            color: "#2B2A29"
+            color: UnColors.mediumGray
             anchors.right: parent.right
             anchors.top: parent.top
             height: 35
@@ -614,7 +614,7 @@ ApplicationWindow {
         }
         // line under title
         Rectangle {
-            color: "#2B2A29"
+            color: UnColors.mediumGray
             width: parent.width
             y: 35
             implicitHeight: 1
@@ -795,13 +795,13 @@ ApplicationWindow {
                color: mouseOver ? "#FF8C2F" : "#1C1B1B"
                visible: mouseOver && parent.ListView.view.currentIndex !== index
                property bool mouseOver: false
-               border.color: "#2B2A29"
+               border.color: UnColors.mediumGray
             }
             Rectangle {
                id: borderrect
                implicitHeight: 1
                implicitWidth: parent.width
-               color: "#2B2A29"
+               color: UnColors.mediumGray
                y: parent.height
             }
 
@@ -894,13 +894,13 @@ ApplicationWindow {
                color: mouseOver ? "#FF8C2F" : "#1C1B1B"
                visible: mouseOver && parent.ListView.view.currentIndex !== index
                property bool mouseOver: false
-               border.color: "#2B2A29"
+               border.color: UnColors.mediumGray
             }
             Rectangle {
                id: borderrect
                implicitHeight: 1
                implicitWidth: parent.width
-               color: "#2B2A29"
+               color: UnColors.mediumGray
                y: parent.height
             }
 
@@ -1020,12 +1020,12 @@ ApplicationWindow {
 
         background: Rectangle {
             color: "#1C1B1B"
-            border.color: "#2B2A29"
+            border.color: UnColors.mediumGray
         }
 
         // background of title
         Rectangle {
-            color: "#2B2A29"
+            color: UnColors.mediumGray
             anchors.right: parent.right
             anchors.top: parent.top
             height: 35
@@ -1033,7 +1033,7 @@ ApplicationWindow {
         }
         // line under title
         Rectangle {
-            color: "#2B2A29"
+            color: UnColors.mediumGray
             width: parent.width
             y: 35
             implicitHeight: 1
@@ -1140,14 +1140,14 @@ ApplicationWindow {
                color: mouseOver ? "#FF8C2F" : "#1C1B1B"
                visible: mouseOver && parent.ListView.view.currentIndex !== index
                property bool mouseOver: false
-               border.color: "#2B2A29"
+               border.color: UnColors.mediumGray
 
             }
             Rectangle {
                id: dstborderrect
                implicitHeight: 1
                implicitWidth: parent.width
-               color: "#2B2A29"
+               color: UnColors.mediumGray
                y: parent.height
             }
 
