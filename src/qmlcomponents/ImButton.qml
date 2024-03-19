@@ -24,7 +24,7 @@ Button {
         text: parent.text
         font: parent.font
         opacity: enabled ? 1.0 : 0.3
-        color: parent.hovered ? UnColors.darkGray : "#FFFFFF"
+        color: parent.hovered ? UnColors.darkGray : "white"
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
         elide: Text.ElideRight

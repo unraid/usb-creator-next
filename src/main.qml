@@ -116,7 +116,7 @@ ApplicationWindow {
 
                     Text {
                         id: text0
-                        color: "#ffffff"
+                        color: "white"
                         text: qsTr("Raspberry Pi Device")
                         Layout.fillWidth: true
                         Layout.preferredHeight: 17
@@ -154,7 +154,7 @@ ApplicationWindow {
 
                     Text {
                         id: text1
-                        color: "#ffffff"
+                        color: "white"
                         text: qsTr("Operating System")
                         Layout.fillWidth: true
                         Layout.preferredHeight: 17
@@ -191,7 +191,7 @@ ApplicationWindow {
 
                     Text {
                         id: text2
-                        color: "#ffffff"
+                        color: "white"
                         text: qsTr("Storage")
                         Layout.fillWidth: true
                         Layout.preferredHeight: 17
@@ -313,7 +313,7 @@ ApplicationWindow {
 
                 Text {
                     Layout.columnSpan: 3
-                    color: "#ffffff"
+                    color: "white"
                     font.pixelSize: 18
                     font.family: roboto.name
                     visible: imageWriter.isEmbeddedMode() && imageWriter.customRepo()
@@ -323,7 +323,7 @@ ApplicationWindow {
                 Text {
                     id: networkInfo
                     Layout.columnSpan: 3
-                    color: "#ffffff"
+                    color: "white"
                     font.pixelSize: 18
                     font.family: roboto.name
                     visible: imageWriter.isEmbeddedMode()
@@ -332,7 +332,7 @@ ApplicationWindow {
 
                 Text {
                     Layout.columnSpan: 3
-                    color: "#ffffff"
+                    color: "white"
                     font.pixelSize: 18
                     font.family: roboto.name
                     visible: !imageWriter.hasMouse()
@@ -364,7 +364,7 @@ ApplicationWindow {
                             Layout.leftMargin: 30
                             Layout.topMargin: 10
                             Layout.bottomMargin: 10
-                            color: "#FFFFFF"
+                            color: "white"
                         }
                         ComboBox {
                             id: languageselector
@@ -410,7 +410,7 @@ ApplicationWindow {
                             text: qsTr("Keyboard: ")
                             Layout.topMargin: 10
                             Layout.bottomMargin: 10
-                            color: "#FFFFFF"
+                            color: "white"
                         }
                         ComboBox {
                             enabled: imageWriter.isEmbeddedMode()
@@ -512,7 +512,7 @@ ApplicationWindow {
         }
 
         Text {
-            color: "#FFFFFF"
+            color: "white"
             text: "X"
             anchors.right: parent.right
             anchors.top: parent.top
@@ -534,7 +534,7 @@ ApplicationWindow {
             spacing: 10
 
             Text {
-                color: "#FFFFFF"
+                color: "white"
                 text: qsTr("Raspberry Pi Device")
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
@@ -622,7 +622,7 @@ ApplicationWindow {
 
         Text {
             text: "X"
-            color: "#FFFFFF"
+            color: "white"
             anchors.right: parent.right
             anchors.top: parent.top
             anchors.rightMargin: 25
@@ -645,7 +645,7 @@ ApplicationWindow {
 
             Text {
                 text: qsTr("Operating System")
-                color: "#FFFFFF"
+                color: "white"
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 Layout.fillWidth: true
@@ -839,7 +839,7 @@ ApplicationWindow {
                         elide: Text.ElideRight
                         font.family: roboto.name
                         font.bold: true
-                        color: bgrect.mouseOver ? UnColors.darkGray : "#FFFFFF"
+                        color: bgrect.mouseOver ? UnColors.darkGray : "white"
                     }
 
                     Text {
@@ -847,7 +847,7 @@ ApplicationWindow {
                         font.family: roboto.name
                         text: description
                         wrapMode: Text.WordWrap
-                        color: bgrect.mouseOver ? UnColors.darkGray : "#FFFFFF"
+                        color: bgrect.mouseOver ? UnColors.darkGray : "white"
                     }
 
                     ToolTip {
@@ -940,7 +940,7 @@ ApplicationWindow {
                             elide: Text.ElideRight
                             font.family: roboto.name
                             font.bold: true
-                            color: bgrect.mouseOver ? UnColors.darkGray : "#FFFFFF"
+                            color: bgrect.mouseOver ? UnColors.darkGray : "white"
                         }
                         Image {
                             source: "icons/ic_info_16px.png"
@@ -962,13 +962,13 @@ ApplicationWindow {
                         font.family: roboto.name
                         text: description
                         wrapMode: Text.WordWrap
-                        color: bgrect.mouseOver ? UnColors.darkGray : "#FFFFFF"
+                        color: bgrect.mouseOver ? UnColors.darkGray : "white"
                     }
 
                     Text {
                         Layout.fillWidth: true
                         elide: Text.ElideRight
-                        color: bgrect.mouseOver ? UnColors.darkGray : "#FFFFFF"
+                        color: bgrect.mouseOver ? UnColors.darkGray : "white"
                         font.weight: Font.Light
                         visible: typeof(release_date) == "string" && release_date
                         text: qsTr("Released: %1").arg(release_date)
@@ -976,7 +976,7 @@ ApplicationWindow {
                     Text {
                         Layout.fillWidth: true
                         elide: Text.ElideRight
-                        color: bgrect.mouseOver ? UnColors.darkGray : "#FFFFFF"
+                        color: bgrect.mouseOver ? UnColors.darkGray : "white"
                         font.weight: Font.Light
                         visible: typeof(url) == "string" && url != "" && url != "internal://format"
                         text: !url ? "" :
@@ -1041,7 +1041,7 @@ ApplicationWindow {
 
         Text {
             text: "X"
-            color: "#FFFFFF"
+            color: "white"
             anchors.right: parent.right
             anchors.top: parent.top
             anchors.rightMargin: 25
@@ -1063,7 +1063,7 @@ ApplicationWindow {
 
             Text {
                 text: qsTr("Storage")
-                color: "#FFFFFF"
+                color: "white"
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 Layout.fillWidth: true
@@ -1190,7 +1190,7 @@ ApplicationWindow {
                             }
                             return txt;
                         }
-                        color: dstbgrect.mouseOver ? UnColors.darkGray : "#FFFFFF"
+                        color: dstbgrect.mouseOver ? UnColors.darkGray : "white"
                     }
                 }
             }

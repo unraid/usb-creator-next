@@ -51,7 +51,7 @@ Popup {
     Text {
         id: msgx
         text: "X"
-        color: "#FFFFFF"
+        color: "white"
         anchors.right: parent.right
         anchors.top: parent.top
         anchors.rightMargin: 25
@@ -80,7 +80,7 @@ Popup {
             Layout.topMargin: 10
             font.family: roboto.name
             font.bold: true
-            color: "#FFFFFF"
+            color: "white"
         }
 
         Text {
@@ -94,7 +94,7 @@ Popup {
             Layout.leftMargin: 25
             Layout.topMargin: 25
             Accessible.name: text.replace(/<\/?[^>]+(>|$)/g, "")
-            color: "#FFFFFF"
+            color: "white"
         }
 
         RowLayout {

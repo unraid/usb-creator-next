@@ -51,7 +51,7 @@ Popup {
     Text {
         id: msgx
         text: "X"
-        color: "#FFFFFF"
+        color: "white"
         anchors.right: parent.right
         anchors.top: parent.top
         anchors.rightMargin: 25
@@ -81,7 +81,7 @@ Popup {
             font.family: roboto.name
             font.bold: true
             text: qsTr("Use OS customization?")
-            color: "#FFFFFF"
+            color: "white"
         }
 
         Text {
@@ -97,7 +97,7 @@ Popup {
             Layout.alignment: Qt.AlignVCenter | Qt.AlignHCenter
             Accessible.name: text.replace(/<\/?[^>]+(>|$)/g, "")
             text: qsTr("Would you like to apply OS customization settings?")
-            color: "#FFFFFF"
+            color: "white"
         }
 
         RowLayout {

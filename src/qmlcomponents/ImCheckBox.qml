@@ -37,7 +37,7 @@ CheckBox {
         text: parent.text
         font: parent.font
         opacity: parent.enabled ? 1.0 : 0.3
-        color: "#FFFFFF"
+        color: "white"
         verticalAlignment: Text.AlignVCenter
         leftPadding: parent.indicator.width + parent.spacing
     }

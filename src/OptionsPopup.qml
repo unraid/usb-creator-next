@@ -108,7 +108,7 @@ Window {
                                 Text {
                                     text : ".local"
                                     opacity: chkHostname.checked ? 1.0 : 0.3
-                                    color: "#FFFFFF"
+                                    color: "white"
                                 }
                             }
 
@@ -138,7 +138,7 @@ Window {
                                     Text {
                                         text: qsTr("Username:")
                                         opacity: parent.enabled ? 1.0 : 0.3
-                                        color: fieldUserName.indicateError ? "red" : "#FFFFFF"
+                                        color: fieldUserName.indicateError ? "red" : "white"
                                     }
                                     TextField {
                                         id: fieldUserName
@@ -157,7 +157,7 @@ Window {
                                     Text {
                                         text: qsTr("Password:")
                                         opacity: parent.enabled ? 1.0 : 0.3
-                                        color: fieldUserPassword.indicateError ? "red" : "#FFFFFF"
+                                        color: fieldUserPassword.indicateError ? "red" : "white"
                                     }
                                     TextField {
                                         id: fieldUserPassword
@@ -213,7 +213,7 @@ Window {
                                 Text {
                                     text: qsTr("SSID:")
                                     opacity: parent.enabled ? 1.0 : 0.3
-                                    color: fieldWifiSSID.indicateError ? "red" : "#FFFFFF"
+                                    color: fieldWifiSSID.indicateError ? "red" : "white"
                                 }
                                 TextField {
                                     id: fieldWifiSSID
@@ -228,7 +228,7 @@ Window {
                                 Text {
                                     text: qsTr("Password:")
                                     opacity: parent.enabled ? 1.0 : 0.3
-                                    color: fieldWifiPassword.indicateError ? "red" : "#FFFFFF"
+                                    color: fieldWifiPassword.indicateError ? "red" : "white"
                                 }
                                 TextField {
                                     id: fieldWifiPassword
@@ -260,7 +260,7 @@ Window {
                                 Text {
                                     text: qsTr("Wireless LAN country:")
                                     opacity: parent.enabled ? 1.0 : 0.3
-                                    color: "#FFFFFF"
+                                    color: "white"
                                 }
                                 ComboBox {
                                     id: fieldWifiCountry
@@ -282,7 +282,7 @@ Window {
                                 Text {
                                     text: qsTr("Time zone:")
                                     opacity: parent.enabled ? 1.0 : 0.3
-                                    color: "#FFFFFF"
+                                    color: "white"
                                 }
                                 ComboBox {
                                     id: fieldTimezone
@@ -293,7 +293,7 @@ Window {
                                 Text {
                                     text: qsTr("Keyboard layout:")
                                     opacity: parent.enabled ? 1.0 : 0.3
-                                    color: "#FFFFFF"
+                                    color: "white"
                                 }
                                 ComboBox {
                                     id: fieldKeyboardLayout
@@ -358,7 +358,7 @@ Window {
                                     Text {
                                         text: qsTr("Set authorized_keys for '%1':").arg(fieldUserName.text)
                                         opacity: parent.enabled ? 1.0 : 0.3
-                                        color: "#FFFFFF"
+                                        color: "white"
                                         textFormat: Text.PlainText
                                     }
                                     TextArea {
