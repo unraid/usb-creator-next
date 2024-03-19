@@ -350,7 +350,7 @@ ApplicationWindow {
                     color: UnColors.mediumGray
                     Material.theme: Material.Dark
                     Material.background: "#1C1B1B"
-                    Material.accent: "#FF8C2F"
+                    Material.accent: UnColors.orange
                     radius: 5
 
                     RowLayout {
@@ -387,7 +387,7 @@ ApplicationWindow {
                                 implicitHeight: contentItem.implicitHeight
                                 padding: 1
                                 Material.theme: Material.Dark
-                                Material.accent: "#FF8C2F"
+                                Material.accent: UnColors.orange
 
                                 contentItem: ListView {
                                     clip: true
@@ -433,7 +433,7 @@ ApplicationWindow {
                                 implicitHeight: contentItem.implicitHeight
                                 padding: 1
                                 Material.theme: Material.Dark
-                                Material.accent: "#FF8C2F"
+                                Material.accent: UnColors.orange
 
                                 contentItem: ListView {
                                     clip: true
@@ -792,7 +792,7 @@ ApplicationWindow {
             Rectangle {
                id: bgrect
                anchors.fill: parent
-               color: mouseOver ? "#FF8C2F" : "#1C1B1B"
+               color: mouseOver ? UnColors.orange : "#1C1B1B"
                visible: mouseOver && parent.ListView.view.currentIndex !== index
                property bool mouseOver: false
                border.color: UnColors.mediumGray
@@ -829,7 +829,7 @@ ApplicationWindow {
                 ColorOverlay {
                     anchors.fill: iconimage
                     source: iconimage
-                    color: bgrect.mouseOver ? "#1C1B1B" : "#FF8C2F"
+                    color: bgrect.mouseOver ? "#1C1B1B" : UnColors.orange
                 }
                 ColumnLayout {
                     Layout.fillWidth: true
@@ -891,7 +891,7 @@ ApplicationWindow {
             Rectangle {
                id: bgrect
                anchors.fill: parent
-               color: mouseOver ? "#FF8C2F" : "#1C1B1B"
+               color: mouseOver ? UnColors.orange : "#1C1B1B"
                visible: mouseOver && parent.ListView.view.currentIndex !== index
                property bool mouseOver: false
                border.color: UnColors.mediumGray
@@ -928,7 +928,7 @@ ApplicationWindow {
                 ColorOverlay {
                     anchors.fill: iconimage
                     source: iconimage
-                    color: bgrect.mouseOver ? "#1C1B1B" : "#FF8C2F"
+                    color: bgrect.mouseOver ? "#1C1B1B" : UnColors.orange
                 }
                 ColumnLayout {
                     Layout.fillWidth: true
@@ -1137,7 +1137,7 @@ ApplicationWindow {
             Rectangle {
                id: dstbgrect
                anchors.fill: parent
-               color: mouseOver ? "#FF8C2F" : "#1C1B1B"
+               color: mouseOver ? UnColors.orange : "#1C1B1B"
                visible: mouseOver && parent.ListView.view.currentIndex !== index
                property bool mouseOver: false
                border.color: UnColors.mediumGray
@@ -1252,7 +1252,7 @@ ApplicationWindow {
             progressText.visible = true
             progressBar.visible = true
             progressBar.indeterminate = true
-            progressBar.Material.accent = "#FF8C2F"
+            progressBar.Material.accent = UnColors.orange
             osbutton.enabled = false
             dstbutton.enabled = false
             hwbutton.enabled = false
@@ -1353,7 +1353,7 @@ ApplicationWindow {
                 return
 
             progressText.text = qsTr("Verifying... %1%").arg(Math.floor(newPos*100))
-            progressBar.Material.accent = "#FF8C2F"
+            progressBar.Material.accent = UnColors.orange
             progressBar.value = newPos
         }
     }

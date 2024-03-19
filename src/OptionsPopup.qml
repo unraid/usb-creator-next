@@ -22,7 +22,7 @@ Window {
     color: "#1C1B1B"
     Material.theme: Material.Dark
     Material.background: "#1C1B1B"
-    Material.accent: "#FF8C2F"
+    Material.accent: UnColors.orange
 
     property bool initialized: false
     property bool hasSavedSettings: false

@@ -16,8 +16,8 @@ CheckBox {
         y: parent.height / 2 - height / 2
         radius: 3
         opacity: parent.enabled ? 1.0 : 0.3
-        color: parent.checked ? "#FF8C2F" : "#1C1B1B"
-        border.color: "#FF8C2F"
+        color: parent.checked ? UnColors.orange : "#1C1B1B"
+        border.color: UnColors.orange
 
 
         Text {
