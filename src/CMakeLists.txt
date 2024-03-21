@@ -344,14 +344,14 @@ else()
     endif()
 
     configure_file(
-        "${CMAKE_CURRENT_SOURCE_DIR}/linux/rpi-imager.metainfo.xml.in"
-        "${CMAKE_CURRENT_BINARY_DIR}/rpi-imager.metainfo.xml"
+        "${CMAKE_CURRENT_SOURCE_DIR}/linux/unraid-imager.metainfo.xml.in"
+        "${CMAKE_CURRENT_BINARY_DIR}/unraid-imager.metainfo.xml"
         @ONLY)
 
     install(TARGETS unraid-imager DESTINATION bin)
     install(FILES icons/unraid128.png DESTINATION share/icons/hicolor/128x128/apps)
-    install(FILES linux/org.raspberrypi.rpi-imager.desktop DESTINATION share/applications)
-    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/rpi-imager.metainfo.xml" DESTINATION share/metainfo)
+    install(FILES linux/org.unraid.unraid-imager.desktop DESTINATION share/applications)
+    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/unraid-imager.metainfo.xml" DESTINATION share/metainfo)
 endif()
 
 include_directories(${CURL_INCLUDE_DIR} ${LibArchive_INCLUDE_DIR} ${OPENSSL_INCLUDE_DIR} ${LIBLZMA_INCLUDE_DIR} ${LIBDRM_INCLUDE_DIRS})
