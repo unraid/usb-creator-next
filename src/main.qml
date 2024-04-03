@@ -302,11 +302,11 @@ ApplicationWindow {
                                 return
                             }
 
-                            if (!optionspopup.visible && imageWriter.imageSupportsCustomization()) {
-                                usesavedsettingspopup.openPopup()
-                            } else {
-                                confirmwritepopup.askForConfirmation()
-                            }
+                            if (!optionspopup.visible) {
+                                optionspopup.openPopup()
+                            } 
+                            confirmwritepopup.askForConfirmation()
+                            
                         }
                     }
                 }
@@ -1288,32 +1288,6 @@ ApplicationWindow {
         id: optionspopup
         onSaveSettingsSignal: {
             imageWriter.setSavedCustomizationSettings(settings)
-            usesavedsettingspopup.hasSavedSettings = true
-        }
-    }
-
-    UseSavedSettingsPopup {
-        id: usesavedsettingspopup
-        onYes: {
-            optionspopup.initialize()
-            optionspopup.applySettings()
-            confirmwritepopup.askForConfirmation()
-        }
-        onNo: {
-            imageWriter.setImageCustomization("", "", "", "", "")
-            confirmwritepopup.askForConfirmation()
-        }
-        onNoClearSettings: {
-            hasSavedSettings = false
-            optionspopup.clearCustomizationFields()
-            imageWriter.clearSavedCustomizationSettings()
-            confirmwritepopup.askForConfirmation()
-        }
-        onEditSettings: {
-            optionspopup.openPopup()
-        }
-        onCloseSettings: {
-            optionspopup.close()
         }
     }
 
