@@ -38,12 +38,13 @@ static QTextStream cerr(stderr);
 /* Newer Qt versions throw warnings if using ::endl instead of Qt::endl
    Older versions lack Qt::endl */
 #if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
-//using Qt::endl;
-#define endl  Qt::endl
+// using Qt::endl;
+#define endl Qt::endl
 #endif
 
 #ifdef Q_OS_WIN
-static void consoleMsgHandler(QtMsgType, const QMessageLogContext &, const QString &str) {
+static void consoleMsgHandler(QtMsgType, const QMessageLogContext &, const QString &str)
+{
     cerr << str << endl;
 }
 #endif
@@ -58,17 +59,17 @@ bool handleDri()
 
     for (const QString &fn : entries)
     {
-        QFile f("/dev/dri/"+fn);
+        QFile f("/dev/dri/" + fn);
         if (f.open(f.ReadWrite))
         {
             drmModeResPtr resources = drmModeGetResources(f.handle());
             if (resources)
             {
-                driDev = "/dev/dri/"+fn.toLatin1();
+                driDev = "/dev/dri/" + fn.toLatin1();
                 cerr << "Using " << driDev << endl;
 
                 /* Get current resolution to calculate scaling factor while we are at it */
-                for (int i=0; i<resources->count_connectors; i++)
+                for (int i = 0; i < resources->count_connectors; i++)
                 {
                     drmModeConnectorPtr connector = drmModeGetConnector(f.handle(), resources->connectors[i]);
                     if (connector)
@@ -107,7 +108,7 @@ bool handleDri()
         }
         else
         {
-            cerr << "Error opening /dev/dri/"+fn << endl;
+            cerr << "Error opening /dev/dri/" + fn << endl;
         }
     }
 
@@ -118,7 +119,7 @@ bool handleDri()
     }
     QFile f("/tmp/qt-kms-config.json");
     f.open(f.WriteOnly);
-    f.write("{ \"device\": \""+driDev+"\", \"hwcursor\": false }\n");
+    f.write("{ \"device\": \"" + driDev + "\", \"hwcursor\": false }\n");
     f.close();
     qputenv("QT_QPA_EGLFS_KMS_CONFIG", "/tmp/qt-kms-config.json");
 
@@ -166,7 +167,7 @@ int main(int argc, char *argv[])
     QCoreApplication::setAttribute(Qt::AA_UseOpenGLES);
 #endif
 #ifdef QT_NO_WIDGETS
-    if ( !handleDri() )
+    if (!handleDri())
         return 1;
 
     QGuiApplication app(argc, argv);
@@ -175,7 +176,7 @@ int main(int argc, char *argv[])
     QStringList fontList = QFontDatabase::applicationFontFamilies(QFontDatabase::addApplicationFont(":/fonts/Roboto-Regular.ttf"));
     QGuiApplication::setFont(QFont(fontList.first(), 10));
     if (QFile::exists("/usr/share/fonts/truetype/droid/DroidSansFallback.ttf"))
-            QFontDatabase::addApplicationFont("/usr/share/fonts/truetype/droid/DroidSansFallback.ttf");
+        QFontDatabase::addApplicationFont("/usr/share/fonts/truetype/droid/DroidSansFallback.ttf");
 
     QLocale::Language l = QLocale::system().language();
     if (l == QLocale::AnyLanguage || l == QLocale::C)
@@ -197,7 +198,7 @@ int main(int argc, char *argv[])
     QString customRepo;
     QUrl url;
     QStringList args = app.arguments();
-    for (int i=1; i < args.size(); i++)
+    for (int i = 1; i < args.size(); i++)
     {
         if (!args[i].startsWith("-") && url.isEmpty())
         {
@@ -215,13 +216,14 @@ int main(int argc, char *argv[])
                 }
                 else
                 {
-                    cerr << "Argument ignored because it is not a regular file: " << args[i] << endl;;
+                    cerr << "Argument ignored because it is not a regular file: " << args[i] << endl;
+                    ;
                 }
             }
         }
         else if (args[i] == "--repo")
         {
-            if (args.size()-i < 2 || args[i+1].startsWith("-"))
+            if (args.size() - i < 2 || args[i + 1].startsWith("-"))
             {
                 cerr << "Missing URL after --repo" << endl;
                 return 1;
@@ -246,7 +248,7 @@ int main(int argc, char *argv[])
         }
         else if (args[i] == "--qm")
         {
-            if (args.size()-i < 2 || args[i+1].startsWith("-"))
+            if (args.size() - i < 2 || args[i + 1].startsWith("-"))
             {
                 cerr << "Missing QM file after --qm" << endl;
                 return 1;
@@ -275,7 +277,7 @@ int main(int argc, char *argv[])
         }
         else if (args[i] == "--help")
         {
-            cerr << "rpi-imager [--debug] [--version] [--repo <repository URL>] [--qm <custom qm translation file>] [--disable-telemetry] [<image file to write>]" << endl;
+            cerr << "rpi-imager [--debug] [--version] [--repo <repository URL>] [--qm <custom qm translation file>]" << /*[--disable-telemetry]*/ "[<image file to write>]" << endl;
             cerr << "-OR- rpi-imager --cli [--disable-verify] [--sha256 <expected hash>] [--debug] [--quiet] <image file to write> <destination drive device>" << endl;
             return 0;
         }
@@ -285,6 +287,7 @@ int main(int argc, char *argv[])
             cerr << "Repository: " << imageWriter.constantOsListUrl().toString() << endl;
             return 0;
         }
+        /*
         else if (args[i] == "--disable-telemetry")
         {
             cerr << "Disabled telemetry" << endl;
@@ -297,11 +300,16 @@ int main(int argc, char *argv[])
             settings.remove("telemetry");
             settings.sync();
         }
+        */
         else
         {
             cerr << "Ignoring unknown argument: " << args[i] << endl;
         }
     }
+
+    // for now, make sure telemetry is always disabled
+    settings.setValue("telemetry", false);
+    settings.sync();
 
     QTranslator *translator = new QTranslator;
     if (customQm.isEmpty())
@@ -312,7 +320,7 @@ int main(int argc, char *argv[])
         if (CFArrayGetCount(prefLangs))
         {
             char buf[32] = {0};
-            CFStringRef strRef = (CFStringRef) CFArrayGetValueAtIndex(prefLangs, 0);
+            CFStringRef strRef = (CFStringRef)CFArrayGetValueAtIndex(prefLangs, 0);
             CFStringGetCString(strRef, buf, sizeof(buf), kCFStringEncodingUTF8);
             langcode = buf;
             langcode.replace('-', '_');
@@ -348,8 +356,8 @@ int main(int argc, char *argv[])
         return -1;
 
     QObject *qmlwindow = engine.rootObjects().value(0);
-    qmlwindow->connect(&imageWriter, SIGNAL(downloadProgress(QVariant,QVariant)), qmlwindow, SLOT(onDownloadProgress(QVariant,QVariant)));
-    qmlwindow->connect(&imageWriter, SIGNAL(verifyProgress(QVariant,QVariant)), qmlwindow, SLOT(onVerifyProgress(QVariant,QVariant)));
+    qmlwindow->connect(&imageWriter, SIGNAL(downloadProgress(QVariant, QVariant)), qmlwindow, SLOT(onDownloadProgress(QVariant, QVariant)));
+    qmlwindow->connect(&imageWriter, SIGNAL(verifyProgress(QVariant, QVariant)), qmlwindow, SLOT(onVerifyProgress(QVariant, QVariant)));
     qmlwindow->connect(&imageWriter, SIGNAL(preparationStatusUpdate(QVariant)), qmlwindow, SLOT(onPreparationStatusUpdate(QVariant)));
     qmlwindow->connect(&imageWriter, SIGNAL(error(QVariant)), qmlwindow, SLOT(onError(QVariant)));
     qmlwindow->connect(&imageWriter, SIGNAL(success()), qmlwindow, SLOT(onSuccess()));
@@ -372,7 +380,7 @@ int main(int argc, char *argv[])
 
     if (x != -1 && y != -1)
     {
-        if ( !app.screenAt(QPoint(x,y)) || !app.screenAt(QPoint(x+w,y+h)) )
+        if (!app.screenAt(QPoint(x, y)) || !app.screenAt(QPoint(x + w, y + h)))
         {
             qDebug() << "Not restoring saved window position as it falls outside any currently attached screen";
             x = y = -1;
@@ -381,8 +389,8 @@ int main(int argc, char *argv[])
 
     if (x == -1 || y == -1)
     {
-        x = qMax(1, (screensize.width()-w)/2);
-        y = qMax(1, (screensize.height()-h)/2);
+        x = qMax(1, (screensize.width() - w) / 2);
+        y = qMax(1, (screensize.height() - h) / 2);
     }
 
     qmlwindow->setProperty("x", x);
@@ -407,4 +415,3 @@ int main(int argc, char *argv[])
 
     return rc;
 }
-

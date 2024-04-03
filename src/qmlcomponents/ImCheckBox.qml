@@ -22,6 +22,33 @@ CheckBox {
         color: Style.unraidAccentColor
         visible: control.activeFocus
     }
+
+    indicator: Rectangle {
+        implicitWidth: 16
+        implicitHeight: 16
+        x: control.leftPadding
+        y: parent.height / 2 - height / 2
+        radius: 3
+
+        Rectangle {
+            width: 12
+            height: 12
+            x: 2
+            y: 2
+            radius: 2
+            color: Style.unraidAccentColor
+            visible: control.checked
+        }
+    }
+
+    contentItem: Text {
+        text: control.text
+        font: control.font
+        opacity: enabled ? 1.0 : 0.3
+        color: Style.unraidTextColor
+        verticalAlignment: Text.AlignVCenter
+        leftPadding: control.indicator.width + control.spacing
+    }
 }
 // For Custom Checkbox in Unraid version. Accepted current version -- Ajit
 // CheckBox {

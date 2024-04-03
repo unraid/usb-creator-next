@@ -14,42 +14,46 @@ import RpiImager
 ImPopup {
     id: root
 
-    height: msgpopupbody.implicitHeight+150
+    height: msgpopupbody.implicitHeight + 150
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
     focus: true
 
     required property ImageWriter imageWriter
     property bool hasSavedSettings: false
 
-    signal noClearSettings()
-    signal editSettings()
-    signal closeSettings()
+    signal noClearSettings
+    signal editSettings
+    signal closeSettings
 
     // Provide implementation for the base popup's navigation functions
-    getNextFocusableElement: function(startElement) {
-        var focusableItems = [yesButton, noButton, editButton, noAndClearButton, root.closeButton].filter(function(item) {
-            return item.visible && item.enabled
-        })
+    getNextFocusableElement: function (startElement) {
+        var focusableItems = [yesButton, noButton, editButton, noAndClearButton, root.closeButton].filter(function (item) {
+            return item.visible && item.enabled;
+        });
 
-        if (focusableItems.length === 0) return startElement;
-        
-        var currentIndex = focusableItems.indexOf(startElement)
-        if (currentIndex === -1) return focusableItems[0];
+        if (focusableItems.length === 0)
+            return startElement;
+
+        var currentIndex = focusableItems.indexOf(startElement);
+        if (currentIndex === -1)
+            return focusableItems[0];
 
         var nextIndex = (currentIndex + 1) % focusableItems.length;
         return focusableItems[nextIndex];
     }
 
-    getPreviousFocusableElement: function(startElement) {
-        var focusableItems = [yesButton, noButton, editButton, noAndClearButton, root.closeButton].filter(function(item) {
-            return item.visible && item.enabled
-        })
+    getPreviousFocusableElement: function (startElement) {
+        var focusableItems = [yesButton, noButton, editButton, noAndClearButton, root.closeButton].filter(function (item) {
+            return item.visible && item.enabled;
+        });
 
-        if (focusableItems.length === 0) return startElement;
+        if (focusableItems.length === 0)
+            return startElement;
 
-        var currentIndex = focusableItems.indexOf(startElement)
-        if (currentIndex === -1) return focusableItems[0];
-        
+        var currentIndex = focusableItems.indexOf(startElement);
+        if (currentIndex === -1)
+            return focusableItems[0];
+
         var prevIndex = (currentIndex - 1 + focusableItems.length) % focusableItems.length;
         return focusableItems[prevIndex];
     }
@@ -62,6 +66,7 @@ ImPopup {
         wrapMode: Text.Wrap
         textFormat: Text.StyledText
         font.family: Style.fontFamily
+        color: Style.unraidTextColor
         Layout.fillHeight: true
         Layout.leftMargin: 25
         Layout.rightMargin: 25
@@ -72,9 +77,9 @@ ImPopup {
     }
 
     RowLayout {
+        id: buttons
         Layout.alignment: Qt.AlignCenter | Qt.AlignBottom
         Layout.bottomMargin: 10
-        id: buttons
 
         ImButtonRed {
             id: editButton
@@ -85,7 +90,7 @@ ImPopup {
                 // start of the flow. After editing the settings we want
                 // then to once again have the choice about whether to use
                 // customisation or not.
-                root.editSettings()
+                root.editSettings();
             }
         }
 
@@ -93,8 +98,8 @@ ImPopup {
             id: noAndClearButton
             text: qsTr("NO, CLEAR SETTINGS")
             onClicked: {
-                root.close()
-                root.noClearSettings()
+                root.close();
+                root.noClearSettings();
             }
             enabled: root.hasSavedSettings
         }
@@ -103,8 +108,8 @@ ImPopup {
             id: yesButton
             text: qsTr("YES")
             onClicked: {
-                root.close()
-                root.yes()
+                root.close();
+                root.yes();
             }
             enabled: root.hasSavedSettings
         }
@@ -113,15 +118,15 @@ ImPopup {
             id: noButton
             text: qsTr("NO")
             onClicked: {
-                root.close()
-                root.no()
+                root.close();
+                root.no();
             }
         }
     }
 
     onOpened: {
-        hasSavedSettings = imageWriter.hasSavedCustomizationSettings()
-        root.contentItem.forceActiveFocus()
+        hasSavedSettings = imageWriter.hasSavedCustomizationSettings();
+        root.contentItem.forceActiveFocus();
     }
 
     onClosed: {

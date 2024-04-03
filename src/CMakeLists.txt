@@ -3,7 +3,7 @@
 
 cmake_minimum_required(VERSION 3.22)
 OPTION (ENABLE_CHECK_VERSION "Check for version updates" ON)
-OPTION (ENABLE_TELEMETRY "Enable sending telemetry" ON)
+OPTION (ENABLE_TELEMETRY "Enable sending telemetry" OFF)
 
 # We use FetchContent_Populate() instead of FetchContent_MakeAvailable() to allow EXCLUDE_FROM_ALL
 # This prevents the dependencies from being built by default, which is our desired behavior

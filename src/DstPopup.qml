@@ -117,6 +117,7 @@ MainPopupBase {
             id: filterSystemDrives
             checked: true
             text: qsTr("Exclude System Drives")
+            
 
             Keys.onPressed: event => {
                 if (event.key === Qt.Key_Backtab || (event.key === Qt.Key_Tab && event.modifiers & Qt.ShiftModifier)) {
@@ -223,8 +224,6 @@ MainPopupBase {
                             // }
                         }
 
-
-                        
                         Text {
                             textFormat: Text.StyledText
                             verticalAlignment: Text.AlignVCenter
