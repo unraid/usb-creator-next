@@ -43,14 +43,6 @@ ApplicationWindow {
         }
     }
 
-    Shortcut {
-        sequences: ["Shift+Ctrl+X", "Shift+Meta+X"]
-        context: Qt.ApplicationShortcut
-        onActivated: {
-            optionspopup.openPopup()
-        }
-    }
-
     ColumnLayout {
         id: bg
         spacing: 0
@@ -302,11 +294,8 @@ ApplicationWindow {
                                 return
                             }
 
-                            if (!optionspopup.visible && imageWriter.imageSupportsCustomization()) {
-                                usesavedsettingspopup.openPopup()
-                            } else {
-                                confirmwritepopup.askForConfirmation()
-                            }
+                            optionspopup.openPopup()
+                            
                         }
                     }
                 }
@@ -1288,32 +1277,9 @@ ApplicationWindow {
         id: optionspopup
         onSaveSettingsSignal: {
             imageWriter.setSavedCustomizationSettings(settings)
-            usesavedsettingspopup.hasSavedSettings = true
         }
-    }
-
-    UseSavedSettingsPopup {
-        id: usesavedsettingspopup
-        onYes: {
-            optionspopup.initialize()
-            optionspopup.applySettings()
+        onContinueSignal: {
             confirmwritepopup.askForConfirmation()
-        }
-        onNo: {
-            imageWriter.setImageCustomization("", "", "", "", "")
-            confirmwritepopup.askForConfirmation()
-        }
-        onNoClearSettings: {
-            hasSavedSettings = false
-            optionspopup.clearCustomizationFields()
-            imageWriter.clearSavedCustomizationSettings()
-            confirmwritepopup.askForConfirmation()
-        }
-        onEditSettings: {
-            optionspopup.openPopup()
-        }
-        onCloseSettings: {
-            optionspopup.close()
         }
     }
 
