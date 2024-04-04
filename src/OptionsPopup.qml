@@ -48,6 +48,7 @@ Window {
     property string cloudinitnetwork
 
     signal saveSettingsSignal(var settings)
+    signal continueSignal()
 
     Shortcut {
         sequence: "Esc"

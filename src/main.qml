@@ -121,14 +121,6 @@ ApplicationWindow {
         }
     }
 
-    Shortcut {
-        sequences: ["Shift+Ctrl+X", "Shift+Meta+X"]
-        context: Qt.ApplicationShortcut
-        onActivated: {
-            optionspopup.show();
-        }
-    }
-
     ColumnLayout {
         id: bg
         spacing: 0
