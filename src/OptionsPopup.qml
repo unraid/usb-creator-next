@@ -18,6 +18,7 @@ Window {
     minimumHeight: 125
     height: Math.min(750, cl.implicitHeight)
     title: qsTr("OS Customization")
+    modality: Qt.WindowModal
     
     color: UnColors.darkGray
     Material.theme: Material.Dark
@@ -35,6 +36,7 @@ Window {
     property string cloudinitnetwork
 
     signal saveSettingsSignal(var settings)
+    signal continueSignal()
 
     ColumnLayout {
         id: cl
@@ -453,6 +455,7 @@ Window {
                     applySettings()
                     saveSettings()
                     popup.close()
+                    continueSignal()
                 }
             }
 

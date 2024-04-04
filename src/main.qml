@@ -43,14 +43,6 @@ ApplicationWindow {
         }
     }
 
-    Shortcut {
-        sequences: ["Shift+Ctrl+X", "Shift+Meta+X"]
-        context: Qt.ApplicationShortcut
-        onActivated: {
-            optionspopup.openPopup()
-        }
-    }
-
     ColumnLayout {
         id: bg
         spacing: 0
@@ -302,10 +294,7 @@ ApplicationWindow {
                                 return
                             }
 
-                            if (!optionspopup.visible) {
-                                optionspopup.openPopup()
-                            } 
-                            confirmwritepopup.askForConfirmation()
+                            optionspopup.openPopup()
                             
                         }
                     }
@@ -1288,6 +1277,9 @@ ApplicationWindow {
         id: optionspopup
         onSaveSettingsSignal: {
             imageWriter.setSavedCustomizationSettings(settings)
+        }
+        onContinueSignal: {
+            confirmwritepopup.askForConfirmation()
         }
     }
 
