@@ -1,4 +1,4 @@
-rpi-imager (1.8.5) unstable; urgency=medium
+unraid-imager (1.8.5) unstable; urgency=medium
 
   * Retry downloads on HTTP2 errors.
   * Rename .desktop file to match DBus name, as some GNOME
@@ -8,7 +8,7 @@ rpi-imager (1.8.5) unstable; urgency=medium
 
  -- Floris Bos <bos@je-eigen-domein.nl>  Sat, 20 Jan 2024 16:36:11 +0100
 
-rpi-imager (1.8.4) unstable; urgency=medium
+unraid-imager (1.8.4) unstable; urgency=medium
 
   * OS customisation: Fixed #531, which caused password entry
                       to drop the first character
@@ -20,14 +20,14 @@ rpi-imager (1.8.4) unstable; urgency=medium
 
  -- Floris Bos <bos@je-eigen-domein.nl>  Fri, 22 Dec 2023 16:00:00 +0200
 
-rpi-imager (1.8.3) unstable; urgency=medium
+unraid-imager (1.8.3) unstable; urgency=medium
 
   * Home: Fixed "No filtering" option
   * OS customisation: Fixed no-customisation flow
 
  -- Floris Bos <bos@je-eigen-domein.nl>  Thu, 16 Nov 2023 14:00:00 +0200
 
-rpi-imager (1.8.2) unstable; urgency=medium
+unraid-imager (1.8.2) unstable; urgency=medium
 
   * Home: Device filtering reworked to download OS list eagerly
   * OS List: Fixed 'Recommended' tag annotation
@@ -42,14 +42,14 @@ rpi-imager (1.8.2) unstable; urgency=medium
 
  -- Floris Bos <bos@je-eigen-domein.nl>  Wed, 15 Nov 2023 20:16:16 +0200
 
-rpi-imager (1.8.1) unstable; urgency=medium
+unraid-imager (1.8.1) unstable; urgency=medium
 
   * Hide empty categories when filtering
   * i8n: Updates German translation
 
  -- Floris Bos <bos@je-eigen-domein.nl>  Thu, 19 Oct 2023 20:16:16 +0200
 
-rpi-imager (1.8.0) unstable; urgency=medium
+unraid-imager (1.8.0) unstable; urgency=medium
 
   * Advanced options: Rename to OS customization
   * OS customization: change to tabbed UI
@@ -70,14 +70,14 @@ rpi-imager (1.8.0) unstable; urgency=medium
 
  -- Floris Bos <bos@je-eigen-domein.nl>  Wed, 18 Oct 2023 18:00:00 +0200
 
-rpi-imager (1.7.5) unstable; urgency=medium
+unraid-imager (1.7.5) unstable; urgency=medium
 
   * Bump version number to match bug fix release for Windows.
     (No actual changes from 1.7.4.1 for Linux)
 
  -- Floris Bos <bos@je-eigen-domein.nl>  Mon, 22 May 2023 18:53:22 +0200
 
-rpi-imager (1.7.4.1) unstable; urgency=medium
+unraid-imager (1.7.4.1) unstable; urgency=medium
 
   * Advanced settings: fix creating files on FAT partition that are
     an exact multiple of cluster size.
@@ -87,7 +87,7 @@ rpi-imager (1.7.4.1) unstable; urgency=medium
 
  -- Floris Bos <bos@je-eigen-domein.nl>  Thu, 18 May 2023 15:05:28 +0200 
 
-rpi-imager (1.7.4) unstable; urgency=medium
+unraid-imager (1.7.4) unstable; urgency=medium
 
   * Advanced settings: fix escaping single quotes
   * Advanced settings: default to using username of logged-in user
@@ -99,7 +99,7 @@ rpi-imager (1.7.4) unstable; urgency=medium
 
  -- Floris Bos <bos@je-eigen-domein.nl>  Sun, 20 Nov 2022 17:30:20 +0100
 
-rpi-imager (1.7.3) unstable; urgency=medium
+unraid-imager (1.7.3) unstable; urgency=medium
 
   * Linux: use GnuTLS instead of OpenSSL for computing SHA256
   * Fix persistenting public key authentication setting
@@ -114,7 +114,7 @@ rpi-imager (1.7.3) unstable; urgency=medium
 
  -- Floris Bos <bos@je-eigen-domein.nl>  Thu, 18 Aug 2022 20:04:37 +0200
 
-rpi-imager (1.7.2) unstable; urgency=medium
+unraid-imager (1.7.2) unstable; urgency=medium
 
   * Remove overscan/piwiz supression advanced options
   * gz/xz/zstd custom images: pad if image size is not dividable by 512 byte
@@ -124,14 +124,14 @@ rpi-imager (1.7.2) unstable; urgency=medium
 
  -- Floris Bos <bos@je-eigen-domein.nl>  Thu, 24 Mar 2022 17:58:52 +0100
 
-rpi-imager (1.7.1) unstable; urgency=medium
+unraid-imager (1.7.1) unstable; urgency=medium
 
   * Fix advanced settings being broken if there are saved wifi
     settings and wifiSSIDHidden is not present
 
  -- Floris Bos <bos@je-eigen-domein.nl>  Thu, 03 Feb 2022 18:38:15 +0100
 
-rpi-imager (1.7.0) unstable; urgency=medium
+unraid-imager (1.7.0) unstable; urgency=medium
 
   * Only apply advanced settings if the operating system indicates it
     supports it by "init_format": "cloudinit" | "systemd" in the
@@ -156,14 +156,14 @@ rpi-imager (1.7.0) unstable; urgency=medium
 
  -- Floris Bos <bos@je-eigen-domein.nl>  Wed, 02 Feb 2022 19:47:17 +0100
 
-rpi-imager (1.6.2) unstable; urgency=medium
+unraid-imager (1.6.2) unstable; urgency=medium
 
   * Add website link support
   * Add CLI support 
 
  -- Floris Bos <bos@je-eigen-domein.nl>  Fri, 07 May 2021 13:19:19 +0200
 
-rpi-imager (1.6.1) unstable; urgency=medium
+unraid-imager (1.6.1) unstable; urgency=medium
 
   * When saving advanced options delay modifying files
     on FAT partition until config.txt is visible.
@@ -174,7 +174,7 @@ rpi-imager (1.6.1) unstable; urgency=medium
 
  -- Floris Bos <bos@je-eigen-domein.nl>  Sat, 27 Mar 2021 11:06:56 +0100
 
-rpi-imager (1.6) unstable; urgency=medium
+unraid-imager (1.6) unstable; urgency=medium
 
   * Wayland: fix "Client tried to set invalid geometry" error
   * Add advanced users option screen available under SHIFT-CTRL-X
@@ -186,7 +186,7 @@ rpi-imager (1.6) unstable; urgency=medium
 
  -- Floris Bos <bos@je-eigen-domein.nl>  Fri, 26 Feb 2021 14:32:21 +0100
 
-rpi-imager (1.5) unstable; urgency=medium
+unraid-imager (1.5) unstable; urgency=medium
 
   * More verbose progress/error reporting
   * Reconnect if download stalls for more than one minute
@@ -201,7 +201,7 @@ rpi-imager (1.5) unstable; urgency=medium
 
  -- Floris Bos <bos@je-eigen-domein.nl>  Tue, 24 Nov 2020 10:38:21 +0100
 
-rpi-imager (1.4) unstable; urgency=medium
+unraid-imager (1.4) unstable; urgency=medium
 
   * Add basic accessibility support
   * Add keyboard navigation support
@@ -213,7 +213,7 @@ rpi-imager (1.4) unstable; urgency=medium
 
  -- Floris Bos <bos@je-eigen-domein.nl>  Tue, 30 Jun 2020 00:29:37 +0200
 
-rpi-imager (1.3) unstable; urgency=medium
+unraid-imager (1.3) unstable; urgency=medium
 
   * Remove zero sized drives from list
   * Fix height of drive list
@@ -227,23 +227,23 @@ rpi-imager (1.3) unstable; urgency=medium
 
  -- Floris Bos <bos@je-eigen-domein.nl>  Mon, 25 May 2020 00:45:50 +0200
 
-rpi-imager (1.2) unstable; urgency=medium
+unraid-imager (1.2) unstable; urgency=medium
 
   * Mention version number in title bar.
   * Performance improvements
 
  -- Floris Bos <bos@je-eigen-domein.nl>  Tue, 10 Mar 2020 17:08:11 +0100
 
-rpi-imager (1.1) unstable; urgency=medium
+unraid-imager (1.1) unstable; urgency=medium
 
   * Fix verification on images that are uncompressed or have
     a size that is not dividable by 128 KB.
   * Round instead of floor size of SD card up and show 1 decimal
-  * Executable name changed from imagingutility to rpi-imager
+  * Executable name changed from imagingutility to unraid-imager
 
  -- Floris Bos <bos@je-eigen-domein.nl>  Mon, 09 Mar 2020 12:25:24 +0100
 
-rpi-imager (1.0) unstable; urgency=medium
+unraid-imager (1.0) unstable; urgency=medium
 
   * Initial Release.
 

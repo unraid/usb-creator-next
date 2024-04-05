@@ -1,0 +1,7 @@
+2009eb3403da64aeb2b76053628a1242  usr/bin/unraid-imager
+cba2931217918222b765e4ea81c33c0d  usr/share/applications/org.unraid.unraid-imager.desktop
+15b6ebdc7562a5f7b818db84f2a9d3e8  usr/share/doc/unraid-imager/changelog.gz
+e76b52ec7376da3b1fe9a6562bddaf56  usr/share/doc/unraid-imager/copyright
+9b0562763ed6ad02c7f2ef239ec80b17  usr/share/icons/hicolor/128x128/apps/unraid128.png
+ba3bb63af2e38e3fcc38da401b8e6231  usr/share/man/man1/unraid-imager.1.gz
+deb89c28db7018482e66254e6dd1670a  usr/share/metainfo/unraid-imager.metainfo.xml

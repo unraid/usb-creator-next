@@ -1,11 +1,11 @@
-.TH RPI\-IMAGER 1
+.TH UNRAID\-IMAGER 1
 .
 .SH NAME
-rpi\-imager \- Flash disk images to removable storage
+unraid\-imager \- Flash disk images to removable storage
 .
 .
 .SH SYNOPSIS
-.SY rpi\-imager
+.SY unraid\-imager
 .OP \-\-debug
 .OP \-\-repo url
 .OP \-\-qm translations
@@ -13,7 +13,7 @@ rpi\-imager \- Flash disk images to removable storage
 .OP image-uri
 .YS
 .
-.SY rpi\-imager
+.SY unraid\-imager
 \-\-cli
 .OP \-\-debug
 .OP \-\-quiet
@@ -23,17 +23,17 @@ image-uri
 destination-device
 .YS
 .
-.SY rpi\-imager
+.SY unraid\-imager
 \-\-version
 .YS
 .
-.SY rpi\-imager
+.SY unraid\-imager
 \-\-help
 .YS
 .
 .
 .SH DESCRIPTION
-.B rpi\-imager
+.B unraid\-imager
 is a utility for writing a disk image file, which may optionally be compressed,
 to a removable destination disk, such as a micro-SD card or a USB-attached SSD
 drive.
@@ -137,15 +137,15 @@ Only valid when run with
 .
 .SH EXAMPLES
 .TP
-.B rpi\-imager
+.B unraid\-imager
 Launch the graphical interface.
 .
 .TP
-.B rpi\-imager \-\-repo http://localhost:8080/os_list_utility.json
+.B unraid\-imager \-\-repo http://localhost:8080/os_list_utility.json
 Test a locally hosted version of the OS list with the graphical interface.
 .
 .TP
-.B rpi\-imager \-\-cli \-\-disable\-verify test.img /dev/mmcblk0
+.B unraid\-imager \-\-cli \-\-disable\-verify test.img /dev/mmcblk0
 Write
 .I test.img
 to
