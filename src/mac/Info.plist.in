@@ -5,13 +5,13 @@
   <key>CFBundleDevelopmentRegion</key>
   <string>English</string>
   <key>CFBundleExecutable</key>
-  <string>rpi-imager</string>
+  <string>unraid-imager</string>
   <key>CFBundleGetInfoString</key>
   <string></string>
   <key>CFBundleIconFile</key>
-  <string>rpi-imager.icns</string>
+  <string>unraid.icns</string>
   <key>CFBundleIdentifier</key>
-  <string>org.raspberrypi.imagingutility</string>
+  <string>org.unraid.imagingutility</string>
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
   <key>CFBundleLongVersionString</key>
