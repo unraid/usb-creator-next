@@ -117,7 +117,7 @@ ApplicationWindow {
                     Text {
                         id: text0
                         color: "white"
-                        text: qsTr("Raspberry Pi Device")
+                        text: qsTr("Device")
                         Layout.fillWidth: true
                         Layout.preferredHeight: 17
                         Layout.preferredWidth: 100
@@ -141,7 +141,7 @@ ApplicationWindow {
                             hwlist.forceActiveFocus()
                         }
                         Accessible.ignored: ospopup.visible || dstpopup.visible || hwpopup.visible
-                        Accessible.description: qsTr("Select this button to choose your target Raspberry Pi")
+                        Accessible.description: qsTr("Select this button to choose your target device")
                     }
                 }
 
@@ -535,7 +535,7 @@ ApplicationWindow {
 
             Text {
                 color: "white"
-                text: qsTr("Raspberry Pi Device")
+                text: qsTr("Device")
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 Layout.fillWidth: true
@@ -1612,6 +1612,9 @@ ApplicationWindow {
                         hwlist.currentIndex = deviceModel.count-1
                     }
                 }
+                // default select first item in hwlist if hwlist not empty
+                if(hwlist.count > 0)
+                    selectHWitem(hwlist.model.get(0))
             }
 
             if (imageWriter.getBoolSetting("check_version") && "latest_version" in imager && "url" in imager) {
