@@ -143,10 +143,6 @@ MainPopupBase {
             delegate: osdelegate
 
             boundsBehavior: Flickable.StopAtBounds
-            highlight: Rectangle {
-                color: Style.listViewHighlightColor
-                radius: 5
-            }
             ScrollBar.vertical: ScrollBar {
                 width: 10
                 policy: sublistview.contentHeight > parent.height ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
@@ -225,7 +221,6 @@ MainPopupBase {
                 id: bgrect
                 anchors.fill: parent
                 color: mouseOver ? Style.unraidAccentColor : Style.unraidPrimaryBgColor
-                visible: mouseOver && parent.ListView.view.currentIndex !== delegateItem.index
                 property bool mouseOver: false
             }
             Rectangle {
