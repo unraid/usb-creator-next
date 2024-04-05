@@ -4,21 +4,22 @@
 #              by Vlasis K. Barkas aka Red Wine red_wine@freemail.gr Sep 2006               
 ############################################################################################
 
-!define APP_NAME           "Raspberry Pi Imager"
-!define COMP_NAME          "Raspberry Pi Ltd"
+!define APP_NAME           "Unraid Imager"
+!define COMP_NAME          "Lime Technology, Inc"
 !define VERSION            "@IMAGER_VERSION_STR@"
 !define INSTALLER_NAME     "imager-${VERSION}.exe"
 !define /date CURRENT_YEAR "%Y"
 !define COPYRIGHT          "${CURRENT_YEAR} ${COMP_NAME}"
 !define DESCRIPTION        "${APP_NAME} installer"
-!define MAIN_APP_EXE       "rpi-imager.exe"
+!define MAIN_APP_EXE       "unraid-imager.exe"
 !define INSTALL_TYPE       "SetShellVarContext all"
 !define REG_ROOT           "HKCU"
 !define REG_APP_PATH       "Software\Microsoft\Windows\CurrentVersion\App Paths\${MAIN_APP_EXE}"
 !define UNINSTALL_PATH     "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}"
 
+
 # Window to close if running
-!define EXE_TO_TERMINATE "rpi-imager.exe"
+!define EXE_TO_TERMINATE "unraid-imager.exe"
 
 ######################################################################
 
@@ -39,7 +40,7 @@ OutFile      "${INSTALLER_NAME}"
 BrandingText "${APP_NAME}"
 XPStyle on
 InstallDirRegKey "${REG_ROOT}" "${REG_APP_PATH}" ""
-InstallDir "$PROGRAMFILES\Raspberry Pi Imager"
+InstallDir "$PROGRAMFILES\Unraid Imager"
 
 ######################################################################
 
@@ -90,7 +91,7 @@ InstallDir "$PROGRAMFILES\Raspberry Pi Imager"
 
 !ifdef REG_START_MENU
 !define MUI_STARTMENUPAGE_NODISABLE
-!define MUI_STARTMENUPAGE_DEFAULTFOLDER "Raspberry Pi"
+!define MUI_STARTMENUPAGE_DEFAULTFOLDER "Unraid"
 !define MUI_STARTMENUPAGE_REGISTRY_ROOT "${REG_ROOT}"
 !define MUI_STARTMENUPAGE_REGISTRY_KEY "${UNINSTALL_PATH}"
 !define MUI_STARTMENUPAGE_REGISTRY_VALUENAME "${REG_START_MENU}"
@@ -116,14 +117,14 @@ InstallDir "$PROGRAMFILES\Raspberry Pi Imager"
 !insertmacro MUI_LANGUAGE "Dutch"
 !insertmacro MUI_LANGUAGE "Italian"
 
-LangString termMsg ${LANG_ENGLISH} "Raspberry Pi Imager seems to be running and busy.$\nDo you want to terminate process?"
-LangString stopMsg ${LANG_ENGLISH} "Stopping Raspberry Pi Imager"
+LangString termMsg ${LANG_ENGLISH} "Unraid Imager seems to be running and busy.$\nDo you want to terminate process?"
+LangString stopMsg ${LANG_ENGLISH} "Stopping Unraid Imager"
 LangString win7Msg ${LANG_ENGLISH} "Windows 7 or above required"
-LangString termMsg ${LANG_DUTCH} "Raspberry Pi Imager is momenteel actief.$\nWilt u het programma afsluiten?"
-LangString stopMsg ${LANG_DUTCH} "Bezig met afsluiten Raspberry Pi Imager"
+LangString termMsg ${LANG_DUTCH} "Unraid Imager is momenteel actief.$\nWilt u het programma afsluiten?"
+LangString stopMsg ${LANG_DUTCH} "Bezig met afsluiten Unraid Imager"
 LangString win7Msg ${LANG_DUTCH} "Minimaal Windows 7 is vereist"
-LangString termMsg ${LANG_ITALIAN} "Raspberry Pi Imager sembra essere in esecuzione e occupato.$\nVuoi terminare il processo Raspberry Pi Imager?"
-LangString stopMsg ${LANG_ITALIAN} "Chiusura processo Raspberry Pi Imager"
+LangString termMsg ${LANG_ITALIAN} "Unraid Imager sembra essere in esecuzione e occupato.$\nVuoi terminare il processo Unraid Imager?"
+LangString stopMsg ${LANG_ITALIAN} "Chiusura processo Unraid Imager"
 LangString win7Msg ${LANG_ITALIAN} "Per l'esecuzione del programma è richiesto Windows 7 o versioni successive"
 
 ######################################################################
@@ -257,8 +258,8 @@ File "deploy\libgcc_s_seh-1.dll"
 File "deploy\libstdc++-6.dll"
 File "deploy\libwinpthread-1.dll"
 File "deploy\license.txt"
-File "deploy\rpi-imager-cli.cmd"
-File "deploy\rpi-imager.exe"
+File "deploy\unraid-imager-cli.cmd"
+File "deploy\unraid-imager.exe"
 SetOutPath "$INSTDIR\generic"
 File "deploy\generic\qtuiotouchplugin.dll"
 SetOutPath "$INSTDIR\iconengines"
@@ -747,11 +748,11 @@ CreateShortCut "$SMPROGRAMS\$SM_Folder\${APP_NAME} Website.lnk" "$INSTDIR\${APP_
 !endif
 
 !ifndef REG_START_MENU
-CreateDirectory "$SMPROGRAMS\Raspberry Pi"
-CreateShortCut "$SMPROGRAMS\Raspberry Pi\${APP_NAME}.lnk" "$INSTDIR\${MAIN_APP_EXE}"
+CreateDirectory "$SMPROGRAMS\Unraid"
+CreateShortCut "$SMPROGRAMS\Unraid\${APP_NAME}.lnk" "$INSTDIR\${MAIN_APP_EXE}"
 !ifdef WEB_SITE
 WriteIniStr "$INSTDIR\${APP_NAME} website.url" "InternetShortcut" "URL" "${WEB_SITE}"
-CreateShortCut "$SMPROGRAMS\Raspberry Pi\${APP_NAME} Website.lnk" "$INSTDIR\${APP_NAME} website.url"
+CreateShortCut "$SMPROGRAMS\Unraid\${APP_NAME} Website.lnk" "$INSTDIR\${APP_NAME} website.url"
 !endif
 !endif
 
@@ -768,14 +769,14 @@ WriteRegStr ${REG_ROOT} "${UNINSTALL_PATH}"  "URLInfoAbout" "${WEB_SITE}"
 !endif
 
 
-WriteRegStr SHCTX "Software\Classes\.zip\OpenWithProgIds" "RPI_IMAGINGUTILITY" ""
-WriteRegStr SHCTX "Software\Classes\.gz\OpenWithProgIds" "RPI_IMAGINGUTILITY" ""
-WriteRegStr SHCTX "Software\Classes\.xz\OpenWithProgIds" "RPI_IMAGINGUTILITY" ""
-WriteRegStr SHCTX "Software\Classes\.img\OpenWithProgIds" "RPI_IMAGINGUTILITY" ""
-WriteRegStr SHCTX "Software\Classes\.wic\OpenWithProgIds" "RPI_IMAGINGUTILITY" ""
-WriteRegStr SHCTX "Software\Classes\.zstd\OpenWithProgIds" "RPI_IMAGINGUTILITY" ""
-WriteRegStr SHCTX "Software\Classes\RPI_IMAGINGUTILITY\shell\open" "FriendlyAppName" "Raspberry Pi Imager"
-WriteRegStr SHCTX "Software\Classes\RPI_IMAGINGUTILITY\shell\open\command" "" '"$INSTDIR\rpi-imager.exe" "%1"'
+WriteRegStr SHCTX "Software\Classes\.zip\OpenWithProgIds" "UNRAID_IMAGINGUTILITY" ""
+WriteRegStr SHCTX "Software\Classes\.gz\OpenWithProgIds" "UNRAID_IMAGINGUTILITY" ""
+WriteRegStr SHCTX "Software\Classes\.xz\OpenWithProgIds" "UNRAID_IMAGINGUTILITY" ""
+WriteRegStr SHCTX "Software\Classes\.img\OpenWithProgIds" "UNRAID_IMAGINGUTILITY" ""
+WriteRegStr SHCTX "Software\Classes\.wic\OpenWithProgIds" "UNRAID_IMAGINGUTILITY" ""
+WriteRegStr SHCTX "Software\Classes\.zstd\OpenWithProgIds" "UNRAID_IMAGINGUTILITY" ""
+WriteRegStr SHCTX "Software\Classes\UNRAID_IMAGINGUTILITY\shell\open" "FriendlyAppName" "Unraid Imager"
+WriteRegStr SHCTX "Software\Classes\UNRAID_IMAGINGUTILITY\shell\open\command" "" '"$INSTDIR\unraid-imager.exe" "%1"'
 
 SectionEnd
 
@@ -808,8 +809,8 @@ Delete "$INSTDIR\Qt5Widgets.dll"
 Delete "$INSTDIR\Qt5WinExtras.dll"
 # Old name
 Delete "$INSTDIR\imagingutility.exe"
-Delete "$INSTDIR\rpi-imager.exe"
-Delete "$INSTDIR\rpi-imager-cli.cmd"
+Delete "$INSTDIR\unraid-imager.exe"
+Delete "$INSTDIR\unraid-imager-cli.cmd"
 Delete "$INSTDIR\styles\qwindowsvistastyle.dll"
 Delete "$INSTDIR\QtQuick.2\plugins.qmltypes"
 Delete "$INSTDIR\QtQuick.2\qmldir"
@@ -1198,8 +1199,8 @@ Delete "$INSTDIR\Qt6Svg.dll"
 Delete "$INSTDIR\Qt6VirtualKeyboard.dll"
 Delete "$INSTDIR\Qt6Widgets.dll"
 Delete "$INSTDIR\libgcc_s_seh-1.dll"
-Delete "$INSTDIR\rpi-imager-cli.cmd"
-Delete "$INSTDIR\rpi-imager.exe"
+Delete "$INSTDIR\unraid-imager-cli.cmd"
+Delete "$INSTDIR\unraid-imager.exe"
 Delete "$INSTDIR\generic\qtuiotouchplugin.dll"
 Delete "$INSTDIR\iconengines\qsvgicon.dll"
 Delete "$INSTDIR\imageformats\qgif.dll"
@@ -1702,31 +1703,31 @@ RmDir "$SMPROGRAMS\$SM_Folder"
 !endif
 
 !ifndef REG_START_MENU
-Delete "$SMPROGRAMS\Raspberry Pi\${APP_NAME}.lnk"
+Delete "$SMPROGRAMS\Unraid\${APP_NAME}.lnk"
 !ifdef WEB_SITE
-Delete "$SMPROGRAMS\Raspberry Pi\${APP_NAME} Website.lnk"
+Delete "$SMPROGRAMS\Unraid\${APP_NAME} Website.lnk"
 !endif
-RmDir "$SMPROGRAMS\Raspberry Pi"
+RmDir "$SMPROGRAMS\Unraid"
 !endif
 
 DeleteRegKey ${REG_ROOT} "${REG_APP_PATH}"
 DeleteRegKey ${REG_ROOT} "${UNINSTALL_PATH}"
 
 # File associations
-DeleteRegValue SHCTX "Software\Classes\.zip\OpenWithProgIds" "RPI_IMAGINGUTILITY"
-DeleteRegValue SHCTX "Software\Classes\.gz\OpenWithProgIds" "RPI_IMAGINGUTILITY"
-DeleteRegValue SHCTX "Software\Classes\.xz\OpenWithProgIds" "RPI_IMAGINGUTILITY"
-DeleteRegValue SHCTX "Software\Classes\.img\OpenWithProgIds" "RPI_IMAGINGUTILITY"
-DeleteRegValue SHCTX "Software\Classes\.wic\OpenWithProgIds" "RPI_IMAGINGUTILITY"
-DeleteRegValue SHCTX "Software\Classes\.zstd\OpenWithProgIds" "RPI_IMAGINGUTILITY"
-DeleteRegKey SHCTX "Software\Classes\RPI_IMAGINGUTILITY"
+DeleteRegValue SHCTX "Software\Classes\.zip\OpenWithProgIds" "UNRAID_IMAGINGUTILITY"
+DeleteRegValue SHCTX "Software\Classes\.gz\OpenWithProgIds" "UNRAID_IMAGINGUTILITY"
+DeleteRegValue SHCTX "Software\Classes\.xz\OpenWithProgIds" "UNRAID_IMAGINGUTILITY"
+DeleteRegValue SHCTX "Software\Classes\.img\OpenWithProgIds" "UNRAID_IMAGINGUTILITY"
+DeleteRegValue SHCTX "Software\Classes\.wic\OpenWithProgIds" "UNRAID_IMAGINGUTILITY"
+DeleteRegValue SHCTX "Software\Classes\.zstd\OpenWithProgIds" "UNRAID_IMAGINGUTILITY"
+DeleteRegKey SHCTX "Software\Classes\UNRAID_IMAGINGUTILITY"
 
 DeleteRegKey ${REG_ROOT} ""
 
-RMDir /r "$APPDATA\Raspberry Pi\Imager"
-RMDir "$APPDATA\Raspberry Pi"
-RMDir /r "$LOCALAPPDATA\Raspberry Pi\Imager"
-RMDir "$LOCALAPPDATA\Raspberry Pi"
+RMDir /r "$APPDATA\Unraid\Imager"
+RMDir "$APPDATA\Unraid"
+RMDir /r "$LOCALAPPDATA\Unraid\Imager"
+RMDir "$LOCALAPPDATA\Unraid"
 
 SectionEnd
 
