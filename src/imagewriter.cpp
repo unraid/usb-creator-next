@@ -352,37 +352,35 @@ void ImageWriter::startWrite()
             // if unraid, first step is to select and flash a boot img
             // this also renames the volume label
             // code take from original unraid usb creator
-            if(_initFormat == "UNRAID") {
-                quint32 partitionlength = (_devLen - 1048576) / 512;
-                quint8 clustersize = 32;
-                if (partitionlength < 1046528) {
-                    emit error(tr("Flash disk must be at least 512MB or larger"));
-                    return;
-                } else if (partitionlength < 16775168) {
-                    clustersize = 4;
-                } else if (partitionlength < 33552384) {
-                    clustersize = 8;
-                } else if (partitionlength < 67106816) {
-                    clustersize = 16;
-                }
-                QString tempDir = QDir::tempPath();
-                QFile bootimageFile;
-                bootimageFile.setFileName(tempDir+"/unraid.bootimg.gz");
-                qDebug() << "copying" << ":/img/boot_" + QString::number(clustersize) + "k.img.gz to" << bootimageFile.fileName();
-                QFile::copy(":/img/boot_" + QString::number(clustersize) + "k.img.gz", bootimageFile.fileName());
+            quint32 partitionlength = (_devLen - 1048576) / 512;
+            quint8 clustersize = 32;
+            if (partitionlength < 1046528) {
+                emit error(tr("Flash disk must be at least 512MB or larger"));
+                return;
+            } else if (partitionlength < 16775168) {
+                clustersize = 4;
+            } else if (partitionlength < 33552384) {
+                clustersize = 8;
+            } else if (partitionlength < 67106816) {
+                clustersize = 16;
+            }
+            QString tempDir = QDir::tempPath();
+            QFile bootimageFile;
+            bootimageFile.setFileName(tempDir+"/unraid.bootimg.gz");
+            qDebug() << "copying" << ":/img/boot_" + QString::number(clustersize) + "k.img.gz to" << bootimageFile.fileName();
+            QFile::copy(":/img/boot_" + QString::number(clustersize) + "k.img.gz", bootimageFile.fileName());
 
-                QUrl tmpSrc = QUrl::fromLocalFile(bootimageFile.fileName());
-                QByteArray tmpUrlstr = tmpSrc.toString(_src.FullyEncoded).toLatin1();
+            QUrl tmpSrc = QUrl::fromLocalFile(bootimageFile.fileName());
+            QByteArray tmpUrlstr = tmpSrc.toString(_src.FullyEncoded).toLatin1();
 
-                DownloadExtractThread * imgThread = new DownloadExtractThread(tmpUrlstr, _dst.toLatin1(), _expectedHash, this);
-                connect(imgThread, SIGNAL(success()), _thread, SLOT(start()));
-                connect(imgThread, SIGNAL(error(QString)), SLOT(onError(QString)));
-                imgThread->start();
-                // remove temp files
-                if (bootimageFile.exists()) {
-                    qDebug() << "Removing" << bootimageFile.fileName();
-                    bootimageFile.remove();
-                }
+            DownloadExtractThread * imgThread = new DownloadExtractThread(tmpUrlstr, _dst.toLatin1(), _expectedHash, this);
+            connect(imgThread, SIGNAL(success()), _thread, SLOT(start()));
+            connect(imgThread, SIGNAL(error(QString)), SLOT(onError(QString)));
+            imgThread->start();
+            // remove temp files
+            if (bootimageFile.exists()) {
+                qDebug() << "Removing" << bootimageFile.fileName();
+                bootimageFile.remove();
             }
         }
     }
