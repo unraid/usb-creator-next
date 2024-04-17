@@ -294,7 +294,12 @@ ApplicationWindow {
                                 return
                             }
 
-                            optionspopup.openPopup()
+
+                            if (imageWriter.imageSupportsCustomization()) {
+                                optionspopup.openPopup()
+                            } else {
+                                confirmwritepopup.askForConfirmation()
+                            }
                             
                         }
                     }
@@ -1273,7 +1278,7 @@ ApplicationWindow {
         }
     }
 
-    OptionsPopup {
+    UnraidOptionsPopup {
         id: optionspopup
         onSaveSettingsSignal: {
             imageWriter.setSavedCustomizationSettings(settings)

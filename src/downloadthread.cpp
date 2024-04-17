@@ -885,7 +885,7 @@ qint64 DownloadThread::_sectorsWritten()
     return -1;
 }
 
-void DownloadThread::setImageCustomization(const QByteArray &config, const QByteArray &cmdline, const QByteArray &firstrun, const QByteArray &cloudinit, const QByteArray &cloudInitNetwork, const QByteArray &initFormat)
+void DownloadThread::setImageCustomization(const QByteArray &config, const QByteArray &cmdline, const QByteArray &firstrun, const QByteArray &cloudinit, const QByteArray &cloudInitNetwork, const QByteArray &initFormat, const QVariantMap& imgWriterSettings)
 {
     _config = config;
     _cmdline = cmdline;
@@ -893,6 +893,7 @@ void DownloadThread::setImageCustomization(const QByteArray &config, const QByte
     _cloudinit = cloudinit;
     _cloudinitNetwork = cloudInitNetwork;
     _initFormat = initFormat;
+    _imgWriterSettings = imgWriterSettings;
 }
 
 bool DownloadThread::_customizeImage()
@@ -1004,4 +1005,12 @@ bool DownloadThread::_customizeImage()
     emit finalizing();
 
     return true;
+}
+
+bool DownloadThread::_allNetworkSettingsPresent() {
+    return _imgWriterSettings.contains("static") &&
+           _imgWriterSettings.contains("ipaddr") &&
+           _imgWriterSettings.contains("gateway") &&
+           _imgWriterSettings.contains("dns") &&
+           _imgWriterSettings.contains("netmask");
 }

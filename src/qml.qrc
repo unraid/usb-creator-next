@@ -34,13 +34,15 @@
         <file>icons/cat_language_specific_operating_systems.png</file>
         <file>icons/cat_3d_printing.png</file>
         <file>icons/UN-logotype-gradient.svg</file>
-	<file>icons/UN-logotype-gradient.png</file>
+        <file>icons/UN-logotype-gradient.png</file>
+        <file>UnraidOptionsPopup.qml</file>
         <file>qmlcomponents/ImButton.qml</file>
         <file>qmlcomponents/ImCheckBox.qml</file>
         <file>qmlcomponents/ImRadioButton.qml</file>
         <file>icons/cat_digital_signage.png</file>
         <file>qmlcomponents/UnColors.qml</file>
         <file>qmlcomponents/qmldir</file>
+        <file>qmlcomponents/IpTextField.qml</file>
         <file>icons/unraid.icns</file>
     </qresource>
 </RCC>

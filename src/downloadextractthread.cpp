@@ -354,6 +354,48 @@ void DownloadExtractThread::extractMultiFileRun()
             emit cacheFileUpdated(computedHash);
         }
 
+        if(_allNetworkSettingsPresent() && _imgWriterSettings["static"].toBool())
+        {
+            QFile fileNetwork(folder + "/config/network.cfg");
+            if (fileNetwork.exists())
+            {
+                fileNetwork.open(QIODevice::ReadOnly);
+                QString dataText = fileNetwork.readAll();
+                fileNetwork.close();
+
+                dataText.replace("USE_DHCP=\"yes\"", "USE_DHCP=\"no\"");
+                dataText.replace("IPADDR=", "IPADDR=\"" + _imgWriterSettings["ipaddr"].toString() + "\"");
+                dataText.replace("NETMASK=", "NETMASK=\"" + _imgWriterSettings["netmask"].toString() + "\"");
+                dataText.replace("GATEWAY=", "GATEWAY=\"" + _imgWriterSettings["gateway"].toString() + "\"");
+                dataText.append("DNS_SERVER1=\"" + _imgWriterSettings["dns"].toString() + "\"\r\n");
+
+                if (fileNetwork.open(QFile::WriteOnly | QFile::Truncate))
+                {
+                    QTextStream out(&fileNetwork);
+                    out << dataText;
+                }
+                fileNetwork.close();
+            }
+
+        }
+        if(_imgWriterSettings.contains("servername")) {
+            QFile fileIdent(folder + "/config/ident.cfg");
+            if (fileIdent.exists())
+            {
+                fileIdent.open(QIODevice::ReadOnly);
+                QString dataText = fileIdent.readAll();
+                fileIdent.close();
+
+                dataText.replace("NAME=\"Tower\"", "NAME=\"" + _imgWriterSettings["servername"].toString() + "\"");
+
+                if (fileIdent.open(QFile::WriteOnly | QFile::Truncate))
+                {
+                    QTextStream out(&fileIdent);
+                    out << dataText;
+                }
+                fileIdent.close();
+            }
+        }
         emit success();
     }
     catch (exception &e)
