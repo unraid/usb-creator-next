@@ -37,6 +37,8 @@
 #include "../drivelist.hpp"
 #include "list.hpp"
 
+#include <regex>
+
 #include <devpkey.h>
 
 // Maxnet edit
@@ -613,6 +615,79 @@ bool GetDetailData(DeviceDescriptor* device,
   return result;
 }
 
+bool GetDeviceVidPidSerialNumber(HDEVINFO hDeviceInfo, PSP_DEVINFO_DATA deviceInfoData, DeviceDescriptor* deviceDescriptor) {
+    CHAR wbuffer[MAX_PATH];
+    ZeroMemory(&wbuffer, sizeof(wbuffer));
+
+    // we can get the serial number from an HDEVINFO opened with GUID_DEVICE_INTERFACE_DISK,
+    // but not VID or PID - so, extract SN first, then loop through devices with GUID_DEVICE_INTERFACE_USB_DEVICE
+    // to correlate all three
+    BOOL hasDeviceInstanceId = SetupDiGetDeviceInstanceId(hDeviceInfo, deviceInfoData, wbuffer, sizeof(wbuffer), NULL);
+    std::string deviceId = hasDeviceInstanceId ? std::string(wbuffer) : std::string("");
+
+    if(deviceId.empty()) {
+        return false;
+    }
+
+    ZeroMemory(&wbuffer, sizeof(wbuffer));
+
+    HDEVINFO hInfo = NULL;
+    hInfo = SetupDiGetClassDevs(&GUID_DEVICE_INTERFACE_USB_DEVICE, NULL, NULL, DIGCF_PRESENT | DIGCF_INTERFACEDEVICE);
+    if (hInfo == INVALID_HANDLE_VALUE) {
+        return false;
+    }
+    SP_DEVINFO_DATA DeviceInfoData;
+    DeviceInfoData.cbSize = sizeof(SP_DEVINFO_DATA);
+    std::string VID{""}, PID{""}, SN{""};
+    size_t matchCount{0};
+    for (DWORD i=0; SetupDiEnumDeviceInfo(hInfo, i, &DeviceInfoData); i++)
+    {
+        DWORD nSize = 0;
+
+        if (!SetupDiGetDeviceInstanceId(hInfo, &DeviceInfoData, wbuffer, sizeof(wbuffer), &nSize)) {
+            continue;
+        }
+
+        std::string deviceId_usb{wbuffer};
+        std::smatch vid_pid_sn_match;
+        std::regex vid_pid_sn_regex("USB\\\\VID_([0-9A-Za-z]{4})&PID_([0-9A-Za-z]{4})\\\\([0-9A-Za-z]+)");
+        if (std::regex_search(deviceId_usb, vid_pid_sn_match, vid_pid_sn_regex) && vid_pid_sn_match.size() == 4)
+        {
+            VID = vid_pid_sn_match[1];
+            PID = vid_pid_sn_match[2];
+            SN = vid_pid_sn_match[3];
+        }
+        if(VID.empty() || PID.empty() || SN.empty()) {
+            continue;
+        }
+
+        std::regex sn_regex("\\\\" + SN);
+        std::smatch sn_match;
+        if(std::regex_search(deviceId, sn_match, sn_regex)) {
+            deviceDescriptor->vid = VID;
+            deviceDescriptor->pid = PID;
+            deviceDescriptor->serialNumber = SN;
+            matchCount++;
+        }
+    }
+
+
+    if (hInfo) {
+        SetupDiDestroyDeviceInfoList(hInfo);
+    }
+
+    if(matchCount != 1) {
+        // we either had multiple ambiguous matches or no matches
+        deviceDescriptor->vid = "";
+        deviceDescriptor->pid = "";
+        deviceDescriptor->serialNumber = "";
+        return false;
+    }
+
+
+    return true;
+}
+
 std::vector<DeviceDescriptor> ListStorageDevices() {
   HDEVINFO hDeviceInfo = NULL;
   SP_DEVINFO_DATA deviceInfoData;
@@ -658,6 +733,9 @@ std::vector<DeviceDescriptor> ListStorageDevices() {
       !device.isVirtual && !device.isCard;
     device.devicePathNull = true;
 
+
+    GetDeviceVidPidSerialNumber(hDeviceInfo, &deviceInfoData, &device);
+
     if (GetDetailData(&device, hDeviceInfo, deviceInfoData)) {
       device.isSystem = device.isSystem || IsSystemDevice(hDeviceInfo, &device);
       device.isCard = device.busType == "SD" || device.busType == "MMC";
@@ -674,7 +752,10 @@ std::vector<DeviceDescriptor> ListStorageDevices() {
 
   SetupDiDestroyDeviceInfoList(hDeviceInfo);
 
+
+
   return deviceList;
 }
+
 
 }  // namespace Drivelist

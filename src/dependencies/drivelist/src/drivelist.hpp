@@ -55,6 +55,9 @@ struct DeviceDescriptor {
   bool isUSB;  // Connected via Universal Serial Bus (USB)
   bool isUAS;  // Connected via the USB Attached SCSI (UAS)
   bool isUASNull;
+  std::string vid;
+  std::string pid;
+  std::string serialNumber;
 };
 
 std::vector<DeviceDescriptor> ListStorageDevices();

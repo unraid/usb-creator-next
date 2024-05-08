@@ -8,11 +8,9 @@
 #include "dependencies/drivelist/src/drivelist.hpp"
 #include <QSet>
 #include <QDebug>
-#include "libusb.h"
+#include <QUrl>
+#include <curl/curl.h>
 
-
-#include <iomanip>
-#include <sstream>
 #include <string>
 
 
@@ -26,88 +24,14 @@ DriveListModel::DriveListModel(QObject *parent)
         {isUsbRole, "isUsb"},
         {isScsiRole, "isScsi"},
         {isReadOnlyRole, "isReadOnly"},
-        {mountpointsRole, "mountpoints"}
+        {mountpointsRole, "mountpoints"},
+        {guidRole, "guid"},
+        {guidValidRole, "guidValid"}
     };
 
     // Enumerate drives in seperate thread, but process results in UI thread
     connect(&_thread, SIGNAL(newDriveList(std::vector<Drivelist::DeviceDescriptor>)), SLOT(processDriveList(std::vector<Drivelist::DeviceDescriptor>)));
 
-    libusb_context *context = NULL;
-    libusb_device **list = NULL;
-    int rc = 0;
-    ssize_t count = 0;
-
-    rc = libusb_init(&context);
-    assert(rc == 0);
-
-    count = libusb_get_device_list(context, &list);
-    assert(count > 0);
-
-    for (size_t idx = 0; idx < count; ++idx) {
-        libusb_device *device = list[idx];
-        libusb_device_descriptor desc = {0};
-
-        rc = libusb_get_device_descriptor(device, &desc);
-        assert(rc == 0);
-
-        libusb_device_handle *handle;
-        uint8_t data[33];
-        qDebug() << "--------" << Qt::endl;
-        QString tmp;
-        try {
-            libusb_open(device, &handle);
-            if (handle != nullptr) {
-                if (libusb_get_string_descriptor_ascii(handle, desc.iSerialNumber, data, 31) >= 0) {
-                    data[32] = '\0';
-                    std::ostringstream oss;
-                    for(int i = 0; i < strlen(reinterpret_cast<const char*>(data)); ++i)
-                    {
-                        oss << std::hex << data[i];
-                    }
-                    qDebug() << "Serial Number: " << QString::fromStdString(oss.str()) << Qt::endl;
-                    qDebug() << "Serial Number: " << QString::fromUtf8(reinterpret_cast<const char*>(data)) << Qt::endl;
-                }
-                if (libusb_get_string_descriptor_ascii(handle, desc.iManufacturer, data, 31) >= 0) {
-                    data[32] = '\0';
-                    std::ostringstream oss;
-                    for(int i = 0; i < strlen(reinterpret_cast<const char*>(data)); ++i)
-                    {
-                        oss << std::hex << data[i];
-                    }
-                    qDebug() << "Manufacturer: " << QString::fromStdString(oss.str())  << Qt::endl;
-                }
-                if (libusb_get_string_descriptor_ascii(handle, desc.iProduct, data, 31) >= 0) {
-                    data[32] = '\0';
-                    std::ostringstream oss;
-                    for(int i = 0; i < strlen(reinterpret_cast<const char*>(data)); ++i)
-                    {
-                        oss << std::hex << data[i];
-                    }
-                    qDebug() << "Product: " << QString::fromStdString(oss.str())  << Qt::endl;
-                }
-
-                //libusb_close(handle);
-            }
-        } catch (libusb_error &e) {
-            qDebug() << e << Qt::endl;
-        }
-        qDebug() << "bDescriptorType" << desc.bDescriptorType << Qt::endl;
-        qDebug() << "bDeviceClass" << desc.bDeviceClass << Qt::endl;
-        qDebug() << "bDeviceSubClass" << desc.bDeviceSubClass << Qt::endl;
-        qDebug() << "bDeviceProtocol" << desc.bDeviceProtocol << Qt::endl;
-        qDebug() << "bcdDevice" << desc.bcdDevice << Qt::endl;
-        qDebug() << "bLength" << desc.bLength << Qt::endl;
-        qDebug() << "bMaxPacketSize0" << desc.bMaxPacketSize0 << Qt::endl;
-        qDebug() << "bNumConfigurations" << desc.bNumConfigurations << Qt::endl;
-        qDebug() << "iManufacturer" << desc.iManufacturer << Qt::endl;
-        qDebug() << "idProduct" << tmp.setNum(desc.idProduct, 16) << Qt::endl;
-        qDebug() << "iSerialNumber" << desc.iSerialNumber << Qt::endl;
-        qDebug() << "idVendor" << tmp.setNum(desc.idVendor, 16) << Qt::endl;
-
-    }
-
-    libusb_free_device_list(list, 1);
-    libusb_exit(context);
 }
 
 int DriveListModel::rowCount(const QModelIndex &) const
@@ -138,6 +62,7 @@ void DriveListModel::processDriveList(std::vector<Drivelist::DeviceDescriptor> l
     bool changes = false;
     bool filterSystemDrives = DRIVELIST_FILTER_SYSTEM_DRIVES;
     QSet<QString> drivesInNewList;
+    QLocale locale;
 
     for (auto &i: l)
     {
@@ -179,8 +104,43 @@ void DriveListModel::processDriveList(std::vector<Drivelist::DeviceDescriptor> l
                 beginResetModel();
                 changes = true;
             }
+            QString guid{""};
+            bool guidValid{true};
+            if(!i.vid.empty() && !i.pid.empty() && !i.serialNumber.empty())
+            {
+                QString SerialPadded = QString::fromStdString(i.serialNumber).rightJustified(16, '0').right(16);
+                guid = (QString::fromStdString(i.vid) + "-" +  QString::fromStdString(i.pid) + "-" + SerialPadded.left(4) + "-" + SerialPadded.mid(4)).toUpper();\
 
-            _drivelist[deviceNamePlusSize] = new DriveListItem(QString::fromStdString(i.device), QString::fromStdString(i.description), i.size, i.isUSB, i.isSCSI, i.isReadOnly, mountpoints, this);
+                CURL *curl;
+                CURLcode res{CURLcode::CURLE_OK};
+                long http_code{0};
+                std::string data{""};
+                curl = curl_easy_init();
+                if(curl)
+                {
+                    curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "POST");
+                    curl_easy_setopt(curl, CURLOPT_URL, UNRAID_GUID_URL);
+                    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+                    curl_easy_setopt(curl, CURLOPT_DEFAULT_PROTOCOL, "https");
+                    struct curl_slist *headers = NULL;
+                    headers = curl_slist_append(headers, "Content-Type: application/x-www-form-urlencoded");
+                    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+                    data = "guid=" + guid.toStdString();
+                    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data.c_str());
+                    res = curl_easy_perform(curl);
+                    curl_slist_free_all(headers);
+                    curl_easy_getinfo (curl, CURLINFO_RESPONSE_CODE, &http_code);
+                }
+                curl_easy_cleanup(curl);
+
+                if (res != CURLcode::CURLE_OK || http_code == 403)
+                {
+                    guidValid = false;
+                }
+
+            }
+
+            _drivelist[deviceNamePlusSize] = new DriveListItem(QString::fromStdString(i.device), QString::fromStdString(i.description), i.size, guid, guidValid, i.isUSB, i.isSCSI, i.isReadOnly, mountpoints, this);
         }
     }
 
@@ -213,4 +173,14 @@ void DriveListModel::startPolling()
 void DriveListModel::stopPolling()
 {
     _thread.stop();
+}
+
+size_t DriveListModel::_curl_write_callback(char *, size_t size, size_t nmemb, void *)
+{
+    return size * nmemb;
+}
+
+size_t DriveListModel::_curl_header_callback(void *, size_t size, size_t nmemb, void *)
+{
+    return size*nmemb;
 }

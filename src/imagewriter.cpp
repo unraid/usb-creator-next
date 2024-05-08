@@ -1476,3 +1476,7 @@ void MountUtilsLog(std::string msg) {
     Q_UNUSED(msg)
     //qDebug() << "mountutils:" << msg.c_str();
 }
+
+QString ImageWriter::getInitFormat() {
+    return _initFormat;
+}
