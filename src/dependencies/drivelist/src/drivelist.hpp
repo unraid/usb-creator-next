@@ -55,9 +55,12 @@ struct DeviceDescriptor {
   bool isUSB;  // Connected via Universal Serial Bus (USB)
   bool isUAS;  // Connected via the USB Attached SCSI (UAS)
   bool isUASNull;
+  
+  // BEGIN: VARIABLES ADDED FOR UNRAID USB CREATOR
   std::string vid;
   std::string pid;
   std::string serialNumber;
+  // END: VARIABLES ADDED FOR UNRAID USB CREATOR
 };
 
 std::vector<DeviceDescriptor> ListStorageDevices();

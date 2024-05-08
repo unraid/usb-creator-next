@@ -615,6 +615,7 @@ bool GetDetailData(DeviceDescriptor* device,
   return result;
 }
 
+// BEGIN: FUNCTION ADDED FOR UNRAID USB CREATOR
 bool GetDeviceVidPidSerialNumber(HDEVINFO hDeviceInfo, PSP_DEVINFO_DATA deviceInfoData, DeviceDescriptor* deviceDescriptor) {
     CHAR wbuffer[MAX_PATH];
     ZeroMemory(&wbuffer, sizeof(wbuffer));
@@ -687,6 +688,7 @@ bool GetDeviceVidPidSerialNumber(HDEVINFO hDeviceInfo, PSP_DEVINFO_DATA deviceIn
 
     return true;
 }
+// END: FUNCTION ADDED FOR UNRAID USB CREATOR
 
 std::vector<DeviceDescriptor> ListStorageDevices() {
   HDEVINFO hDeviceInfo = NULL;
@@ -733,8 +735,9 @@ std::vector<DeviceDescriptor> ListStorageDevices() {
       !device.isVirtual && !device.isCard;
     device.devicePathNull = true;
 
-
+// BEGIN: FUNCTION ADDED FOR UNRAID USB CREATOR
     GetDeviceVidPidSerialNumber(hDeviceInfo, &deviceInfoData, &device);
+// END: FUNCTION ADDED FOR UNRAID USB CREATOR
 
     if (GetDetailData(&device, hDeviceInfo, deviceInfoData)) {
       device.isSystem = device.isSystem || IsSystemDevice(hDeviceInfo, &device);

@@ -38,7 +38,7 @@ public:
     Q_INVOKABLE void setSrc(const QUrl &url, quint64 downloadLen = 0, quint64 extrLen = 0, QByteArray expectedHash = "", bool multifilesinzip = false, QString parentcategory = "", QString osname = "", QByteArray initFormat = "");
 
     /* Set device to write to */
-    Q_INVOKABLE void setDst(const QString &device, quint64 deviceSize = 0);
+    Q_INVOKABLE void setDst(const QString &device, bool guidValid, quint64 deviceSize = 0);
 
     /* Enable/disable verification */
     Q_INVOKABLE void setVerifyEnabled(bool verify);
@@ -146,6 +146,8 @@ public:
     QString detectPiKeyboard();
     Q_INVOKABLE bool hasMouse();
     Q_INVOKABLE QString getInitFormat();
+    Q_INVOKABLE QString getDstDevice();
+    Q_INVOKABLE bool getDstGuidValid();
 
 signals:
     /* We are emiting signals with QVariant as parameters because QML likes it that way */
@@ -207,6 +209,7 @@ protected:
 #ifdef Q_OS_WIN
     QWinTaskbarButton *_taskbarButton;
 #endif
+    bool _guidValid;
 
     void _parseCompressedFile();
     void _parseXZFile();

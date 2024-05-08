@@ -219,7 +219,7 @@ int Cli::main()
         _imageWriter->setImageCustomization("", "", firstRunScript, "", "");
     }
 
-    _imageWriter->setDst(args[1]);
+    _imageWriter->setDst(args[1], false);
     _imageWriter->setVerifyEnabled(!parser.isSet(disableVerify));
 
     /* Run startWrite() in event loop (otherwise calling _app->exit() on error does not work) */

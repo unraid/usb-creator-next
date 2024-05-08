@@ -63,7 +63,7 @@ ImageWriter::ImageWriter(QObject *parent)
     : QObject(parent), _repo(QUrl(QString(OSLIST_URL))), _dlnow(0), _verifynow(0),
       _engine(nullptr), _thread(nullptr), _verifyEnabled(false), _cachingEnabled(false),
       _embeddedMode(false), _online(false), _customCacheFile(false), _trans(nullptr),
-      _networkManager(this)
+      _networkManager(this), _guidValid(false)
 {
     connect(&_polltimer, SIGNAL(timeout()), SLOT(pollProgress()));
 
@@ -223,9 +223,10 @@ void ImageWriter::setSrc(const QUrl &url, quint64 downloadLen, quint64 extrLen, 
 }
 
 /* Set device to write to */
-void ImageWriter::setDst(const QString &device, quint64 deviceSize)
+void ImageWriter::setDst(const QString &device, bool guidValid, quint64 deviceSize)
 {
     _dst = device;
+    _guidValid = guidValid;
     _devLen = deviceSize;
 }
 
@@ -1477,6 +1478,18 @@ void MountUtilsLog(std::string msg) {
     //qDebug() << "mountutils:" << msg.c_str();
 }
 
-QString ImageWriter::getInitFormat() {
+QString ImageWriter::getInitFormat() 
+{
     return _initFormat;
 }
+
+QString ImageWriter::getDstDevice()
+{
+    return _dst;
+}
+
+bool ImageWriter::getDstGuidValid() 
+{
+    return _guidValid;
+}
+

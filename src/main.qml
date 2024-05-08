@@ -1784,11 +1784,11 @@ ApplicationWindow {
             }
         } else {
             imageWriter.setSrc(d.url, d.image_download_size, d.extract_size, typeof(d.extract_sha256) != "undefined" ? d.extract_sha256 : "", typeof(d.contains_multiple_files) != "undefined" ? d.contains_multiple_files : false, ospopup.categorySelected, d.name, typeof(d.init_format) != "undefined" ? d.init_format : "")
-            if(imageWriter.getInitFormat() === "UNRAID" && typeof(dstdelegate.guid) != "undefined" && !dstdelegate.guidValid) {
+            if(imageWriter.getInitFormat() === "UNRAID" && imageWriter.getDstDevice() !== "" && !imageWriter.getDstGuidValid()) {
                 onError(qsTr("Selected device cannot be used to create an Unraid USB due to its invalid GUID."))
-                imageWriter.setDst("")
-                dstbutton.text = qsTr("CHOOSE STORAGE")
                 writebutton.enabled = false
+                imageWriter.setDst("", false)
+                dstbutton.text = qsTr("CHOOSE STORAGE")
             }
             osbutton.text = d.name
             ospopup.close()
@@ -1805,14 +1805,14 @@ ApplicationWindow {
             return
         }
 
-        if(imageWriter.getInitFormat() === "UNRAID" && !dstdelegate.guidValid) {
+        if(imageWriter.getInitFormat() === "UNRAID" && !d.guidValid) {
             onError(qsTr("Selected device cannot be used to create an Unraid USB due to its invalid GUID."))
             writebutton.enabled = false
             return
         }
 
         dstpopup.close()
-        imageWriter.setDst(d.device, d.size)
+        imageWriter.setDst(d.device, d.guidValid, d.size)
         dstbutton.text = d.description
         if (imageWriter.readyToWrite()) {
             writebutton.enabled = true

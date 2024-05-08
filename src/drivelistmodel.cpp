@@ -4,12 +4,11 @@
  */
 
 #include "drivelistmodel.h"
-#include "config.h"
 #include "dependencies/drivelist/src/drivelist.hpp"
 #include <QSet>
 #include <QDebug>
 #include <QUrl>
-#include <curl/curl.h>
+#include "unraidguidvalidator.h"
 
 #include <string>
 
@@ -63,6 +62,8 @@ void DriveListModel::processDriveList(std::vector<Drivelist::DeviceDescriptor> l
     bool filterSystemDrives = DRIVELIST_FILTER_SYSTEM_DRIVES;
     QSet<QString> drivesInNewList;
     QLocale locale;
+    
+    UnraidGuidValidator unraidGuidValidator;
 
     for (auto &i: l)
     {
@@ -104,43 +105,9 @@ void DriveListModel::processDriveList(std::vector<Drivelist::DeviceDescriptor> l
                 beginResetModel();
                 changes = true;
             }
-            QString guid{""};
-            bool guidValid{true};
-            if(!i.vid.empty() && !i.pid.empty() && !i.serialNumber.empty())
-            {
-                QString SerialPadded = QString::fromStdString(i.serialNumber).rightJustified(16, '0').right(16);
-                guid = (QString::fromStdString(i.vid) + "-" +  QString::fromStdString(i.pid) + "-" + SerialPadded.left(4) + "-" + SerialPadded.mid(4)).toUpper();\
 
-                CURL *curl;
-                CURLcode res{CURLcode::CURLE_OK};
-                long http_code{0};
-                std::string data{""};
-                curl = curl_easy_init();
-                if(curl)
-                {
-                    curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "POST");
-                    curl_easy_setopt(curl, CURLOPT_URL, UNRAID_GUID_URL);
-                    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-                    curl_easy_setopt(curl, CURLOPT_DEFAULT_PROTOCOL, "https");
-                    struct curl_slist *headers = NULL;
-                    headers = curl_slist_append(headers, "Content-Type: application/x-www-form-urlencoded");
-                    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-                    data = "guid=" + guid.toStdString();
-                    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data.c_str());
-                    res = curl_easy_perform(curl);
-                    curl_slist_free_all(headers);
-                    curl_easy_getinfo (curl, CURLINFO_RESPONSE_CODE, &http_code);
-                }
-                curl_easy_cleanup(curl);
-
-                if (res != CURLcode::CURLE_OK || http_code == 403)
-                {
-                    guidValid = false;
-                }
-
-            }
-
-            _drivelist[deviceNamePlusSize] = new DriveListItem(QString::fromStdString(i.device), QString::fromStdString(i.description), i.size, guid, guidValid, i.isUSB, i.isSCSI, i.isReadOnly, mountpoints, this);
+            auto result = unraidGuidValidator.checkDevice(i);
+            _drivelist[deviceNamePlusSize] = new DriveListItem(QString::fromStdString(i.device), QString::fromStdString(i.description), i.size, result.guid, result.guidValid, i.isUSB, i.isSCSI, i.isReadOnly, mountpoints, this);
         }
     }
 
