@@ -12,7 +12,7 @@ class DriveFormatThread : public QThread
 {
     Q_OBJECT
 public:
-    DriveFormatThread(const QByteArray &device, QObject *parent = nullptr);
+    DriveFormatThread(const QByteArray &device, const QString& label, QObject *parent = nullptr);
     virtual ~DriveFormatThread();
     virtual void run();
 
@@ -22,6 +22,7 @@ signals:
 
 protected:
     QByteArray _device;
+    QString _label;
 };
 
 #endif // DRIVEFORMATTHREAD_H

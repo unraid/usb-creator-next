@@ -396,6 +396,36 @@ void DownloadExtractThread::extractMultiFileRun()
                 fileIdent.close();
             }
         }
+#ifdef Q_OS_WIN
+        QProcess proc;
+        QStringList args;
+        args << "/C" << "echo Y | make_bootable.bat";
+        proc.setProgram( "cmd.exe" );
+        proc.setArguments(args);
+        proc.setWorkingDirectory(folder);
+        proc.start();
+        proc.waitForFinished();
+
+        QByteArray output = proc.readAllStandardError();
+        qDebug() << output;
+        output = proc.readAllStandardOutput();
+        qDebug() << output;
+        qDebug() << "Done running diskpart. Exit status code =" << proc.exitCode();
+
+        if (proc.exitCode())
+        {
+            throw runtime_error("Error running make_bootable.bat");
+        }
+#elif defined(Q_OS_DARWIN)
+#elif defined(Q_OS_LINUX)
+
+    if (::access(_device.constData(), W_OK) != 0)
+    {
+            // no root access, emit error
+    }
+#else
+    emit error(tr("Formatting not implemented for this platform"));
+#endif
         emit success();
     }
     catch (exception &e)
