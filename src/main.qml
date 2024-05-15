@@ -19,9 +19,9 @@ ApplicationWindow {
     height: imageWriter.isEmbeddedMode() ? -1 : 450
     minimumWidth: imageWriter.isEmbeddedMode() ? -1 : 680
     minimumHeight: imageWriter.isEmbeddedMode() ? -1 : 420
-	
-	
-	color: UnColors.darkGray
+    
+    
+    color: UnColors.darkGray
 
     title: qsTr("Unraid Imager v%1").arg(imageWriter.constantVersion())
 
@@ -49,65 +49,65 @@ ApplicationWindow {
     ColumnLayout {
         id: bg
         spacing: 0
-		RowLayout {
-			Layout.fillWidth: true
-			Rectangle {
-				id: logoContainer
-				implicitHeight: window.height/6
+        RowLayout {
+            Layout.fillWidth: true
+            Rectangle {
+                id: logoContainer
+                implicitHeight: window.height/6
 
-				Image {
-					id: image
-					source: "icons/UN-logotype-gradient.png"
+                Image {
+                    id: image
+                    source: "icons/UN-logotype-gradient.png"
 
-					// Specify the maximum size of the image
-					width: window.width * 0.45
-					height: window.height / 3
+                    // Specify the maximum size of the image
+                    width: window.width * 0.45
+                    height: window.height / 3
 
-					// Within the image's specified size rectangle, resize the
-					// image to fit within the rectangle while keeping its aspect
-					// ratio the same.  Preserving the aspect ratio implies some
-					// extra padding between the Image's extend and the actual
-					// image content: align left so all this padding is on the
-					// right.
-					fillMode: Image.PreserveAspectFit
-					horizontalAlignment: Image.AlignLeft
+                    // Within the image's specified size rectangle, resize the
+                    // image to fit within the rectangle while keeping its aspect
+                    // ratio the same.  Preserving the aspect ratio implies some
+                    // extra padding between the Image's extend and the actual
+                    // image content: align left so all this padding is on the
+                    // right.
+                    fillMode: Image.PreserveAspectFit
+                    horizontalAlignment: Image.AlignLeft
 
-					// Keep the left side of the image 40 pixels from the left
-					// edge
-					anchors.left: logoContainer.left
-					anchors.leftMargin: 10
+                    // Keep the left side of the image 40 pixels from the left
+                    // edge
+                    anchors.left: logoContainer.left
+                    anchors.leftMargin: 10
 
-					// Equal padding above and below the image
-					anchors.top: logoContainer.top
-					anchors.bottom: logoContainer.bottom
-					anchors.topMargin: window.height / 25
-					anchors.bottomMargin: window.height / 25
-				}
-			}
-			Item {
-				Layout.fillWidth: true
-			}
+                    // Equal padding above and below the image
+                    anchors.top: logoContainer.top
+                    anchors.bottom: logoContainer.bottom
+                    anchors.topMargin: window.height / 25
+                    anchors.bottomMargin: window.height / 25
+                }
+            }
+            Item {
+                Layout.fillWidth: true
+            }
 
-			Image {
-				id: helpImage
-				source: "icons/help.png"
-				MouseArea {
-					anchors.fill: parent
-					onClicked: Qt.openUrlExternally("https://docs.unraid.net/unraid-os/getting-started/quick-install-guide/")
-				}
-				Layout.preferredHeight: image.height
-				Layout.preferredWidth: image.height
-				sourceSize.width: image.height
-				sourceSize.height: image.height
-				fillMode: Image.PreserveAspectFit
-			}
-			ColorOverlay {
-				anchors.fill: helpImage
-				source: helpImage
-				color: UnColors.orange
-			}
-		}
-		
+            Image {
+                id: helpImage
+                source: "icons/help.png"
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: Qt.openUrlExternally("https://docs.unraid.net/unraid-os/getting-started/quick-install-guide/")
+                }
+                Layout.preferredHeight: image.height
+                Layout.preferredWidth: image.height
+                sourceSize.width: image.height
+                sourceSize.height: image.height
+                fillMode: Image.PreserveAspectFit
+            }
+            ColorOverlay {
+                anchors.fill: helpImage
+                source: helpImage
+                color: UnColors.orange
+            }
+        }
+        
         Rectangle {
             color: UnColors.orange
             implicitWidth: window.width
@@ -491,28 +491,28 @@ ApplicationWindow {
                 }
             }
 
-			Image {
-				id: infoImage
-				source: "icons/info.png"
-				MouseArea {
-					anchors.fill: parent
-					onClicked: infopopup.openPopup()
-				}
-				Layout.preferredHeight: image.height
-				Layout.preferredWidth: image.height
-				sourceSize.width: image.height
-				sourceSize.height: image.height
-				fillMode: Image.PreserveAspectFit
-				anchors.left: parent.left
-				anchors.leftMargin: 10
-				anchors.bottom: parent.bottom
-				anchors.bottomMargin: 10
-			}
-			ColorOverlay {
-				anchors.fill: infoImage
-				source: infoImage
-				color: UnColors.orange
-			}
+            Image {
+                id: infoImage
+                source: "icons/info.png"
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: infopopup.openPopup()
+                }
+                Layout.preferredHeight: image.height
+                Layout.preferredWidth: image.height
+                sourceSize.width: image.height
+                sourceSize.height: image.height
+                fillMode: Image.PreserveAspectFit
+                anchors.left: parent.left
+                anchors.leftMargin: 10
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 10
+            }
+            ColorOverlay {
+                anchors.fill: infoImage
+                source: infoImage
+                color: UnColors.orange
+            }
 
             DropArea {
                 anchors.fill: parent
@@ -1274,8 +1274,8 @@ ApplicationWindow {
             forceActiveFocus()
         }
     }
-	
-	MsgPopup {
+    
+    MsgPopup {
         id: infopopup
         continueButton: false
         yesButton: false
