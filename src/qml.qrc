@@ -44,9 +44,7 @@
         <file>qmlcomponents/qmldir</file>
         <file>qmlcomponents/IpTextField.qml</file>
         <file>icons/unraid.icns</file>
-        <file>img/boot_4k.img.gz</file>
-        <file>img/boot_8k.img.gz</file>
-        <file>img/boot_16k.img.gz</file>
-        <file>img/boot_32k.img.gz</file>
+        <file>icons/help.png</file>
+		<file>icons/info.png</file>
     </qresource>
 </RCC>

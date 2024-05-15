@@ -153,6 +153,7 @@ int main(int argc, char *argv[])
 #ifdef Q_OS_WIN
     // prefer ANGLE (DirectX) over desktop OpenGL
     QCoreApplication::setAttribute(Qt::AA_UseOpenGLES);
+    qputenv("QT_QPA_PLATFORM", "windows:darkmode=1");
 #endif
 #ifdef QT_NO_WIDGETS
     if ( !handleDri() )
