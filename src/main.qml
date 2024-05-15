@@ -1120,7 +1120,10 @@ ApplicationWindow {
                 var txt = description+" - "+(size/1000000000).toFixed(1)+" gigabytes"
                 if (mountpoints.length > 0) {
                     txt += qsTr("Mounted as %1").arg(mountpoints.join(", "))
-                    if(guid != "") txt += " GUID: %1".arg(guid)
+                    if(guid != "") {
+                        txt += "GUID: %1".arg(guid)
+                        if(!guidValid)  txt += " <font color='red'>[INVALID]</font>"
+                    }
                 }
                 return txt;
             }
@@ -1129,6 +1132,8 @@ ApplicationWindow {
             property string size: model.size
             property string guid: model.guid
             property bool guidValid: model.guidValid
+
+            enabled: guidValid
 
             Rectangle {
                id: dstbgrect
@@ -1176,20 +1181,27 @@ ApplicationWindow {
                                 txt = "<p><font size='4'>"+description+" - "+sizeStr+"</font></p>"
                                 if (mountpoints.length > 0) {
                                     txt += qsTr("Mounted as %1").arg(mountpoints.join(", "))+"<br>"
-                                    if(guid != "") txt += "GUID: %1".arg(guid) +  " "
+                                    if(guid != "") {
+                                        txt += "GUID: %1".arg(guid)
+                                        if(!guidValid)  txt += " <font color='red'>[INVALID]</font>"
+                                    }
                                 }
                                 txt += qsTr("[WRITE PROTECTED]")+"</font>"
                             } else {
                                 txt = "<p><font size='4'>"+description+" - "+sizeStr+"</font></p>"
                                 if (mountpoints.length > 0) {
                                     txt += qsTr("Mounted as %1").arg(mountpoints.join(", "))+"<br>"
-                                    if(guid != "") txt += "GUID: %1".arg(guid)
+                                    if(guid != "") {
+                                        txt += "GUID: %1".arg(guid)
+                                        if(!guidValid)  txt += " <font color='red'>[INVALID]</font>"
+                                    }
                                 }
                                 txt += "</font>"
                             }
                             return txt;
                         }
                         color: dstbgrect.mouseOver ? UnColors.darkGray : "white"
+                        opacity: enabled ? 1.0 : 0.3
                     }
                 }
             }
