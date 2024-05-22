@@ -354,6 +354,112 @@ void DownloadExtractThread::extractMultiFileRun()
             emit cacheFileUpdated(computedHash);
         }
 
+        if(_initFormat == "UNRAID") {
+            if(_allNetworkSettingsPresent() && _imgWriterSettings["static"].toBool())
+            {
+                QFile fileNetwork(folder + "/config/network.cfg");
+                if (fileNetwork.exists())
+                {
+                    fileNetwork.open(QIODevice::ReadOnly);
+                    QString dataText = fileNetwork.readAll();
+                    fileNetwork.close();
+
+                    dataText.replace("USE_DHCP=\"yes\"", "USE_DHCP=\"no\"");
+                    dataText.replace("IPADDR=", "IPADDR=\"" + _imgWriterSettings["ipaddr"].toString() + "\"");
+                    dataText.replace("NETMASK=", "NETMASK=\"" + _imgWriterSettings["netmask"].toString() + "\"");
+                    dataText.replace("GATEWAY=", "GATEWAY=\"" + _imgWriterSettings["gateway"].toString() + "\"");
+                    dataText.append("DNS_SERVER1=\"" + _imgWriterSettings["dns"].toString() + "\"\r\n");
+
+                    if (fileNetwork.open(QFile::WriteOnly | QFile::Truncate))
+                    {
+                        QTextStream out(&fileNetwork);
+                        out << dataText;
+                    }
+                    fileNetwork.close();
+                }
+
+            }
+            if(_imgWriterSettings.contains("servername")) {
+                QFile fileIdent(folder + "/config/ident.cfg");
+                if (fileIdent.exists())
+                {
+                    fileIdent.open(QIODevice::ReadOnly);
+                    QString dataText = fileIdent.readAll();
+                    fileIdent.close();
+
+                    dataText.replace("NAME=\"Tower\"", "NAME=\"" + _imgWriterSettings["servername"].toString() + "\"");
+
+                    if (fileIdent.open(QFile::WriteOnly | QFile::Truncate))
+                    {
+                        QTextStream out(&fileIdent);
+                        out << dataText;
+                    }
+                    fileIdent.close();
+                }
+            }
+
+            // restore make bootable scripts and/or syslinux, if necessary
+            QDir dirTarget(folder);
+            if (dirTarget.mkdir("syslinux"))
+            {
+                QFile::copy(":/unraid/syslinux/ldlinux.c32", folder + "/syslinux/ldlinux.c32");
+                QFile::copy(":/unraid/syslinux/libcom32.c32", folder + "/syslinux/libcom32.c32");
+                QFile::copy(":/unraid/syslinux/libutil.c32", folder + "/syslinux/libutil.c32");
+                QFile::copy(":/unraid/syslinux/make_bootable_linux.sh", folder + "/syslinux/make_bootable_linux.sh");
+                QFile::copy(":/unraid/syslinux/make_bootable_mac.sh", folder + "/syslinux/make_bootable_mac.sh");
+                QFile::copy(":/unraid/syslinux/mboot.c32", folder + "/syslinux/mboot.c32");
+                QFile::copy(":/unraid/syslinux/mbr.bin", folder + "/syslinux/mbr.bin");
+                QFile::copy(":/unraid/syslinux/menu.c32", folder + "/syslinux/menu.c32");
+                QFile::copy(":/unraid/syslinux/syslinux", folder + "/syslinux/syslinux");
+                QFile::copy(":/unraid/syslinux/syslinux_linux", folder + "/syslinux/syslinux_linux");
+                QFile::copy(":/unraid/syslinux/syslinux.cfg", folder + "/syslinux/syslinux.cfg");
+                QFile::copy(":/unraid/syslinux/syslinux.cfg-", folder + "/syslinux/syslinux.cfg-");
+                QFile::copy(":/unraid/syslinux/syslinux.exe", folder + "/syslinux/syslinux.exe");
+            }
+
+            QString permitUEFI{"Y"};
+            if(_imgWriterSettings.contains("legacyboot") && _imgWriterSettings["legacyboot"].toBool()) {
+                // if legacy boot is enabled, tell make bootable script not to permite uefi
+                permitUEFI = "N";
+            }
+
+        #ifdef Q_OS_WIN
+            QString makeBootableScriptName{"make_bootable.bat"};
+            QString program{"cmd.exe"};
+            QStringList args;
+            args << "/C" << "echo " + permitUEFI + " | make_bootable.bat";
+        #elif defined(Q_OS_DARWIN)
+            QString makeBootableScriptName{"make_bootable_mac");
+            QString program{"echo " + permitUEFI + " | ./" + makeBootableScriptName};
+        #elif defined(Q_OS_LINUX)
+            QString makeBootableScriptName{"make_bootable_linux");
+            QString program{"echo " + permitUEFI + " | ./" + makeBootableScriptName};
+        #else
+            throw runtime_error(tr("Formatting not implemented for this platform"));
+        #endif
+            QFile makeBootableScript(folder + "/" + makeBootableScriptName);
+            if (!makeBootableScript.exists())
+            {
+                QFile::copy(":/unraid/" + makeBootableScriptName, folder + "/" + makeBootableScriptName);
+            }
+            QProcess proc;
+            proc.setProgram(program);
+            proc.setArguments(args);
+            proc.setWorkingDirectory(folder);
+            proc.start();
+            proc.waitForFinished();
+
+            QByteArray output = proc.readAllStandardOutput();
+            qDebug() << output;
+            output = proc.readAllStandardError();
+            qDebug() << output;
+            qDebug() << "Done running make_bootable script. Exit status code =" << proc.exitCode();
+
+            if (proc.exitCode())
+            {
+                throw runtime_error("Error running make_bootable script");
+            }
+        }
         emit success();
     }
     catch (exception &e)

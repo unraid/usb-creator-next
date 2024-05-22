@@ -17,8 +17,8 @@
 #include <unistd.h>
 #endif
 
-DriveFormatThread::DriveFormatThread(const QByteArray &device, QObject *parent)
-    : QThread(parent), _device(device)
+DriveFormatThread::DriveFormatThread(const QByteArray &device, const QString& label, QObject *parent)
+    : QThread(parent), _device(device), _label(label)
 {
 
 }
@@ -77,6 +77,10 @@ void DriveFormatThread::run()
 
                     QProcess f32format;
                     QStringList args;
+                    if(!_label.isEmpty())
+                    {
+                        args << "-l" + _label;
+                    }
                     args << "-y" << driveLetter;
                     f32format.start(QCoreApplication::applicationDirPath()+"/fat32format.exe", args);
                     if (!f32format.waitForStarted())

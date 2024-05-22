@@ -14,6 +14,7 @@
 #include <QThread>
 #include <QFile>
 #include <QElapsedTimer>
+#include <QVariantMap>
 #include <fstream>
 #include <atomic>
 #include <time.h>
@@ -116,7 +117,7 @@ public:
     /*
      * Enable image customization
      */
-    void setImageCustomization(const QByteArray &config, const QByteArray &cmdline, const QByteArray &firstrun, const QByteArray &cloudinit, const QByteArray &cloudinitNetwork, const QByteArray &initFormat);
+    void setImageCustomization(const QByteArray &config, const QByteArray &cmdline, const QByteArray &firstrun, const QByteArray &cloudinit, const QByteArray &cloudinitNetwork, const QByteArray &initFormat, const QVariantMap& imgWriterSettings);
 
     /*
      * Thread safe download progress query functions
@@ -165,6 +166,8 @@ protected:
     static int _curl_xferinfo_callback(void *userdata, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow);
     static size_t _curl_header_callback( void *ptr, size_t size, size_t nmemb, void *userdata);
 
+    bool _allNetworkSettingsPresent();
+
     CURL *_c;
     curl_off_t _startOffset;
     std::atomic<std::uint64_t> _lastDlTotal, _lastDlNow, _verifyTotal, _lastVerifyNow, _bytesWritten;
@@ -191,6 +194,7 @@ protected:
     QFile _cachefile;
 
     AcceleratedCryptographicHash _writehash, _verifyhash;
+    QVariantMap _imgWriterSettings;
 };
 
 #endif // DOWNLOADTHREAD_H

@@ -243,7 +243,7 @@ void ImageWriter::startWrite()
 
     if (_src.toString() == "internal://format")
     {
-        DriveFormatThread *dft = new DriveFormatThread(_dst.toLatin1(), this);
+        DriveFormatThread *dft = new DriveFormatThread(_dst.toLatin1(), "", this);
         connect(dft, SIGNAL(success()), SLOT(onSuccess()));
         connect(dft, SIGNAL(error(QString)), SLOT(onError(QString)));
         dft->start();
@@ -302,7 +302,7 @@ void ImageWriter::startWrite()
     connect(_thread, SIGNAL(preparationStatusUpdate(QString)), SLOT(onPreparationStatusUpdate(QString)));
     _thread->setVerifyEnabled(_verifyEnabled);
     _thread->setUserAgent(QString("Mozilla/5.0 rpi-imager/%1").arg(constantVersion()).toUtf8());
-    _thread->setImageCustomization(_config, _cmdline, _firstrun, _cloudinit, _cloudinitNetwork, _initFormat);
+    _thread->setImageCustomization(_config, _cmdline, _firstrun, _cloudinit, _cloudinitNetwork, _initFormat, getSavedCustomizationSettings());
 
     if (!_expectedHash.isEmpty() && _cachedFileHash != _expectedHash && _cachingEnabled)
     {
@@ -342,7 +342,12 @@ void ImageWriter::startWrite()
     if (_multipleFilesInZip)
     {
         static_cast<DownloadExtractThread *>(_thread)->enableMultipleFileExtraction();
-        DriveFormatThread *dft = new DriveFormatThread(_dst.toLatin1(), this);
+        QString label{""};
+        if(_initFormat == "UNRAID") {
+            // if this is an unraid zip, the volume label needs to be UNRAID for the make bootable script to work as intended
+            label = "UNRAID";
+        }
+        DriveFormatThread *dft = new DriveFormatThread(_dst.toLatin1(), label, this);
         connect(dft, SIGNAL(success()), _thread, SLOT(start()));
         connect(dft, SIGNAL(error(QString)), SLOT(onError(QString)));
         dft->start();
@@ -1305,7 +1310,7 @@ bool ImageWriter::hasSavedCustomizationSettings()
 
 bool ImageWriter::imageSupportsCustomization()
 {
-    return !_initFormat.isEmpty();
+    return _initFormat == "UNRAID";
 }
 
 QStringList ImageWriter::getTranslations()
