@@ -95,6 +95,7 @@ Popup {
             Layout.topMargin: 25
             Accessible.name: text.replace(/<\/?[^>]+(>|$)/g, "")
             color: "white"
+            onLinkActivated: Qt.openUrlExternally(link)
         }
 
         RowLayout {

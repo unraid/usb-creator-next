@@ -218,7 +218,7 @@ void ImageWriter::setSrc(const QUrl &url, quint64 downloadLen, quint64 extrLen, 
     }
     if (url.isLocalFile())
     {
-        _initFormat = "auto";
+        _initFormat = "UNRAID";
     }
 }
 
@@ -615,14 +615,14 @@ QByteArray ImageWriter::getFilteredOSlist() {
 
     reference_os_list_array.append(QJsonObject({
             {"name", QApplication::translate("main", "Erase")},
-            {"description", QApplication::translate("main", "Format card as FAT32")},
+            {"description", QApplication::translate("main", "Format USB Drive as FAT32")},
             {"icon", "icons/erase.png"},
             {"url", "internal://format"},
         }));
 
     reference_os_list_array.append(QJsonObject({
             {"name", QApplication::translate("main", "Use custom")},
-            {"description", QApplication::translate("main", "Select a custom .img from your computer")},
+            {"description", QApplication::translate("main", "Select an Unraid .zip file from your computer")},
             {"icon", "icons/use_custom.png"},
             {"url", ""},
         }));
@@ -807,7 +807,7 @@ void ImageWriter::openFileDialog()
 
     QFileDialog *fd = new QFileDialog(nullptr, tr("Select image"),
                                       path,
-                                      "Image files (*.img *.zip *.iso *.gz *.xz *.zst);;All files (*)");
+                                      "Unraid Image files (*.zip)");
     connect(fd, SIGNAL(fileSelected(QString)), SLOT(onFileSelected(QString)));
 
     if (_engine)

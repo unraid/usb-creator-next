@@ -417,23 +417,13 @@ void DownloadExtractThread::extractMultiFileRun()
                 QFile::copy(":/unraid/syslinux/syslinux.exe", folder + "/syslinux/syslinux.exe");
             }
 
-            QString permitUEFI{"Y"};
-            if(_imgWriterSettings.contains("legacyboot") && _imgWriterSettings["legacyboot"].toBool()) {
-                // if legacy boot is enabled, tell make bootable script not to permite uefi
-                permitUEFI = "N";
-            }
-
         #ifdef Q_OS_WIN
             QString makeBootableScriptName{"make_bootable.bat"};
             QString program{"cmd.exe"};
             QStringList args;
-            args << "/C" << "echo " + permitUEFI + " | make_bootable.bat";
+            args << "/C" << "echo Y | make_bootable.bat";
         #elif defined(Q_OS_DARWIN)
-            QString makeBootableScriptName{"make_bootable_mac");
-            QString program{"echo " + permitUEFI + " | ./" + makeBootableScriptName};
         #elif defined(Q_OS_LINUX)
-            QString makeBootableScriptName{"make_bootable_linux");
-            QString program{"echo " + permitUEFI + " | ./" + makeBootableScriptName};
         #else
             throw runtime_error(tr("Formatting not implemented for this platform"));
         #endif
@@ -450,10 +440,10 @@ void DownloadExtractThread::extractMultiFileRun()
             proc.waitForFinished();
 
             QByteArray output = proc.readAllStandardOutput();
-            qDebug() << output;
+            std::cout << output.toStdString() << std::endl;
             output = proc.readAllStandardError();
-            qDebug() << output;
-            qDebug() << "Done running make_bootable script. Exit status code =" << proc.exitCode();
+            std::cout << output.toStdString() << std::endl;
+            std::cout << "Done running make_bootable script. Exit status code =" << proc.exitCode() << std::endl;
 
             if (proc.exitCode())
             {
