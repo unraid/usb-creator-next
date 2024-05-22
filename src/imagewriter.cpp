@@ -82,7 +82,8 @@ ImageWriter::ImageWriter(QObject *parent)
       _verifyEnabled(false), _multipleFilesInZip(false), _embeddedMode(false), _online(false),
       _settings(),
       _translations(),
-      _trans(nullptr)
+      _trans(nullptr),
+      _guidValid(false)
 {
     // Initialize CacheManager now that _embeddedMode is properly initialized
     _cacheManager = new CacheManager(_embeddedMode, this);
@@ -315,9 +316,10 @@ void ImageWriter::setSrc(const QUrl &url, quint64 downloadLen, quint64 extrLen, 
 }
 
 /* Set device to write to */
-void ImageWriter::setDst(const QString &device, quint64 deviceSize)
+void ImageWriter::setDst(const QString &device, bool guidValid, quint64 deviceSize)
 {
     _dst = device;
+    _guidValid = guidValid;
     _devLen = deviceSize;
 }
 
@@ -1787,4 +1789,19 @@ void MountUtilsLog(std::string msg)
 {
     Q_UNUSED(msg)
     // qDebug() << "mountutils:" << msg.c_str();
+}
+
+QString ImageWriter::getInitFormat()
+{
+    return _initFormat;
+}
+
+QString ImageWriter::getDstDevice()
+{
+    return _dst;
+}
+
+bool ImageWriter::getDstGuidValid()
+{
+    return _guidValid;
 }

@@ -79,8 +79,7 @@ int Cli::run()
         qInstallMessageHandler(devnullMsgHandler);
     }
     _quiet = parser.isSet("quiet");
-    QByteArray initFormat = (parser.value("cloudinit-userdata").isEmpty()
-                             && parser.value("cloudinit-networkconfig").isEmpty() ) ? "systemd" : "cloudinit";
+    QByteArray initFormat = (parser.value("cloudinit-userdata").isEmpty() && parser.value("cloudinit-networkconfig").isEmpty()) ? "systemd" : "cloudinit";
 
     if (args[0].startsWith("http:", Qt::CaseInsensitive) || args[0].startsWith("https:", Qt::CaseInsensitive))
     {
@@ -88,7 +87,7 @@ int Cli::run()
 
         if (!parser.value("cache-file").isEmpty())
         {
-            _imageWriter->setCustomCacheFile(parser.value("cache-file"), parser.value("sha256").toLatin1() );
+            _imageWriter->setCustomCacheFile(parser.value("cache-file"), parser.value("sha256").toLatin1());
         }
     }
     else
@@ -118,9 +117,9 @@ int Cli::run()
     else
     {
         DriveListModel dlm;
-        dlm.processDriveList(Drivelist::ListStorageDevices() );
+        dlm.processDriveList(Drivelist::ListStorageDevices());
         bool foundDrive = false;
-        int numDrives = dlm.rowCount( QModelIndex() );
+        int numDrives = dlm.rowCount(QModelIndex());
 
         for (int i = 0; i < numDrives; i++)
         {
@@ -133,17 +132,19 @@ int Cli::run()
 
         if (!foundDrive)
         {
-            std::cerr << "Destination drive is not in list of removable volumes. Choose one of the following:" << std::endl << std::endl;
+            std::cerr << "Destination drive is not in list of removable volumes. Choose one of the following:" << std::endl
+                      << std::endl;
 
             for (int i = 0; i < numDrives; i++)
             {
                 QModelIndex idx = dlm.index(i, 0);
-                QByteArray line = idx.data(dlm.deviceRole).toByteArray()+" ("+idx.data(dlm.descriptionRole).toByteArray()+")";
+                QByteArray line = idx.data(dlm.deviceRole).toByteArray() + " (" + idx.data(dlm.descriptionRole).toByteArray() + ")";
 
                 std::cerr << line.constData() << std::endl;
             }
 
-            std::cerr << std::endl << "Or use --enable-writing-system-drives to overrule." << std::endl;
+            std::cerr << std::endl
+                      << "Or use --enable-writing-system-drives to overrule." << std::endl;
             return 1;
         }
     }
@@ -211,7 +212,7 @@ int Cli::run()
         _imageWriter->setImageCustomization("", "", firstRunScript, "", "");
     }
 
-    _imageWriter->setDst(args[1]);
+    _imageWriter->setDst(args[1], false);
     _imageWriter->setVerifyEnabled(!parser.isSet("disable-verify"));
     _imageWriter->setSetting("eject", !parser.isSet("disable-eject"));
 
@@ -251,7 +252,7 @@ void Cli::onError(QVariant msg)
 
 void Cli::onDownloadProgress(QVariant dlnow, QVariant dltotal)
 {
-    _printProgress("Writing",  dlnow, dltotal);
+    _printProgress("Writing", dlnow, dltotal);
 }
 
 void Cli::onVerifyProgress(QVariant now, QVariant total)
@@ -263,7 +264,7 @@ void Cli::onPreparationStatusUpdate(QVariant msg)
 {
     if (!_quiet)
     {
-        QByteArray ascii = QByteArray("  ")+msg.toByteArray()+"\r";
+        QByteArray ascii = QByteArray("  ") + msg.toByteArray() + "\r";
         _clearLine();
         std::cerr << ascii.constData();
     }
@@ -279,10 +280,10 @@ void Cli::_printProgress(const QByteArray &msg, QVariant now, QVariant total)
 
     if (t)
     {
-        int percent = n/t*100;
+        int percent = n / t * 100;
         if (percent != _lastPercent || msg != _lastMsg)
         {
-            QByteArray txt = QByteArray("  ")+msg+": ["+QByteArray(percent/5, '-')+'>'+QByteArray(20-percent/5, ' ')+"] "+QByteArray::number(percent)+" %\r";
+            QByteArray txt = QByteArray("  ") + msg + ": [" + QByteArray(percent / 5, '-') + '>' + QByteArray(20 - percent / 5, ' ') + "] " + QByteArray::number(percent) + " %\r";
             std::cerr << txt.constData();
             _lastPercent = percent;
             _lastMsg = msg;

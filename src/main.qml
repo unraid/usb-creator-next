@@ -206,58 +206,6 @@ ApplicationWindow {
                 columns: 3
                 columnSpacing: 15
 
-                // Will probably need to delete this ColumnLayout- Ajit
-                ColumnLayout {
-                    id: columnLayout0
-                    spacing: 0
-                    activeFocusOnTab: false
-                    Layout.row: 0
-                    Layout.column: 0
-                    Layout.fillWidth: true
-
-                    Text {
-                        id: text0
-                        color: Style.unraidTextColor
-                        text: qsTr("Raspberry Pi Device")
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 17
-                        Layout.preferredWidth: 100
-                        font.pixelSize: 12
-                        font.family: Style.fontFamilyBold
-                        font.bold: true
-                        horizontalAlignment: Text.AlignHCenter
-                    }
-
-                    ImButton {
-                        id: hwbutton
-                        text: window.imageWriter.getHWList().currentName
-                        spacing: 0
-                        padding: 0
-                        bottomPadding: 0
-                        topPadding: 0
-                        Layout.minimumHeight: 40
-                        Layout.fillWidth: true
-                        onClicked: {
-                            hwpopup.open();
-                            hwpopup.hwlist.forceActiveFocus();
-                        }
-                        Accessible.ignored: ospopup.visible || dstpopup.visible || hwpopup.visible
-                        Accessible.description: qsTr("Select this button to choose your target Raspberry Pi")
-
-                        Keys.onPressed: event => {
-                            if (!hwbutton.focus)
-                                return;
-                            if (event.key === Qt.Key_Backtab || (event.key === Qt.Key_Tab && event.modifiers & Qt.ShiftModifier)) {
-                                window.getPreviousFocusableElement(hwbutton).forceActiveFocus();
-                                event.accepted = true;
-                            } else if (event.key === Qt.Key_Tab) {
-                                window.getNextFocusableElement(hwbutton).forceActiveFocus();
-                                event.accepted = true;
-                            }
-                        }
-                    }
-                }
-
                 ColumnLayout {
                     id: columnLayout1
                     spacing: 0
@@ -291,7 +239,7 @@ ApplicationWindow {
                             ospopup.open();
                             ospopup.osswipeview.currentItem.forceActiveFocus();
                         }
-                        Accessible.ignored: ospopup.visible || dstpopup.visible || hwpopup.visible
+                        Accessible.ignored: ospopup.visible || dstpopup.visible
                         Accessible.description: qsTr("Select this button to change the operating system")
 
                         Keys.onPressed: event => {
@@ -343,7 +291,7 @@ ApplicationWindow {
                             dstpopup.open();
                             dstpopup.dstlist.forceActiveFocus();
                         }
-                        Accessible.ignored: ospopup.visible || dstpopup.visible || hwpopup.visible
+                        Accessible.ignored: ospopup.visible || dstpopup.visible
                         Accessible.description: qsTr("Select this button to change the destination storage device")
 
                         Keys.onPressed: event => {
@@ -488,7 +436,7 @@ ApplicationWindow {
                         Layout.minimumHeight: 40
                         Layout.preferredWidth: 200
                         Layout.alignment: Qt.AlignRight
-                        Accessible.ignored: ospopup.visible || dstpopup.visible || hwpopup.visible
+                        Accessible.ignored: ospopup.visible || dstpopup.visible
                         Accessible.description: qsTr("Select this button to start writing the image")
                         enabled: false
                         onClicked: {
@@ -739,8 +687,6 @@ ApplicationWindow {
             }
         }
     }
-
-    // Completely removed HWPopup as it's not needed for Unraid -- Ajit
 
     OSPopup {
         id: ospopup
@@ -1079,8 +1025,11 @@ ApplicationWindow {
                         device: drive,
                         description: window.driveListModel.data(window.driveListModel.index(i, 0), 0x102),
                         size: window.driveListModel.data(window.driveListModel.index(i, 0), 0x103),
+                        guid: window.driveListModel.data(window.driveListModel.index(i, 0), 0x108),
+                        guidValid: window.driveListModel.data(window.driveListModel.index(i, 0), 0x109),
                         readonly: false
                     });
+                    console.log(`Default drive ${drive} found in drive list, selected.`);
                     break;
                 }
             }

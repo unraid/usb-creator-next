@@ -382,6 +382,17 @@ MainPopupBase {
             }
         } else {
             root.imageWriter.setSrc(d.url, d.image_download_size, d.extract_size, typeof (d.extract_sha256) != "undefined" ? d.extract_sha256 : "", typeof (d.contains_multiple_files) != "undefined" ? d.contains_multiple_files : false, root.categorySelected, d.name, typeof (d.init_format) != "undefined" ? d.init_format : "");
+
+            // Check if we're switching to Unraid and validate current device
+            if (imageWriter.getInitFormat() === "UNRAID" && imageWriter.getDstDevice() !== "" && !imageWriter.getDstGuidValid()) {
+                // Invalid device for Unraid - clear selection and show error
+                onError(qsTr("Selected device cannot be used to create an Unraid USB due to its invalid GUID."));
+                writebutton.enabled = false;
+                imageWriter.setDst("", false);
+                window.selectedStorageName = "";
+                dstbutton.text = qsTr("CHOOSE STORAGE");
+            }
+
             window.selectedOsName = d.name;
             root.close();
             osswipeview.decrementCurrentIndex();

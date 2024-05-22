@@ -65,7 +65,7 @@ Popup {
         anchors.top: parent.top
         anchors.rightMargin: 25
         anchors.topMargin: 10
-        font.family: roboto.name
+        font.family: Style.fontFamily
         font.bold: true
 
         MouseArea {
@@ -87,7 +87,7 @@ Popup {
             verticalAlignment: Text.AlignVCenter
             Layout.fillWidth: true
             Layout.topMargin: 10
-            font.family: roboto.name
+            font.family: Style.fontFamily
             font.bold: true
         }
         GroupBox {
@@ -154,7 +154,7 @@ Popup {
                     }
                     ComboBox {
                         id: fieldNetmask
-                        font.family: roboto.name
+                        font.family: Style.fontFamily
                         model: ["255.255.0.0", "255.255.128.0", "255.255.192.0", "255.255.224.0", "255.255.240.0", "255.255.248.0", "255.255.252.0", "255.255.254.0", "255.255.255.0", "255.255.255.128", "255.255.255.192", "255.255.255.224", "255.255.255.240", "255.255.255.248", "255.255.255.252"]
                         Layout.preferredWidth: 200
                         currentIndex: -1

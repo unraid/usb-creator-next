@@ -74,6 +74,7 @@ MainPopupBase {
             horizontalAlignment: Qt.AlignHCenter
             verticalAlignment: Qt.AlignVCenter
             visible: parent.count == 0
+            color: Style.unraidTextColor
             text: qsTr("No storage devices found")
             font.bold: true
         }
@@ -117,7 +118,6 @@ MainPopupBase {
             id: filterSystemDrives
             checked: true
             text: qsTr("Exclude System Drives")
-            
 
             Keys.onPressed: event => {
                 if (event.key === Qt.Key_Backtab || (event.key === Qt.Key_Tab && event.modifiers & Qt.ShiftModifier)) {
@@ -147,9 +147,13 @@ MainPopupBase {
             required property bool isSystem
             required property var mountpoints
             required property QtObject modelData
+            required property string guid
+            required property bool guidValid
 
             readonly property bool shouldHide: isSystem && filterSystemDrives.checked
             readonly property bool unselectable: isReadOnly
+
+            enabled: guidValid
 
             anchors.left: parent ? parent.left : undefined
             anchors.right: parent ? parent.right : undefined
@@ -157,11 +161,34 @@ MainPopupBase {
             height: shouldHide ? 0 : 61
             visible: !shouldHide
             Accessible.name: {
-                var txt = description + " - " + (size / 1000000000).toFixed(1) + " " + qsTr("gigabytes");
-                if (mountpoints.length > 0) {
-                    txt += qsTr("Mounted as %1").arg(mountpoints.join(", "));
+                var text = [];
+
+                var sizeStr = (dstitem.size / 1000000000).toFixed(1) + " " + qsTr("GB");
+                text.push(dstitem.description + ", " + sizeStr);
+
+                if (dstitem.mountpoints && dstitem.mountpoints.length > 0) {
+                    text.push(qsTr("Mounted as %1").arg(dstitem.mountpoints.join(", ")));
                 }
-                return txt;
+
+                if (dstitem.isReadOnly) {
+                    text.push(qsTr("Write protected"));
+                } else if (dstitem.isSystem) {
+                    text.push(qsTr("System drive"));
+                }
+
+                if (dstitem.guid && dstitem.guid !== "") {
+                    if (dstitem.guidValid) {
+                        text.push(qsTr("GUID: %1").arg(dstitem.guid));
+                    } else {
+                        text.push(qsTr("GUID invalid"));
+                    }
+                }
+
+                if (!dstitem.guidValid) {
+                    text.push(qsTr("Cannot be selected"));
+                }
+
+                return text.join(", ");
             }
 
             Rectangle {
@@ -186,6 +213,7 @@ MainPopupBase {
                         source: dstitem.isUsb ? (dstbgrect.mouseOver ? "icons/ic_usb_40px.svg" : "icons/ic_usb_40px_orange.svg") : dstitem.isScsi ? (dstbgrect.mouseOver ? "icons/ic_storage_40px.svg" : "icons/ic_storage_40px_orange.svg") : (dstbgrect.mouseOver ? "icons/ic_sd_storage_40px.svg" : "icons/ic_sd_storage_40px_orange.svg")
                         verticalAlignment: Image.AlignVCenter
                         fillMode: Image.Pad
+                        opacity: enabled ? 1.0 : 0.3
                     }
 
                     Item {
@@ -193,44 +221,28 @@ MainPopupBase {
                     }
 
                     ColumnLayout {
-                        Text {
-                            textFormat: Text.StyledText
-                            verticalAlignment: Text.AlignVCenter
-                            Layout.fillWidth: true
-                            font.family: Style.fontFamily
-                            font.pointSize: 16
-                            color: dstbgrect.mouseOver ? Style.unraidTextFocusColor : Style.unraidTextColor
-                            text: {
-                                var sizeStr = (dstitem.size / 1000000000).toFixed(1) + " " + qsTr("GB");
-                                return dstitem.description + " - " + sizeStr;
-                            }
-                            // Changed this text to Unraid's version -- Ajit
-                            // text: {
-                            //     var sizeStr = (dstitem.size / 1000000000).toFixed(1) + " GB";
-                            //     var txt;
-                            //     if (dstitem.isReadOnly) {
-                            //         txt = "<p><font size='4'>" + dstitem.description + " - " + sizeStr + "</font></p>";
-                            //         if (dstitem.mountpoints.length > 0) {
-                            //             txt += qsTr("Mounted as %1").arg(dstitem.mountpoints.join(", ")) + " ";
-                            //         }
-                            //         txt += qsTr("[WRITE PROTECTED]") + "</font>";
-                            //     } else {
-                            //         txt = "<p><font size='4'>" + dstitem.description + " - " + sizeStr + "</font></p>";
-                            //         if (dstitem.mountpoints.length > 0) {
-                            //             txt += qsTr("Mounted as %1").arg(dstitem.mountpoints.join(", ")) + "</font>";
-                            //         }
-                            //     }
-                            //     return txt;
-                            // }
-                        }
 
                         Text {
                             textFormat: Text.StyledText
                             verticalAlignment: Text.AlignVCenter
                             Layout.fillWidth: true
                             font.family: Style.fontFamily
+                            font.pointSize: 16
+                            color: dstbgrect.mouseOver ? Style.unraidPrimaryBgColor : Style.unraidTextColor
+                            opacity: enabled ? 1.0 : 0.3
+                            text: {
+                                var sizeStr = (dstitem.size / 1000000000).toFixed(1) + " " + qsTr("GB");
+                                return dstitem.description + " - " + sizeStr;
+                            }
+                        }
+                        Text {
+                            textFormat: Text.StyledText
+                            verticalAlignment: Text.AlignVCenter
+                            Layout.fillWidth: true
+                            font.family: Style.fontFamily
                             font.pointSize: 12
-                            color: dstbgrect.mouseOver ? Style.unraidTextFocusColor : Style.unraidTextColor
+                            color: dstbgrect.mouseOver ? Style.unraidPrimaryBgColor : Style.unraidTextColor
+                            opacity: enabled ? 1.0 : 0.3
                             text: {
                                 var txt = qsTr("Mounted as %1").arg(dstitem.mountpoints.join(", "));
                                 if (dstitem.isReadOnly) {
@@ -238,6 +250,13 @@ MainPopupBase {
                                 } else if (dstitem.isSystem) {
                                     txt += " [" + qsTr("SYSTEM") + "]";
                                 }
+
+                                if (dstitem.guid != "") {
+                                    dstitem.guidValid ? txt += "<br>GUID: %1".arg(dstitem.guid) : txt += "<br>GUID: %1 <font color='red'>[BLACKLISTED]</font>".arg(dstitem.guid);
+                                } else {
+                                    txt += "<br><font color='red'>[MISSING GUID - Choose Another Flash Device]</font>";
+                                }
+
                                 return txt;
                             }
                         }
@@ -261,13 +280,16 @@ MainPopupBase {
 
                 onEntered: {
                     dstbgrect.mouseOver = true;
+                    console.log(`Mouse entered on device: ${dstitem.device}, Selectable: ${!dstitem.unselectable}, Enabled: ${enabled}`);
                 }
 
                 onExited: {
+                    console.log(`Mouse exited from device: ${dstitem.device}`);
                     dstbgrect.mouseOver = false;
                 }
 
                 onClicked: {
+                    console.log(`Clicked on device: ${dstitem.device}`);
                     root.selectDstItem(dstitem.modelData);
                 }
             }
@@ -279,6 +301,17 @@ MainPopupBase {
             onError(qsTr("SD card is write protected.<br>Push the lock switch on the left side of the card upwards, and try again."));
             return;
         }
+
+        console.log(`Unraid Device : ${imageWriter.getInitFormat()} selected device: ${d.device}`);
+        console.log(`guid: ${d.guid} guidValid: ${d.guidValid}`);
+
+        // Unraid-specific
+        if (imageWriter.getInitFormat() === "UNRAID" && !d.guidValid) {
+            onError(qsTr("Selected device cannot be used to create an Unraid USB due to its invalid GUID."));
+            writebutton.enabled = false;
+            return;
+        }
+
         imageWriter.setDst(d.device);
         window.selectedStorageName = d.description;
         if (imageWriter.readyToWrite()) {

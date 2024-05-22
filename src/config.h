@@ -31,4 +31,6 @@
 /* Do not cache if it would bring free disk space under 5 GB */
 #define IMAGEWRITER_MINIMAL_SPACE_FOR_CACHING   5*1024*1024*1024ll
 
+#define UNRAID_GUID_URL "https://keys.lime-technology.com/validate/guid"
+
 #endif // CONFIG_H
