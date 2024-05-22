@@ -9,6 +9,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QDebug>
+#include <QRegularExpression>
 
 /*
  * Our third-party drivelist module does not provide a C++ implementation
@@ -58,6 +59,9 @@ namespace Drivelist
             qDebug() << "Error executing lsblk";
             return deviceList;
         }
+
+
+        QRegularExpression vidRegExp("VENDOR_ID=([0-9A-Za-z]{4})"), pidRegExp("MODEL_ID=([0-9A-Za-z]{4})"), snRegExp("SERIAL_SHORT=([0-9A-Za-z]+)");
 
         QJsonDocument d = QJsonDocument::fromJson(output);
         const QJsonArray a = d.object()["blockdevices"].toArray();
@@ -153,6 +157,26 @@ namespace Drivelist
                 }
             }
 
+            QString serialNumber = bdev["serial"].toString();
+            d.serialNumber = serialNumber.toStdString();
+            
+            // retrieve vendor id (vid) and model id (pid) with udevadm command
+            args.clear();
+            args << "info" << "--name=" + name;
+            p.start("udevadm", args);
+            p.waitForFinished(2000);
+            output = p.readAll();
+
+            if (p.exitStatus() == QProcess::NormalExit && !output.isEmpty())
+            {
+                auto vidMatch = vidRegExp.match(output);
+                auto pidMatch = pidRegExp.match(output);
+                auto snMatch = snRegExp.match(output);
+                if (vidMatch.hasMatch() && pidMatch.hasMatch() && snMatch.hasMatch() && snMatch.captured(1) == serialNumber) {
+                    d.vid = vidMatch.captured(1).toStdString(); 
+                    d.pid = pidMatch.captured(1).toStdString(); 
+                }
+            }
             deviceList.push_back(d);
         }
 

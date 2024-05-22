@@ -4,10 +4,14 @@
  */
 
 #include "drivelistmodel.h"
-#include "config.h"
 #include "dependencies/drivelist/src/drivelist.hpp"
 #include <QSet>
 #include <QDebug>
+#include <QUrl>
+#include "unraidguidvalidator.h"
+
+#include <string>
+
 
 DriveListModel::DriveListModel(QObject *parent)
     : QAbstractListModel(parent)
@@ -19,11 +23,14 @@ DriveListModel::DriveListModel(QObject *parent)
         {isUsbRole, "isUsb"},
         {isScsiRole, "isScsi"},
         {isReadOnlyRole, "isReadOnly"},
-        {mountpointsRole, "mountpoints"}
+        {mountpointsRole, "mountpoints"},
+        {guidRole, "guid"},
+        {guidValidRole, "guidValid"}
     };
 
     // Enumerate drives in seperate thread, but process results in UI thread
     connect(&_thread, SIGNAL(newDriveList(std::vector<Drivelist::DeviceDescriptor>)), SLOT(processDriveList(std::vector<Drivelist::DeviceDescriptor>)));
+
 }
 
 int DriveListModel::rowCount(const QModelIndex &) const
@@ -54,6 +61,9 @@ void DriveListModel::processDriveList(std::vector<Drivelist::DeviceDescriptor> l
     bool changes = false;
     bool filterSystemDrives = DRIVELIST_FILTER_SYSTEM_DRIVES;
     QSet<QString> drivesInNewList;
+    QLocale locale;
+    
+    UnraidGuidValidator unraidGuidValidator;
 
     for (auto &i: l)
     {
@@ -96,7 +106,8 @@ void DriveListModel::processDriveList(std::vector<Drivelist::DeviceDescriptor> l
                 changes = true;
             }
 
-            _drivelist[deviceNamePlusSize] = new DriveListItem(QString::fromStdString(i.device), QString::fromStdString(i.description), i.size, i.isUSB, i.isSCSI, i.isReadOnly, mountpoints, this);
+            auto result = unraidGuidValidator.checkDevice(i);
+            _drivelist[deviceNamePlusSize] = new DriveListItem(QString::fromStdString(i.device), QString::fromStdString(i.description), i.size, result.guid, result.guidValid, i.isUSB, i.isSCSI, i.isReadOnly, mountpoints, this);
         }
     }
 
@@ -129,4 +140,14 @@ void DriveListModel::startPolling()
 void DriveListModel::stopPolling()
 {
     _thread.stop();
+}
+
+size_t DriveListModel::_curl_write_callback(char *, size_t size, size_t nmemb, void *)
+{
+    return size * nmemb;
+}
+
+size_t DriveListModel::_curl_header_callback(void *, size_t size, size_t nmemb, void *)
+{
+    return size*nmemb;
 }

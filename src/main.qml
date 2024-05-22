@@ -150,6 +150,8 @@ ApplicationWindow {
                         font.family: robotoBold.name
                         font.bold: true
                         horizontalAlignment: Text.AlignHCenter
+                        visible: false
+                        enabled: false
                     }
 
                     ImButton {
@@ -167,6 +169,8 @@ ApplicationWindow {
                         }
                         Accessible.ignored: ospopup.visible || dstpopup.visible || hwpopup.visible
                         Accessible.description: qsTr("Select this button to choose your target device")
+                        visible: false
+                        enabled: false
                     }
                 }
 
@@ -1180,12 +1184,20 @@ ApplicationWindow {
                 var txt = description+" - "+(size/1000000000).toFixed(1)+" gigabytes"
                 if (mountpoints.length > 0) {
                     txt += qsTr("Mounted as %1").arg(mountpoints.join(", "))
+                    if(guid != "") {
+                        txt += "GUID: %1".arg(guid)
+                        if(!guidValid)  txt += " <font color='red'>[INVALID]</font>"
+                    }
                 }
                 return txt;
             }
             property string description: model.description
             property string device: model.device
             property string size: model.size
+            property string guid: model.guid
+            property bool guidValid: model.guidValid
+
+            enabled: guidValid
 
             Rectangle {
                id: dstbgrect
@@ -1232,18 +1244,28 @@ ApplicationWindow {
                             if (isReadOnly) {
                                 txt = "<p><font size='4'>"+description+" - "+sizeStr+"</font></p>"
                                 if (mountpoints.length > 0) {
-                                    txt += qsTr("Mounted as %1").arg(mountpoints.join(", "))+" "
+                                    txt += qsTr("Mounted as %1").arg(mountpoints.join(", "))+"<br>"
+                                    if(guid != "") {
+                                        txt += "GUID: %1".arg(guid)
+                                        if(!guidValid)  txt += " <font color='red'>[INVALID]</font>"
+                                    }
                                 }
                                 txt += qsTr("[WRITE PROTECTED]")+"</font>"
                             } else {
                                 txt = "<p><font size='4'>"+description+" - "+sizeStr+"</font></p>"
                                 if (mountpoints.length > 0) {
-                                    txt += qsTr("Mounted as %1").arg(mountpoints.join(", "))+"</font>"
+                                    txt += qsTr("Mounted as %1").arg(mountpoints.join(", "))+"<br>"
+                                    if(guid != "") {
+                                        txt += "GUID: %1".arg(guid)
+                                        if(!guidValid)  txt += " <font color='red'>[INVALID]</font>"
+                                    }
                                 }
+                                txt += "</font>"
                             }
                             return txt;
                         }
                         color: dstbgrect.mouseOver ? UnColors.darkGray : "white"
+                        opacity: enabled ? 1.0 : 0.3
                     }
                 }
             }
@@ -1693,6 +1715,8 @@ ApplicationWindow {
                         device: drive,
                         description: driveListModel.data(driveListModel.index(i,0), 0x102),
                         size: driveListModel.data(driveListModel.index(i,0), 0x103),
+                        guid: driveListModel.data(driveListModel.index(i,0), 0x108),
+                        guidValid: driveListModel.data(driveListModel.index(i,0), 0x109),
                         readonly: false
                     })
                     break
@@ -1845,6 +1869,12 @@ ApplicationWindow {
             }
         } else {
             imageWriter.setSrc(d.url, d.image_download_size, d.extract_size, typeof(d.extract_sha256) != "undefined" ? d.extract_sha256 : "", typeof(d.contains_multiple_files) != "undefined" ? d.contains_multiple_files : false, ospopup.categorySelected, d.name, typeof(d.init_format) != "undefined" ? d.init_format : "")
+            if(imageWriter.getInitFormat() === "UNRAID" && imageWriter.getDstDevice() !== "" && !imageWriter.getDstGuidValid()) {
+                onError(qsTr("Selected device cannot be used to create an Unraid USB due to its invalid GUID."))
+                writebutton.enabled = false
+                imageWriter.setDst("", false)
+                dstbutton.text = qsTr("CHOOSE STORAGE")
+            }
             osbutton.text = d.name
             ospopup.close()
             osswipeview.decrementCurrentIndex()
@@ -1860,8 +1890,14 @@ ApplicationWindow {
             return
         }
 
+        if(imageWriter.getInitFormat() === "UNRAID" && !d.guidValid) {
+            onError(qsTr("Selected device cannot be used to create an Unraid USB due to its invalid GUID."))
+            writebutton.enabled = false
+            return
+        }
+
         dstpopup.close()
-        imageWriter.setDst(d.device, d.size)
+        imageWriter.setDst(d.device, d.guidValid, d.size)
         dstbutton.text = d.description
         if (imageWriter.readyToWrite()) {
             writebutton.enabled = true

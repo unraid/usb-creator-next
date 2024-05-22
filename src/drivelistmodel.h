@@ -24,7 +24,7 @@ public:
     void stopPolling();
 
     enum driveListRoles {
-        deviceRole = Qt::UserRole + 1, descriptionRole, sizeRole, isUsbRole, isScsiRole, isReadOnlyRole, mountpointsRole
+        deviceRole = Qt::UserRole + 1, descriptionRole, sizeRole, isUsbRole, isScsiRole, isReadOnlyRole, mountpointsRole, guidRole, guidValidRole
     };
 
 public slots:
@@ -34,6 +34,8 @@ protected:
     QMap<QString,DriveListItem *> _drivelist;
     QHash<int, QByteArray> _rolenames;
     DriveListModelPollThread _thread;
+    size_t _curl_write_callback(char *, size_t size, size_t nmemb, void *);
+    size_t _curl_header_callback(void *, size_t size, size_t nmemb, void *);
 };
 
 #endif // DRIVELISTMODEL_H
