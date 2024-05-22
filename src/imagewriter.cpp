@@ -58,26 +58,27 @@
 #include "linux/stpanalyzer.h"
 #endif
 
-namespace {
+namespace
+{
     constexpr uint MAX_SUBITEMS_DEPTH = 16;
 } // namespace anonymous
 
 ImageWriter::ImageWriter(QObject *parent)
-    : QObject(parent), 
+    : QObject(parent),
       _cacheManager(nullptr), // Initialize after _embeddedMode
       _waitingForCacheVerification(false),
       _networkManager(this),
-      _src(), _repo(QUrl(QString(OSLIST_URL))), 
+      _src(), _repo(QUrl(QString(OSLIST_URL))),
       _dst(), _parentCategory(), _osName(), _currentLang(), _currentLangcode(), _currentKeyboard(),
       _expectedHash(), _cmdline(), _config(), _firstrun(), _cloudinit(), _cloudinitNetwork(), _initFormat(),
       _downloadLen(0), _extrLen(0), _devLen(0), _dlnow(0), _verifynow(0),
       _drivelist(DriveListModel(this)), // explicitly parented, so QML doesn't delete it
       _hwlist(HWListModel(*this)),
       _oslist(OSListModel(*this)),
-      _engine(nullptr), 
+      _engine(nullptr),
       _networkchecktimer(),
       _powersave(),
-      _thread(nullptr), 
+      _thread(nullptr),
       _verifyEnabled(false), _multipleFilesInZip(false), _embeddedMode(false), _online(false),
       _settings(),
       _translations(),
@@ -85,9 +86,9 @@ ImageWriter::ImageWriter(QObject *parent)
 {
     // Initialize CacheManager now that _embeddedMode is properly initialized
     _cacheManager = new CacheManager(_embeddedMode, this);
-    
+
     QString platform;
-    if (qobject_cast<QGuiApplication*>(QCoreApplication::instance()) )
+    if (qobject_cast<QGuiApplication *>(QCoreApplication::instance()))
     {
         platform = QGuiApplication::platformName();
     }
@@ -109,13 +110,15 @@ ImageWriter::ImageWriter(QObject *parent)
         {
             QString nvmem_blconfig_path = {};
             QFile f("/sys/firmware/devicetree/base/aliases/blconfig");
-            if (f.exists() && f.open(f.ReadOnly)) {
+            if (f.exists() && f.open(f.ReadOnly))
+            {
                 nvmem_blconfig_path = f.readAll();
             }
             f.close();
 
             QString blconfig_link = {};
-            if (!nvmem_blconfig_path.isEmpty()) {
+            if (!nvmem_blconfig_path.isEmpty())
+            {
                 QString findCommand = "/usr/bin/find";
                 QStringList findArguments = {
                     "-L",
@@ -123,22 +126,24 @@ ImageWriter::ImageWriter(QObject *parent)
                     "-maxdepth",
                     "3",
                     "-samefile",
-                    "/sys/firmware/devicetree/base" + nvmem_blconfig_path
-                };
+                    "/sys/firmware/devicetree/base" + nvmem_blconfig_path};
                 QProcess *findProcess = new QProcess(this);
                 connect(findProcess, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
-                    [&blconfig_link, &findProcess](int exitCode, QProcess::ExitStatus exitStatus) { // clazy:exclude=lambda-in-connect
-                        blconfig_link = findProcess->readAllStandardOutput();
-                    });
+                        [&blconfig_link, &findProcess](int exitCode, QProcess::ExitStatus exitStatus) { // clazy:exclude=lambda-in-connect
+                            blconfig_link = findProcess->readAllStandardOutput();
+                        });
                 findProcess->start();
-                findProcess->waitForFinished(); //Default timeout: 30s
+                findProcess->waitForFinished(); // Default timeout: 30s
                 delete findProcess;
             }
-            if (!blconfig_link.isEmpty()) {
+            if (!blconfig_link.isEmpty())
+            {
                 QDir blconfig_of_dir = QDir(blconfig_link);
-                if (blconfig_of_dir.cdUp()) {
+                if (blconfig_of_dir.cdUp())
+                {
                     QFile blconfig_file = QFile(blconfig_of_dir.path() + QDir::separator() + "nvmem");
-                    if (blconfig_file.exists() && blconfig_file.open(blconfig_file.ReadOnly)) {
+                    if (blconfig_file.exists() && blconfig_file.open(blconfig_file.ReadOnly))
+                    {
                         const QByteArrayList eepromSettings = f.readAll().split('\n');
                         blconfig_file.close();
                         for (const QByteArray &setting : eepromSettings)
@@ -198,14 +203,14 @@ ImageWriter::ImageWriter(QObject *parent)
 
     for (const QString &tf : transFiles)
     {
-        QString langcode = tf.mid(11, tf.length()-14);
+        QString langcode = tf.mid(11, tf.length() - 14);
         /* FIXME: we currently lack a font with support for Chinese characters in embedded mode */
-        //if (isEmbeddedMode() && langcode == "zh")
-        //    continue;
+        // if (isEmbeddedMode() && langcode == "zh")
+        //     continue;
 
         QLocale loc(langcode);
         /* Use "English" for "en" and not "American English" */
-        QString langname = (langcode == "en" ? "English" : loc.nativeLanguageName() );
+        QString langname = (langcode == "en" ? "English" : loc.nativeLanguageName());
         _translations.insert(langname, langcode);
         if (langcode == currentlangcode)
         {
@@ -217,31 +222,31 @@ ImageWriter::ImageWriter(QObject *parent)
 
     // Centralised network manager, for fetching OS lists
     connect(&_networkManager, SIGNAL(finished(QNetworkReply *)), this, SLOT(handleNetworkRequestFinished(QNetworkReply *)));
-    
+
     // Connect to CacheManager signals
     connect(_cacheManager, &CacheManager::cacheFileUpdated,
-            this, [this](const QByteArray& hash) { 
+            this, [this](const QByteArray &hash)
+            { 
                 qDebug() << "Received cacheFileUpdated signal - refreshing UI for hash:" << hash;
                 // Emit signal to refresh UI cache status indicators
-                emit osListPrepared(); 
-            });
-    
+                emit osListPrepared(); });
+
     connect(_cacheManager, &CacheManager::cacheVerificationComplete,
-            this, [this](bool isValid) { 
+            this, [this](bool isValid)
+            { 
                 if (isValid) {
                     qDebug() << "Cache verification completed successfully - refreshing UI";
                     // Emit signal to refresh UI cache status indicators
                     emit osListPrepared();
-                }
-            });
-    
+                } });
+
     connect(_cacheManager, &CacheManager::cacheInvalidated,
-            this, [this]() { 
+            this, [this]()
+            { 
                 qDebug() << "Cache invalidated - refreshing UI";
                 // Emit signal to refresh UI cache status indicators
-                emit osListPrepared();
-            });
-    
+                emit osListPrepared(); });
+
     // Start background cache operations early
     _cacheManager->startBackgroundOperations();
 }
@@ -249,11 +254,14 @@ ImageWriter::ImageWriter(QObject *parent)
 ImageWriter::~ImageWriter()
 {
     // Ensure any running thread is properly cleaned up
-    if (_thread) {
-        if (_thread->isRunning()) {
+    if (_thread)
+    {
+        if (_thread->isRunning())
+        {
             qDebug() << "Cancelling running thread in ImageWriter destructor";
             _thread->cancelDownload();
-            if (!_thread->wait(10000)) {
+            if (!_thread->wait(10000))
+            {
                 qDebug() << "Thread did not finish within 10 seconds, terminating it";
                 _thread->terminate();
                 _thread->wait(2000);
@@ -262,7 +270,7 @@ ImageWriter::~ImageWriter()
         delete _thread;
         _thread = nullptr;
     }
-    
+
     if (_trans)
     {
         QCoreApplication::removeTranslator(_trans);
@@ -329,7 +337,7 @@ void ImageWriter::startWrite()
     {
         // For formatting operations, skip all cache operations since we don't need cached files
         qDebug() << "Starting format operation - skipping cache operations";
-        DriveFormatThread *dft = new DriveFormatThread(_dst.toLatin1(), this);
+        DriveFormatThread *dft = new DriveFormatThread(_dst.toLatin1(), "", this);
         connect(dft, SIGNAL(success()), SLOT(onSuccess()));
         connect(dft, SIGNAL(error(QString)), SLOT(onError(QString)));
         dft->start();
@@ -338,7 +346,7 @@ void ImageWriter::startWrite()
 
     QByteArray urlstr = _src.toString(_src.FullyEncoded).toLatin1();
     QString lowercaseurl = urlstr.toLower();
-    const bool compressed = lowercaseurl.endsWith(".zip") || 
+    const bool compressed = lowercaseurl.endsWith(".zip") ||
                             lowercaseurl.endsWith(".xz") ||
                             lowercaseurl.endsWith(".bz2") ||
                             lowercaseurl.endsWith(".gz") ||
@@ -352,13 +360,13 @@ void ImageWriter::startWrite()
             _extrLen = _downloadLen;
         else if (lowercaseurl.endsWith(".xz"))
             _parseXZFile();
-        else 
+        else
             _parseCompressedFile();
     }
 
     if (_devLen && _extrLen > _devLen)
     {
-        emit error(tr("Storage capacity is not large enough.<br>Needs to be at least %1 GB.").arg(QString::number(_extrLen/1000000000.0, 'f', 1)));
+        emit error(tr("Storage capacity is not large enough.<br>Needs to be at least %1 GB.").arg(QString::number(_extrLen / 1000000000.0, 'f', 1)));
         return;
     }
 
@@ -372,7 +380,7 @@ void ImageWriter::startWrite()
     {
         // Use background cache manager to check cache file integrity
         CacheManager::CacheStatus cacheStatus = _cacheManager->getCacheStatus();
-        
+
         if (cacheStatus.verificationComplete && cacheStatus.isValid)
         {
             qDebug() << "Using verified cache file (background verified):" << cacheStatus.cacheFileName;
@@ -405,13 +413,13 @@ void ImageWriter::startWrite()
             {
                 qDebug() << "Verification is already in progress. Waiting for it to complete.";
             }
-            
+
             // Set flag to indicate we're waiting for cache verification
             _waitingForCacheVerification = true;
-            
+
             // Emit signal to update UI for cache verification
             emit cacheVerificationStarted();
-            
+
             // Don't proceed with write yet - wait for cache verification to complete
             return;
         }
@@ -436,19 +444,20 @@ void ImageWriter::startWrite()
     connect(_thread, SIGNAL(error(QString)), SLOT(onError(QString)));
     connect(_thread, SIGNAL(finalizing()), SLOT(onFinalizing()));
     connect(_thread, SIGNAL(preparationStatusUpdate(QString)), SLOT(onPreparationStatusUpdate(QString)));
-    
+
     // Connect to progress signals if this is a DownloadExtractThread
-    DownloadExtractThread *downloadThread = qobject_cast<DownloadExtractThread*>(_thread);
-    if (downloadThread) {
-        connect(downloadThread, &DownloadExtractThread::downloadProgressChanged, 
+    DownloadExtractThread *downloadThread = qobject_cast<DownloadExtractThread *>(_thread);
+    if (downloadThread)
+    {
+        connect(downloadThread, &DownloadExtractThread::downloadProgressChanged,
                 this, &ImageWriter::downloadProgress);
-        connect(downloadThread, &DownloadExtractThread::verifyProgressChanged, 
+        connect(downloadThread, &DownloadExtractThread::verifyProgressChanged,
                 this, &ImageWriter::verifyProgress);
     }
-    
+
     _thread->setVerifyEnabled(_verifyEnabled);
     _thread->setUserAgent(QString("Mozilla/5.0 rpi-imager/%1").arg(constantVersion()).toUtf8());
-    _thread->setImageCustomization(_config, _cmdline, _firstrun, _cloudinit, _cloudinitNetwork, _initFormat);
+    _thread->setImageCustomization(_config, _cmdline, _firstrun, _cloudinit, _cloudinitNetwork, _initFormat, getSavedCustomizationSettings());
 
     // Only set up cache operations for remote downloads, not when using cached files as source
     if (!_expectedHash.isEmpty() && !QUrl(urlstr).isLocalFile())
@@ -461,11 +470,11 @@ void ImageWriter::startWrite()
             _thread->setCacheFile(cacheFilePath, _downloadLen);
             // Connect to CacheManager for cache updates (extract uncompressed hash from signal)
             connect(_thread, &DownloadThread::cacheFileHashUpdated,
-                    this, [this](const QByteArray& cacheFileHash, const QByteArray& imageHash) {
+                    this, [this](const QByteArray &cacheFileHash, const QByteArray &imageHash)
+                    {
                         qDebug() << "DownloadThread cache update - cacheFileHash:" << cacheFileHash << "imageHash:" << imageHash;
                         // Update cache with both uncompressed hash (imageHash) and compressed hash (cacheFileHash)
-                        _cacheManager->updateCacheFile(imageHash, cacheFileHash);
-                    });
+                        _cacheManager->updateCacheFile(imageHash, cacheFileHash); });
         }
         else
         {
@@ -480,7 +489,13 @@ void ImageWriter::startWrite()
     if (_multipleFilesInZip)
     {
         static_cast<DownloadExtractThread *>(_thread)->enableMultipleFileExtraction();
-        DriveFormatThread *dft = new DriveFormatThread(_dst.toLatin1(), this);
+        QString label{""};
+        if (_initFormat == "UNRAID")
+        {
+            // if this is an unraid zip, the volume label needs to be UNRAID for the make bootable script to work as intended
+            label = "UNRAID";
+        }
+        DriveFormatThread *dft = new DriveFormatThread(_dst.toLatin1(), label, this);
         connect(dft, SIGNAL(success()), _thread, SLOT(start()));
         connect(dft, SIGNAL(error(QString)), SLOT(onError(QString)));
         dft->start();
@@ -504,7 +519,7 @@ void ImageWriter::cancelWrite()
         skipCacheVerification();
         return;
     }
-    
+
     if (_thread)
     {
         connect(_thread, SIGNAL(finished()), SLOT(onCancelled()));
@@ -525,20 +540,20 @@ void ImageWriter::skipCacheVerification()
         qDebug() << "skipCacheVerification called but not waiting for cache verification";
         return;
     }
-    
+
     qDebug() << "User skipped cache verification, proceeding with download";
-    
+
     _waitingForCacheVerification = false;
-    
+
     // Disconnect cache verification signals
     disconnect(_cacheManager, &CacheManager::cacheVerificationProgress,
                this, &ImageWriter::onCacheVerificationProgress);
     disconnect(_cacheManager, &CacheManager::cacheVerificationComplete,
                this, &ImageWriter::onCacheVerificationComplete);
-    
+
     // Emit signal to update UI (cache verification finished)
     emit cacheVerificationFinished();
-    
+
     // Proceed with download (not using cache)
     qDebug() << "Cache verification skipped, invalidating cache and proceeding with download";
     _cacheManager->invalidateCache();
@@ -564,7 +579,7 @@ bool ImageWriter::isCached(const QUrl &, const QByteArray &sha256)
 /* Utility function to return filename part from URL */
 QString ImageWriter::fileNameFromUrl(const QUrl &url)
 {
-    //return QFileInfo(url.toLocalFile()).fileName();
+    // return QFileInfo(url.toLocalFile()).fileName();
     return url.fileName();
 }
 
@@ -596,23 +611,31 @@ void ImageWriter::setCustomOsListUrl(const QUrl &url)
     _repo = url;
 }
 
-namespace {
-    QJsonArray findAndInsertJsonResult(QJsonArray parent_list, QJsonArray incomingBody, QUrl referenceUrl, uint8_t count) {
-        if (count > MAX_SUBITEMS_DEPTH) {
+namespace
+{
+    QJsonArray findAndInsertJsonResult(QJsonArray parent_list, QJsonArray incomingBody, QUrl referenceUrl, uint8_t count)
+    {
+        if (count > MAX_SUBITEMS_DEPTH)
+        {
             qDebug() << "Aborting insertion of subitems, exceeded maximum configured limit of " << MAX_SUBITEMS_DEPTH << " levels.";
             return {};
         }
 
         QJsonArray returnArray = {};
 
-        for (auto ositem : parent_list) {
+        for (auto ositem : parent_list)
+        {
             auto ositemObject = ositem.toObject();
 
-            if (ositemObject.contains("subitems")) {
+            if (ositemObject.contains("subitems"))
+            {
                 // Recurse!
                 ositemObject["subitems"] = findAndInsertJsonResult(ositemObject["subitems"].toArray(), incomingBody, referenceUrl, count + 1);
-            } else if (ositemObject.contains("subitems_url")) {
-                if ( !ositemObject["subitems_url"].toString().compare(referenceUrl.toString())) {
+            }
+            else if (ositemObject.contains("subitems_url"))
+            {
+                if (!ositemObject["subitems_url"].toString().compare(referenceUrl.toString()))
+                {
                     ositemObject.insert("subitems", incomingBody);
                     ositemObject.remove("subitems_url");
                 }
@@ -624,65 +647,80 @@ namespace {
         return returnArray;
     }
 
-    void findAndQueueUnresolvedSubitemsJson(QJsonArray incoming, QNetworkAccessManager &manager, uint8_t count) {
-        if (count > MAX_SUBITEMS_DEPTH) {
+    void findAndQueueUnresolvedSubitemsJson(QJsonArray incoming, QNetworkAccessManager &manager, uint8_t count)
+    {
+        if (count > MAX_SUBITEMS_DEPTH)
+        {
             qDebug() << "Aborting fetch of subitems JSON, exceeded maximum configured limit of " << MAX_SUBITEMS_DEPTH << " levels.";
             return;
         }
 
-        for (auto entry : incoming) {
+        for (auto entry : incoming)
+        {
             auto entryObject = entry.toObject();
-            if (entryObject.contains("subitems")) {
+            if (entryObject.contains("subitems"))
+            {
                 // No need to handle a return - this isn't processing a list, it's searching and queuing downloads.
                 findAndQueueUnresolvedSubitemsJson(entryObject["subitems"].toArray(), manager, count + 1);
-            } else if (entryObject.contains("subitems_url")) {
+            }
+            else if (entryObject.contains("subitems_url"))
+            {
                 auto url = entryObject["subitems_url"].toString();
                 auto request = QNetworkRequest(url);
                 request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
-                        QNetworkRequest::NoLessSafeRedirectPolicy);
+                                     QNetworkRequest::NoLessSafeRedirectPolicy);
                 manager.get(request);
             }
         }
     }
 } // namespace anonymous
 
-
-void ImageWriter::setHWFilterList(const QJsonArray &tags, const bool &inclusive) {
+void ImageWriter::setHWFilterList(const QJsonArray &tags, const bool &inclusive)
+{
     _deviceFilter = tags;
     _deviceFilterIsInclusive = inclusive;
 }
 
-void ImageWriter::handleNetworkRequestFinished(QNetworkReply *data) {
+void ImageWriter::handleNetworkRequestFinished(QNetworkReply *data)
+{
     // Defer deletion
     data->deleteLater();
 
-    if (data->error() == QNetworkReply::NoError) {
+    if (data->error() == QNetworkReply::NoError)
+    {
         auto httpStatusCode = data->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
 
-        if (httpStatusCode >= 200 && httpStatusCode < 300 || httpStatusCode == 0) {
+        if (httpStatusCode >= 200 && httpStatusCode < 300 || httpStatusCode == 0)
+        {
             auto response_object = QJsonDocument::fromJson(data->readAll()).object();
 
-            if (response_object.contains("os_list")) {
+            if (response_object.contains("os_list"))
+            {
                 // Step 1: Insert the items into the canonical JSON document.
                 //         It doesn't matter that these may still contain subitems_url items
                 //         As these will be fixed up as the subitems_url instances are blinked in
-                if (_completeOsList.isEmpty()) {
+                if (_completeOsList.isEmpty())
+                {
                     _completeOsList = QJsonDocument(response_object);
-                } else {
+                }
+                else
+                {
                     auto new_list = findAndInsertJsonResult(_completeOsList["os_list"].toArray(), response_object["os_list"].toArray(), data->request().url(), 1);
                     auto imager_meta = _completeOsList["imager"].toObject();
-                    _completeOsList = QJsonDocument(QJsonObject({
-                        {"imager", imager_meta},
-                        {"os_list", new_list}
-                    }));
+                    _completeOsList = QJsonDocument(QJsonObject({{"imager", imager_meta},
+                                                                 {"os_list", new_list}}));
                 }
 
                 findAndQueueUnresolvedSubitemsJson(response_object["os_list"].toArray(), _networkManager, 1);
                 emit osListPrepared();
-            } else {
+            }
+            else
+            {
                 qDebug() << "Incorrectly formatted OS list at: " << data->url();
             }
-        } else if (httpStatusCode >= 300 && httpStatusCode < 400) {
+        }
+        else if (httpStatusCode >= 300 && httpStatusCode < 400)
+        {
             // We should _never_ enter this branch. All requests are set to follow redirections
             // at their call sites - so the only way you got here was a logic defect.
             auto request = QNetworkRequest(data->url());
@@ -693,56 +731,77 @@ void ImageWriter::handleNetworkRequestFinished(QNetworkReply *data) {
 
             // maintain manager
             return;
-        } else if (httpStatusCode >= 400 && httpStatusCode < 600) {
+        }
+        else if (httpStatusCode >= 400 && httpStatusCode < 600)
+        {
             // HTTP Error
             qDebug() << "Failed to fetch URL [" << data->url() << "], got: " << httpStatusCode;
-        } else {
+        }
+        else
+        {
             // Completely unknown error, worth logging separately
             qDebug() << "Failed to fetch URL [" << data->url() << "], got unknown response code: " << httpStatusCode;
         }
-    } else {
+    }
+    else
+    {
         // QT Error.
         qDebug() << "Unrecognised QT error: " << data->error() << ", explainer: " << data->errorString();
     }
 }
 
-namespace {
-    QJsonArray filterOsListWithHWTags(QJsonArray incoming_os_list, QJsonArray hw_filter, const bool inclusive, uint8_t count) {
-        if (count > MAX_SUBITEMS_DEPTH) {
+namespace
+{
+    QJsonArray filterOsListWithHWTags(QJsonArray incoming_os_list, QJsonArray hw_filter, const bool inclusive, uint8_t count)
+    {
+        if (count > MAX_SUBITEMS_DEPTH)
+        {
             qDebug() << "Aborting insertion of subitems, exceeded maximum configured limit of " << MAX_SUBITEMS_DEPTH << " levels.";
             return {};
         }
 
         QJsonArray returnArray = {};
 
-        for (auto ositem : incoming_os_list) {
+        for (auto ositem : incoming_os_list)
+        {
             auto ositemObject = ositem.toObject();
 
-            if (ositemObject.contains("subitems")) {
+            if (ositemObject.contains("subitems"))
+            {
                 // Recurse!
                 ositemObject["subitems"] = filterOsListWithHWTags(ositemObject["subitems"].toArray(), hw_filter, inclusive, count + 1);
-                if (ositemObject["subitems"].toArray().count() > 0) {
+                if (ositemObject["subitems"].toArray().count() > 0)
+                {
                     returnArray += ositemObject;
                 }
-            } else {
+            }
+            else
+            {
                 // Filter this one!
-                if (ositemObject.contains("devices")) {
+                if (ositemObject.contains("devices"))
+                {
                     auto keep = false;
                     const auto ositem_devices = ositemObject["devices"].toArray();
 
-                    for (auto compat_device : ositem_devices) {
-                        if (hw_filter.contains(compat_device.toString())) {
+                    for (auto compat_device : ositem_devices)
+                    {
+                        if (hw_filter.contains(compat_device.toString()))
+                        {
                             keep = true;
                             break;
                         }
                     }
 
-                    if (keep) {
+                    if (keep)
+                    {
                         returnArray.append(ositem);
                     }
-                } else {
+                }
+                else
+                {
                     // No devices tags, so work out if we're exclusive or inclusive filtering!
-                    if (inclusive) {
+                    if (inclusive)
+                    {
                         returnArray.append(ositem);
                     }
                 }
@@ -758,14 +817,19 @@ QByteArray ImageWriter::getFilteredOSlist()
     return getFilteredOSlistDocument().toJson();
 }
 
-QJsonDocument ImageWriter::getFilteredOSlistDocument() {
+QJsonDocument ImageWriter::getFilteredOSlistDocument()
+{
     QJsonArray reference_os_list_array = {};
     QJsonObject reference_imager_metadata = {};
     {
-        if (!_completeOsList.isEmpty()) {
-            if (!_deviceFilter.isEmpty()) {
+        if (!_completeOsList.isEmpty())
+        {
+            if (!_deviceFilter.isEmpty())
+            {
                 reference_os_list_array = filterOsListWithHWTags(_completeOsList.object().value("os_list").toArray(), _deviceFilter, _deviceFilterIsInclusive, 1);
-            } else {
+            }
+            else
+            {
                 // The device filter can be an empty array when a device filter has not been selected, or has explicitly been selected as
                 // "no filtering". In that case, avoid walking the tree and use the unfiltered list.
                 reference_os_list_array = _completeOsList.object().value("os_list").toArray();
@@ -776,35 +840,35 @@ QJsonDocument ImageWriter::getFilteredOSlistDocument() {
     }
 
     reference_os_list_array.append(QJsonObject({
-            {"name", QCoreApplication::translate("main", "Erase")},
-            {"description", QCoreApplication::translate("main", "Format card as FAT32")},
-            {"icon", "icons/erase.png"},
-            {"url", "internal://format"},
-        }));
+        {"name", QCoreApplication::translate("main", "Erase")},
+        {"description", QCoreApplication::translate("main", "Format card as FAT32")},
+        {"icon", "icons/erase.png"},
+        {"url", "internal://format"},
+    }));
 
     reference_os_list_array.append(QJsonObject({
-            {"name", QCoreApplication::translate("main", "Use custom")},
-            {"description", QCoreApplication::translate("main", "Select a custom .img from your computer")},
-            {"icon", "icons/use_custom.png"},
-            {"url", ""},
-        }));
+        {"name", QCoreApplication::translate("main", "Use custom")},
+        {"description", QCoreApplication::translate("main", "Select a custom .img from your computer")},
+        {"icon", "icons/use_custom.png"},
+        {"url", ""},
+    }));
 
     return QJsonDocument(
         QJsonObject({
             {"imager", reference_imager_metadata},
             {"os_list", reference_os_list_array},
-        }
-    ));
+        }));
 }
 
-void ImageWriter::beginOSListFetch() {
+void ImageWriter::beginOSListFetch()
+{
     QNetworkRequest request = QNetworkRequest(constantOsListUrl());
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
                          QNetworkRequest::NoLessSafeRedirectPolicy);
 
     // This will set up a chain of requests that culiminate in the eventual fetch and assembly of
     // a complete cached OS list.
-   _networkManager.get(request);
+    _networkManager.get(request);
 }
 
 void ImageWriter::setCustomRepo(const QUrl &repo)
@@ -847,7 +911,7 @@ OSListModel *ImageWriter::getOSList()
 void ImageWriter::startProgressPolling()
 {
     _powersave.applyBlock(tr("Downloading and writing image"));
-    _dlnow = 0; 
+    _dlnow = 0;
     _verifynow = 0;
 }
 
@@ -870,7 +934,7 @@ void ImageWriter::onSuccess()
     emit success();
 
 #ifndef QT_NO_WIDGETS
-    if (_settings.value("beep").toBool() && qobject_cast<QApplication*>(QCoreApplication::instance()) )
+    if (_settings.value("beep").toBool() && qobject_cast<QApplication *>(QCoreApplication::instance()))
     {
         QApplication::beep();
     }
@@ -883,7 +947,7 @@ void ImageWriter::onError(QString msg)
     emit error(msg);
 
 #ifndef QT_NO_WIDGETS
-    if (_settings.value("beep").toBool() && qobject_cast<QApplication*>(QCoreApplication::instance()) )
+    if (_settings.value("beep").toBool() && qobject_cast<QApplication *>(QCoreApplication::instance()))
         QApplication::beep();
 #endif
 }
@@ -905,7 +969,7 @@ void ImageWriter::openFileDialog()
     QString path = settings.value("lastpath").toString();
     QFileInfo fi(path);
 
-    if (path.isEmpty() || !fi.exists() || !fi.isReadable() )
+    if (path.isEmpty() || !fi.exists() || !fi.isReadable())
         path = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
 
     QFileDialog *fd = new QFileDialog(nullptr, tr("Select image"),
@@ -967,12 +1031,12 @@ void ImageWriter::_parseCompressedFile()
 
     if (archive_read_open_filename(a, fn.data(), 10240) == ARCHIVE_OK)
     {
-        while ( (archive_read_next_header(a, &entry)) == ARCHIVE_OK)
+        while ((archive_read_next_header(a, &entry)) == ARCHIVE_OK)
         {
             if (archive_entry_size(entry) > 0)
             {
-              _extrLen += archive_entry_size(entry);
-              numFiles++;
+                _extrLen += archive_entry_size(entry);
+                numFiles++;
             }
         }
     }
@@ -986,24 +1050,24 @@ void ImageWriter::_parseCompressedFile()
 void ImageWriter::_parseXZFile()
 {
     QFile f(_src.toLocalFile());
-    lzma_stream_flags opts = { 0 };
+    lzma_stream_flags opts = {0};
     _extrLen = 0;
 
     if (f.size() > LZMA_STREAM_HEADER_SIZE && f.open(f.ReadOnly))
     {
-        f.seek(f.size()-LZMA_STREAM_HEADER_SIZE);
+        f.seek(f.size() - LZMA_STREAM_HEADER_SIZE);
         QByteArray footer = f.read(LZMA_STREAM_HEADER_SIZE);
-        lzma_ret ret = lzma_stream_footer_decode(&opts, (const uint8_t *) footer.constData());
+        lzma_ret ret = lzma_stream_footer_decode(&opts, (const uint8_t *)footer.constData());
 
-        if (ret == LZMA_OK && opts.backward_size < 1000000 && opts.backward_size < f.size()-LZMA_STREAM_HEADER_SIZE)
+        if (ret == LZMA_OK && opts.backward_size < 1000000 && opts.backward_size < f.size() - LZMA_STREAM_HEADER_SIZE)
         {
-            f.seek(f.size()-LZMA_STREAM_HEADER_SIZE-opts.backward_size);
-            QByteArray buf = f.read(opts.backward_size+LZMA_STREAM_HEADER_SIZE);
+            f.seek(f.size() - LZMA_STREAM_HEADER_SIZE - opts.backward_size);
+            QByteArray buf = f.read(opts.backward_size + LZMA_STREAM_HEADER_SIZE);
             lzma_index *idx;
             uint64_t memlimit = UINT64_MAX;
             size_t pos = 0;
 
-            ret = lzma_index_buffer_decode(&idx, &memlimit, NULL, (const uint8_t *) buf.constData(), &pos, buf.size());
+            ret = lzma_index_buffer_decode(&idx, &memlimit, NULL, (const uint8_t *)buf.constData(), &pos, buf.size());
             if (ret == LZMA_OK)
             {
                 _extrLen = lzma_index_uncompressed_size(idx);
@@ -1061,7 +1125,7 @@ void ImageWriter::syncTime()
 #ifdef Q_OS_LINUX
     qDebug() << "Network online. Synchronizing time.";
     QNetworkAccessManager *manager = new QNetworkAccessManager(this);
-    connect(manager, SIGNAL(finished(QNetworkReply*)), SLOT(onTimeSyncReply(QNetworkReply*)));
+    connect(manager, SIGNAL(finished(QNetworkReply *)), SLOT(onTimeSyncReply(QNetworkReply *)));
     manager->head(QNetworkRequest(QUrl(TIME_URL)));
 #endif
 }
@@ -1074,8 +1138,7 @@ void ImageWriter::onTimeSyncReply(QNetworkReply *reply)
         QDateTime dt = QDateTime::fromString(reply->rawHeader("Date"), Qt::RFC2822Date);
         qDebug() << "Received current time from server:" << dt;
         struct timeval tv = {
-            (time_t) dt.toSecsSinceEpoch(), 0
-        };
+            (time_t)dt.toSecsSinceEpoch(), 0};
         ::settimeofday(&tv, NULL);
 
         beginOSListFetch();
@@ -1116,9 +1179,9 @@ bool ImageWriter::mountUsbSourceMedia()
 
     for (const QString &devname : list)
     {
-        if (!devname.startsWith("mmcblk0") && !QFile::symLinkTarget("/sys/class/block/"+devname).contains("/devices/virtual/"))
+        if (!devname.startsWith("mmcblk0") && !QFile::symLinkTarget("/sys/class/block/" + devname).contains("/devices/virtual/"))
         {
-            QString mntdir = "/media/"+devname;
+            QString mntdir = "/media/" + devname;
 
             if (dir.exists(mntdir))
             {
@@ -1127,9 +1190,9 @@ bool ImageWriter::mountUsbSourceMedia()
             }
 
             dir.mkdir(mntdir);
-            QStringList args = { "-o", "ro", QString("/dev/")+devname, mntdir };
+            QStringList args = {"-o", "ro", QString("/dev/") + devname, mntdir};
 
-            if ( QProcess::execute("mount", args) == 0 )
+            if (QProcess::execute("mount", args) == 0)
                 devices++;
             else
                 dir.rmdir(mntdir);
@@ -1149,20 +1212,19 @@ QByteArray ImageWriter::getUsbSourceOSlist()
 
     for (const QString &devname : medialist)
     {
-        QDir subdir("/media/"+devname);
+        QDir subdir("/media/" + devname);
         const QStringList files = subdir.entryList(namefilters, QDir::Files, QDir::Name);
         for (const QString &file : files)
         {
-            QString path = "/media/"+devname+"/"+file;
+            QString path = "/media/" + devname + "/" + file;
             QFileInfo fi(path);
 
             QJsonObject f = {
                 {"name", file},
-                {"description", devname+"/"+file},
-                {"url", QUrl::fromLocalFile(path).toString() },
+                {"description", devname + "/" + file},
+                {"url", QUrl::fromLocalFile(path).toString()},
                 {"release_date", ""},
-                {"image_download_size", fi.size()}
-            };
+                {"image_download_size", fi.size()}};
             oslist.append(f);
         }
     }
@@ -1175,17 +1237,17 @@ QByteArray ImageWriter::getUsbSourceOSlist()
 
 QString ImageWriter::_sshKeyDir()
 {
-    return QDir::homePath()+"/.ssh";
+    return QDir::homePath() + "/.ssh";
 }
 
 QString ImageWriter::_pubKeyFileName()
 {
-    return _sshKeyDir()+"/id_rsa.pub";
+    return _sshKeyDir() + "/id_rsa.pub";
 }
 
 QString ImageWriter::_privKeyFileName()
 {
-    return _sshKeyDir()+"/id_rsa";
+    return _sshKeyDir() + "/id_rsa";
 }
 
 QString ImageWriter::getDefaultPubKey()
@@ -1211,7 +1273,7 @@ QString ImageWriter::_sshKeyGen()
 {
 #ifdef Q_OS_WIN
     QString windir = QProcessEnvironment::systemEnvironment().value("windir");
-    return QDir::fromNativeSeparators(windir+"\\SysNative\\OpenSSH\\ssh-keygen.exe");
+    return QDir::fromNativeSeparators(windir + "\\SysNative\\OpenSSH\\ssh-keygen.exe");
 #else
     return "ssh-keygen";
 #endif
@@ -1258,7 +1320,7 @@ QStringList ImageWriter::getTimezoneList()
 {
     QStringList timezones;
     QFile f(":/timezones.txt");
-    if ( f.open(f.ReadOnly) )
+    if (f.open(f.ReadOnly))
     {
         timezones = QString(f.readAll()).split('\n');
         f.close();
@@ -1271,7 +1333,7 @@ QStringList ImageWriter::getCountryList()
 {
     QStringList countries;
     QFile f(":/countries.txt");
-    if ( f.open(f.ReadOnly) )
+    if (f.open(f.ReadOnly))
     {
         countries = QString(f.readAll()).trimmed().split('\n');
         f.close();
@@ -1284,7 +1346,7 @@ QStringList ImageWriter::getKeymapLayoutList()
 {
     QStringList keymaps;
     QFile f(":/keymap-layouts.txt");
-    if ( f.open(f.ReadOnly) )
+    if (f.open(f.ReadOnly))
     {
         keymaps = QString(f.readAll()).trimmed().split('\n');
         f.close();
@@ -1292,7 +1354,6 @@ QStringList ImageWriter::getKeymapLayoutList()
 
     return keymaps;
 }
-
 
 QString ImageWriter::getSSID()
 {
@@ -1306,7 +1367,7 @@ QString ImageWriter::getPSK()
      * Ask if user wants to obtain the wlan password first to make sure this is desired and
      * to provide the user with context. */
     if (QMessageBox::question(nullptr, "",
-                          tr("Would you like to prefill the wifi password from the system keychain?")) != QMessageBox::Yes)
+                              tr("Would you like to prefill the wifi password from the system keychain?")) != QMessageBox::Yes)
     {
         return QString();
     }
@@ -1352,12 +1413,12 @@ QString ImageWriter::crypt(const QByteArray &password)
 {
     QByteArray salt = "$5$";
     QByteArray saltchars =
-      "./0123456789ABCDEFGHIJKLMNOPQRST"
-      "UVWXYZabcdefghijklmnopqrstuvwxyz";
+        "./0123456789ABCDEFGHIJKLMNOPQRST"
+        "UVWXYZabcdefghijklmnopqrstuvwxyz";
     std::mt19937 gen(static_cast<unsigned>(QDateTime::currentMSecsSinceEpoch()));
-    std::uniform_int_distribution<> uid(0, saltchars.length()-1);
+    std::uniform_int_distribution<> uid(0, saltchars.length() - 1);
 
-    for (int i=0; i<10; i++)
+    for (int i = 0; i < 10; i++)
         salt += saltchars[uid(gen)];
 
     return sha256_crypt(password.constData(), salt.constData());
@@ -1373,7 +1434,8 @@ void ImageWriter::setSavedCustomizationSettings(const QVariantMap &map)
     _settings.beginGroup("imagecustomization");
     _settings.remove("");
     const QStringList keys = map.keys();
-    for (const QString &key : keys) {
+    for (const QString &key : keys)
+    {
         _settings.setValue(key, map.value(key));
     }
     _settings.endGroup();
@@ -1386,7 +1448,8 @@ QVariantMap ImageWriter::getSavedCustomizationSettings()
 
     _settings.beginGroup("imagecustomization");
     const QStringList keys = _settings.childKeys();
-    for (const QString &key : keys) {
+    for (const QString &key : keys)
+    {
         result.insert(key, _settings.value(key));
     }
     _settings.endGroup();
@@ -1414,7 +1477,7 @@ bool ImageWriter::hasSavedCustomizationSettings()
 
 bool ImageWriter::imageSupportsCustomization()
 {
-    return !_initFormat.isEmpty();
+    return _initFormat == "UNRAID";
 }
 
 QStringList ImageWriter::getTranslations()
@@ -1443,7 +1506,7 @@ void ImageWriter::changeLanguage(const QString &newLanguageName)
     qDebug() << "Changing language to" << langcode;
 
     QTranslator *trans = new QTranslator();
-    if (trans->load(":/i18n/rpi-imager_"+langcode+".qm"))
+    if (trans->load(":/i18n/rpi-imager_" + langcode + ".qm"))
     {
         replaceTranslator(trans);
         _currentLang = newLanguageName;
@@ -1462,7 +1525,7 @@ void ImageWriter::changeKeyboard(const QString &newKeymapLayout)
         return;
 
 #ifdef QT_NO_WIDGETS
-    QString kmapfile = "/usr/share/qmaps/"+newKeymapLayout+".qmap";
+    QString kmapfile = "/usr/share/qmaps/" + newKeymapLayout + ".qmap";
 
     if (QFile::exists(kmapfile))
         QEglFSFunctions::loadKeymap(kmapfile);
@@ -1539,8 +1602,7 @@ QString ImageWriter::detectPiKeyboard()
             "dk",
             "ru",
             "tr",
-            "il"
-        };
+            "il"};
 
         if (typenr < kbcountries.count())
         {
@@ -1585,7 +1647,8 @@ bool ImageWriter::customRepo()
 
 void ImageWriter::onCacheVerificationProgress(qint64 bytesProcessed, qint64 totalBytes)
 {
-    if (_waitingForCacheVerification) {
+    if (_waitingForCacheVerification)
+    {
         // Show cache verification progress as "verify" progress
         // This reuses the existing verify progress UI
         emit verifyProgress(bytesProcessed, totalBytes);
@@ -1596,23 +1659,24 @@ void ImageWriter::onCacheVerificationProgress(qint64 bytesProcessed, qint64 tota
 
 void ImageWriter::onCacheVerificationComplete(bool isValid)
 {
-    if (!_waitingForCacheVerification) {
+    if (!_waitingForCacheVerification)
+    {
         return; // Not waiting for this verification
     }
-    
+
     _waitingForCacheVerification = false;
-    
+
     // Disconnect signals to avoid receiving future notifications
     disconnect(_cacheManager, &CacheManager::cacheVerificationProgress,
                this, &ImageWriter::onCacheVerificationProgress);
     disconnect(_cacheManager, &CacheManager::cacheVerificationComplete,
                this, &ImageWriter::onCacheVerificationComplete);
-    
+
     qDebug() << "Cache verification completed - valid:" << isValid;
-    
+
     // Emit signal to update UI (cache verification finished)
     emit cacheVerificationFinished();
-    
+
     // Continue with the rest of startWrite() logic
     _continueStartWriteAfterCacheVerification(isValid);
 }
@@ -1620,16 +1684,19 @@ void ImageWriter::onCacheVerificationComplete(bool isValid)
 void ImageWriter::_continueStartWriteAfterCacheVerification(bool cacheIsValid)
 {
     QString urlstr = _src.toString(_src.FullyEncoded);
-    
-    if (cacheIsValid) {
+
+    if (cacheIsValid)
+    {
         QString cacheFilePath = _cacheManager->getCacheFilePath(_expectedHash);
         qDebug() << "Using verified cache file:" << cacheFilePath;
         urlstr = QUrl::fromLocalFile(cacheFilePath).toString(_src.FullyEncoded);
-    } else {
+    }
+    else
+    {
         qDebug() << "Cache file invalid, invalidating and using original URL";
         _cacheManager->invalidateCache();
     }
-    
+
     // Continue with the write operation (this is the code that was after cache verification)
     if (QUrl(urlstr).isLocalFile())
     {
@@ -1650,19 +1717,20 @@ void ImageWriter::_continueStartWriteAfterCacheVerification(bool cacheIsValid)
     connect(_thread, SIGNAL(error(QString)), SLOT(onError(QString)));
     connect(_thread, SIGNAL(finalizing()), SLOT(onFinalizing()));
     connect(_thread, SIGNAL(preparationStatusUpdate(QString)), SLOT(onPreparationStatusUpdate(QString)));
-    
+
     // Connect to progress signals if this is a DownloadExtractThread
-    DownloadExtractThread *downloadThread = qobject_cast<DownloadExtractThread*>(_thread);
-    if (downloadThread) {
-        connect(downloadThread, &DownloadExtractThread::downloadProgressChanged, 
+    DownloadExtractThread *downloadThread = qobject_cast<DownloadExtractThread *>(_thread);
+    if (downloadThread)
+    {
+        connect(downloadThread, &DownloadExtractThread::downloadProgressChanged,
                 this, &ImageWriter::downloadProgress);
-        connect(downloadThread, &DownloadExtractThread::verifyProgressChanged, 
+        connect(downloadThread, &DownloadExtractThread::verifyProgressChanged,
                 this, &ImageWriter::verifyProgress);
     }
-    
+
     _thread->setVerifyEnabled(_verifyEnabled);
     _thread->setUserAgent(QString("Mozilla/5.0 rpi-imager/%1").arg(constantVersion()).toUtf8());
-    _thread->setImageCustomization(_config, _cmdline, _firstrun, _cloudinit, _cloudinitNetwork, _initFormat);
+    _thread->setImageCustomization(_config, _cmdline, _firstrun, _cloudinit, _cloudinitNetwork, _initFormat, getSavedCustomizationSettings());
 
     // Handle caching setup for downloads using CacheManager
     // Only set up caching when we're downloading (not using cached file as source)
@@ -1676,11 +1744,11 @@ void ImageWriter::_continueStartWriteAfterCacheVerification(bool cacheIsValid)
             _thread->setCacheFile(cacheFilePath, _downloadLen);
             // Connect to CacheManager for cache updates (pass both hashes correctly)
             connect(_thread, &DownloadThread::cacheFileHashUpdated,
-                    this, [this](const QByteArray& cacheFileHash, const QByteArray& imageHash) {
+                    this, [this](const QByteArray &cacheFileHash, const QByteArray &imageHash)
+                    {
                         qDebug() << "DownloadThread cache update - cacheFileHash:" << cacheFileHash << "imageHash:" << imageHash;
                         // Update cache with both uncompressed hash (imageHash) and compressed hash (cacheFileHash)
-                        _cacheManager->updateCacheFile(imageHash, cacheFileHash);
-                    });
+                        _cacheManager->updateCacheFile(imageHash, cacheFileHash); });
         }
         else
         {
@@ -1696,7 +1764,13 @@ void ImageWriter::_continueStartWriteAfterCacheVerification(bool cacheIsValid)
     if (_multipleFilesInZip)
     {
         static_cast<DownloadExtractThread *>(_thread)->enableMultipleFileExtraction();
-        DriveFormatThread *dft = new DriveFormatThread(_dst.toLatin1(), this);
+        QString label{""};
+        if (_initFormat == "UNRAID")
+        {
+            // if this is an unraid zip, the volume label needs to be UNRAID for the make bootable script to work as intended
+            label = "UNRAID";
+        }
+        DriveFormatThread *dft = new DriveFormatThread(_dst.toLatin1(), label, this);
         connect(dft, SIGNAL(success()), _thread, SLOT(start()));
         connect(dft, SIGNAL(error(QString)), SLOT(onError(QString)));
         dft->start();
@@ -1709,7 +1783,8 @@ void ImageWriter::_continueStartWriteAfterCacheVerification(bool cacheIsValid)
     startProgressPolling();
 }
 
-void MountUtilsLog(std::string msg) {
+void MountUtilsLog(std::string msg)
+{
     Q_UNUSED(msg)
-    //qDebug() << "mountutils:" << msg.c_str();
+    // qDebug() << "mountutils:" << msg.c_str();
 }

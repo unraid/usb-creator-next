@@ -1,0 +1,100 @@
+#!/bin/bash
+
+################################################################################
+#      This file is ported from makebootable_mac used for the creation
+#	   of a bootable USB thumb drive that unRAID can be run from
+#      Copyright (C) 2009-2012 Kyle Hiltner (stephan@openelec.tv)
+#      Copyright (C) 2016 Lime Technology
+#
+#  This Program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2, or (at your option)
+#  any later version.
+#
+#  This Program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+#  GNU General Public License for more details.
+################################################################################
+
+VERSION="v1.3"
+
+echo "INFO: make_bootable_linux $VERSION"
+echo ""
+
+DISTRO=$(uname -s)
+if [ $DISTRO != "Linux" ]; then
+    echo ""
+    echo "FAIL: This script is only for Linux systems, aborting!"
+    echo ""
+    exit 1
+fi
+
+if [ ! -b "/dev/disk/by-label/UNRAID" ]; then
+    echo ""
+    echo "FAIL: There appears to be no drive present with the label UNRAID, aborting!"
+    echo ""
+    exit 1
+fi
+
+UNRAID_PARTITION=$(readlink -f /dev/disk/by-label/UNRAID)
+if [ "${UNRAID_PARTITION: -1}" != "1" ]; then
+    echo ""
+    echo "FAIL: unRAID Flash drive detected but not installed on the first partition, aborting!"
+    echo ""
+    exit 1
+fi
+
+TARGET=${UNRAID_PARTITION::${#UNRAID_PARTITION}-1}
+echo "INFO: The following device appears to be the unRAID USB Flash drive: $TARGET"
+
+# check if UNRAID partition is already mounted, if not mount to a temp location
+if [ -z "$(mount | grep """$UNRAID_PARTITION on """)" ]; then
+    mkdir -p /tmp/UNRAID_TMP_MOUNT
+    echo "INFO: Temporarily mounting unRAID USB Flash drive to /tmp/UNRAID_TMP_MOUNT"
+    mount ${UNRAID_PARTITION} /tmp/UNRAID_TMP_MOUNT || exit 1
+fi
+
+SOURCE=$(mount | grep "${UNRAID_PARTITION} on " | awk '{print $3}')
+if [ ! -d "$SOURCE/syslinux" ]; then
+    echo ""
+    echo "FAIL: unRAID Flash drive detected but unable to detect where it is currently mounted, aborting!"
+    echo ""
+    exit 1
+fi
+
+if [ ! -f "$SOURCE/syslinux/syslinux_linux" ]; then
+    echo ""
+    echo "FAIL: unRAID Flash drive detected but unable to locate unRAID install files, aborting!"
+    echo ""
+    exit 1
+fi
+
+while true; do
+    echo -n "Permit UEFI boot mode [Y/N]: "
+    read BOOT
+    if [[ ${BOOT^^} == N ]]; then
+         [[ -d $SOURCE/EFI && ! -d $SOURCE/EFI- ]] && mv $SOURCE/EFI $SOURCE/EFI-; break
+    elif [[ ${BOOT^^} == Y ]]; then
+        [[ -d $SOURCE/EFI- && ! -d $SOURCE/EFI ]] && mv $SOURCE/EFI- $SOURCE/EFI; break
+    else
+      echo "Please answer Y or N"
+    fi
+done
+
+echo "INFO: unRAID USB Flash drive currently mounted to $SOURCE, copying temporary installer files to /tmp/UNRAID"
+mkdir -p /tmp/UNRAID/syslinux
+cp -rp $SOURCE/syslinux/* /tmp/UNRAID/syslinux
+
+umount $SOURCE
+sync
+[ -d /tmp/UNRAID_TMP_MOUNT ] && rmdir /tmp/UNRAID_TMP_MOUNT
+
+echo ""
+echo "To continue you may need to enter your admin password"
+sudo /tmp/UNRAID/syslinux/make_bootable_linux.sh $TARGET
+
+# clean up
+rm -rf /tmp/UNRAID/syslinux
+rmdir /tmp/UNRAID &>/dev/null
+

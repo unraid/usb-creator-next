@@ -209,7 +209,7 @@ protected slots:
 
 private:
     // Cache management
-    CacheManager* _cacheManager;
+    CacheManager *_cacheManager;
     bool _waitingForCacheVerification;
 
     // Recursively walk all the entries with subitems and, for any which
@@ -234,7 +234,7 @@ protected:
     DownloadThread *_thread;
     bool _verifyEnabled, _multipleFilesInZip, _embeddedMode, _online;
     QSettings _settings;
-    QMap<QString,QString> _translations;
+    QMap<QString, QString> _translations;
     QTranslator *_trans;
 
     void _parseCompressedFile();

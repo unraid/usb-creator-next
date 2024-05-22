@@ -43,6 +43,8 @@ ApplicationWindow {
     minimumWidth: imageWriter.isEmbeddedMode() ? -1 : 680
     minimumHeight: imageWriter.isEmbeddedMode() ? -1 : 420
 
+    color: Style.unraidPrimaryBgColor
+
     title: qsTr("Unraid Imager v%1").arg(imageWriter.constantVersion())
 
     Component.onCompleted: {
@@ -125,39 +127,64 @@ ApplicationWindow {
         id: bg
         spacing: 0
         activeFocusOnTab: false
+        RowLayout {
+            Layout.fillWidth: true
+            Rectangle {
+                id: logoContainer
+                implicitHeight: window.height / 6
 
-        Rectangle {
-            id: logoContainer
-            implicitHeight: window.height / 6
+                Image {
+                    id: image
+                    source: "icons/UN-logotype-gradient.png"
+
+                    // Specify the maximum size of the image
+                    width: window.width * 0.45
+                    height: window.height / 3
+
+                    // Within the image's specified size rectangle, resize the
+                    // image to fit within the rectangle while keeping its aspect
+                    // ratio the same.  Preserving the aspect ratio implies some
+                    // extra padding between the Image's extend and the actual
+                    // image content: align left so all this padding is on the
+                    // right.
+                    fillMode: Image.PreserveAspectFit
+                    horizontalAlignment: Image.AlignLeft
+
+                    // Keep the left side of the image 40 pixels from the left
+                    // edge
+                    anchors.left: logoContainer.left
+                    anchors.leftMargin: 10
+
+                    // Equal padding above and below the image
+                    anchors.top: logoContainer.top
+                    anchors.bottom: logoContainer.bottom
+                    anchors.topMargin: window.height / 25
+                    anchors.bottomMargin: window.height / 25
+                }
+            }
+            Item {
+                Layout.fillWidth: true
+            }
 
             Image {
-                id: image
-                source: "icons/UN-logotype-gradient.png"
-
-                // Specify the maximum size of the image
-                width: window.width * 0.45
-                height: window.height / 3
-
-                // Within the image's specified size rectangle, resize the
-                // image to fit within the rectangle while keeping its aspect
-                // ratio the same.  Preserving the aspect ratio implies some
-                // extra padding between the Image's extend and the actual
-                // image content: align left so all this padding is on the
-                // right.
+                id: helpImage
+                source: "icons/help.png"
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: Qt.openUrlExternally("https://docs.unraid.net/unraid-os/getting-started/quick-install-guide/")
+                }
+                Layout.preferredHeight: image.height
+                Layout.preferredWidth: image.height
+                sourceSize.width: image.height
+                sourceSize.height: image.height
                 fillMode: Image.PreserveAspectFit
-                horizontalAlignment: Image.AlignLeft
-
-                // Keep the left side of the image 40 pixels from the left
-                // edge
-                anchors.left: logoContainer.left
-                anchors.leftMargin: 10
-
-                // Equal padding above and below the image
-                anchors.top: logoContainer.top
-                anchors.bottom: logoContainer.bottom
-                anchors.topMargin: window.height / 25
-                anchors.bottomMargin: window.height / 25
             }
+        }
+
+        Rectangle {
+            color: Style.unraidAccentColor
+            implicitWidth: window.width
+            implicitHeight: 1
         }
 
         Rectangle {
@@ -175,7 +202,7 @@ ApplicationWindow {
                 anchors.rightMargin: 50
                 anchors.leftMargin: 50
 
-                rows: 5
+                rows: 6
                 columns: 3
                 columnSpacing: 15
 
@@ -470,8 +497,8 @@ ApplicationWindow {
                             }
                             focusAnchor.forceActiveFocus();
 
-                            if (!optionspopup.visible && window.imageWriter.imageSupportsCustomization()) {
-                                usesavedsettingspopup.open();
+                            if (imageWriter.imageSupportsCustomization()) {
+                                optionspopup.openPopup();
                             } else {
                                 confirmwritepopup.askForConfirmation();
                             }
@@ -679,6 +706,24 @@ ApplicationWindow {
                 }
             }
 
+            Image {
+                id: infoImage
+                source: "icons/info.png"
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: infopopup.openPopup()
+                }
+                Layout.preferredHeight: image.height
+                Layout.preferredWidth: image.height
+                sourceSize.width: image.height
+                sourceSize.height: image.height
+                fillMode: Image.PreserveAspectFit
+                anchors.left: parent.left
+                anchors.leftMargin: 10
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 10
+            }
+
             DropArea {
                 anchors.fill: parent
                 onEntered: drag => {
@@ -729,6 +774,15 @@ ApplicationWindow {
             window.selectedStorageName = "";
             window.resetWriteButton();
         }
+    }
+
+    MsgPopup {
+        id: infopopup
+        continueButton: false
+        yesButton: false
+        noButton: false
+        title: qsTr("About")
+        text: qsTr("For license, credits and history, please read:<br>https://github.com/unraid/usb-creator-next<br><br>To report issues with this tool, please email:<br>general@support.unraid.net")
     }
 
     MsgPopup {
@@ -792,18 +846,42 @@ ApplicationWindow {
         }
     }
 
-    OptionsPopup {
+    UnraidOptionsPopup {
         id: optionspopup
-        minimumWidth: 450
-        minimumHeight: 400
 
         imageWriter: window.imageWriter
 
         onSaveSettingsSignal: settings => {
+            // set saved Unraid customization settings (separate from image customization)
             window.imageWriter.setSavedCustomizationSettings(settings);
+
+            // default these to off for now
+            window.imageWriter.setSetting("beep", false);
+            window.imageWriter.setSetting("eject", false);
+            window.imageWriter.setSetting("telemetry", false); // chkTelemtry.checked)
+
+            // not using rpi-imager's
+            window.imageWriter.setImageCustomization("", "", "", "", "");
             usesavedsettingspopup.hasSavedSettings = true;
         }
+
+        onContinueSignal: {
+            confirmwritepopup.askForConfirmation();
+        }
     }
+
+    // OptionsPopup {
+    //     id: optionspopup
+    //     minimumWidth: 450
+    //     minimumHeight: 400
+
+    //     imageWriter: window.imageWriter
+
+    //     onSaveSettingsSignal: settings => {
+    //         window.imageWriter.setSavedCustomizationSettings(settings);
+    //         usesavedsettingspopup.hasSavedSettings = true;
+    //     }
+    // }
 
     UseSavedSettingsPopup {
         id: usesavedsettingspopup
@@ -918,13 +996,13 @@ ApplicationWindow {
     function onSuccess() {
         msgpopup.title = qsTr("Write Successful");
         if (osbutton.text === qsTr("Erase"))
-            msgpopup.text = qsTr("<b>%1</b> has been erased<br><br>You can now remove the SD card from the reader").arg(dstbutton.text);
+            msgpopup.text = qsTr("<b>%1</b> has been erased.<br><br>Your drive has been ejected, you can now safely remove it.").arg(dstbutton.text);
         else if (imageWriter.isEmbeddedMode()) {
             //msgpopup.text = qsTr("<b>%1</b> has been written to <b>%2</b>").arg(osbutton.text).arg(dstbutton.text)
             /* Just reboot to the installed OS */
             Qt.quit();
         } else
-            msgpopup.text = qsTr("<b>%1</b> has been written to <b>%2</b><br><br>You can now remove the SD card from the reader").arg(osbutton.text).arg(dstbutton.text);
+            msgpopup.text = qsTr("<b>%1</b> has been written to <b>%2</b>.<br><br>Your drive has been ejected, you can now safely remove it.").arg(osbutton.text).arg(dstbutton.text);
         if (imageWriter.isEmbeddedMode()) {
             msgpopup.continueButton = false;
             msgpopup.quitButton = true;

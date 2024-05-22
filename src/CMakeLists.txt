@@ -719,6 +719,7 @@ set(IMAGER_QML_FILES
     qmlcomponents/ImCloseButton.qml
     qmlcomponents/ImPopup.qml
     qmlcomponents/ImRadioButton.qml
+    qmlcomponents/IpTextField.qml
     MainPopupBase.qml
     HwPopup.qml
     OSPopup.qml

@@ -37,11 +37,31 @@
         <file>icons/cat_language_specific_operating_systems.png</file>
         <file>icons/cat_3d_printing.png</file>
         <file>icons/UN-logotype-gradient.svg</file>
-	<file>icons/UN-logotype-gradient.png</file>
+        <file>icons/UN-logotype-gradient.png</file>
+        <file>UnraidOptionsPopup.qml</file>
         <file>qmlcomponents/ImButton.qml</file>
         <file>qmlcomponents/ImCheckBox.qml</file>
         <file>qmlcomponents/ImRadioButton.qml</file>
+        <file>qmlcomponents/IpTextField.qml</file>
         <file>icons/cat_digital_signage.png</file>
         <file>icons/unraid.icns</file>
+        <file>icons/help.png</file>
+        <file>icons/info.png</file>
+        <file>unraid/syslinux/ldlinux.c32</file>
+        <file>unraid/syslinux/libcom32.c32</file>
+        <file>unraid/syslinux/libutil.c32</file>
+        <file>unraid/syslinux/make_bootable_linux.sh</file>
+        <file>unraid/syslinux/make_bootable_mac.sh</file>
+        <file>unraid/syslinux/mboot.c32</file>
+        <file>unraid/syslinux/mbr.bin</file>
+        <file>unraid/syslinux/menu.c32</file>
+        <file>unraid/syslinux/syslinux</file>
+        <file>unraid/syslinux/syslinux_linux</file>
+        <file>unraid/syslinux/syslinux.cfg</file>
+        <file>unraid/syslinux/syslinux.cfg-</file>
+        <file>unraid/syslinux/syslinux.exe</file>
+        <file>unraid/make_bootable_linux</file>
+        <file>unraid/make_bootable_mac</file>
+        <file>unraid/make_bootable.bat</file>
     </qresource>
 </RCC>
