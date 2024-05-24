@@ -100,7 +100,7 @@ ApplicationWindow {
                 anchors.topMargin: 10
                 MouseArea {
                     anchors.fill: parent
-                    onClicked: Qt.openUrlExternally("https://docs.unraid.net/unraid-os/getting-started/quick-install-guide/")
+                    onClicked: imageWriter.openUrl("https://docs.unraid.net/unraid-os/getting-started/quick-install-guide/")
                 }
             }
 
@@ -109,7 +109,7 @@ ApplicationWindow {
                 source: "icons/help.png"
                 MouseArea {
                     anchors.fill: parent
-                    onClicked: Qt.openUrlExternally("https://docs.unraid.net/unraid-os/getting-started/quick-install-guide/")
+                    onClicked: imageWriter.openUrl("https://docs.unraid.net/unraid-os/getting-started/quick-install-guide/")
                 }
                 Layout.preferredHeight: 15
                 Layout.preferredWidth: 15
@@ -1040,7 +1040,7 @@ ApplicationWindow {
                             visible: typeof(website) == "string" && website
                             MouseArea {
                                 anchors.fill: parent
-                                onClicked: Qt.openUrlExternally(website)
+                                onClicked: imageWriter.openUrl(website)
                             }
                         }
                         Item {
@@ -1358,6 +1358,7 @@ ApplicationWindow {
         yesButton: false
         noButton: false
         title: qsTr("About")
+        body.onLinkActivated: imageWriter.openUrl(body.link)
         text: qsTr("License, Credits, and History: ") + "<a href='https://github.com/unraid/usb-creator-next'><font color='" + UnColors.orange + "'>https://github.com/unraid/usb-creator-next</font></a><br><br>" + qsTr("Help / Feedback: ") + "<a href='https://unraid.net/contact'><font color='" + UnColors.orange + "'>https://unraid.net/contact</font></a>"
     }
 
@@ -1419,7 +1420,7 @@ ApplicationWindow {
         title: qsTr("Update available")
         text: qsTr("There is a newer version of Imager available.<br>Would you like to visit the website to download it?")
         onYes: {
-            Qt.openUrlExternally(url)
+            imageWriter.openUrl(url)
         }
     }
 

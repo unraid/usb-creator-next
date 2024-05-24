@@ -148,6 +148,7 @@ public:
     Q_INVOKABLE QString getInitFormat();
     Q_INVOKABLE QString getDstDevice();
     Q_INVOKABLE bool getDstGuidValid();
+    Q_INVOKABLE bool openUrl(const QString& url);
 
 signals:
     /* We are emiting signals with QVariant as parameters because QML likes it that way */

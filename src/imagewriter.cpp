@@ -34,6 +34,7 @@
 #include <QDebug>
 #include <QVersionNumber>
 #include <QtNetwork>
+#include <QDesktopServices>
 #ifndef QT_NO_WIDGETS
 #include <QFileDialog>
 #include <QApplication>
@@ -1498,3 +1499,7 @@ bool ImageWriter::getDstGuidValid()
     return _guidValid;
 }
 
+bool ImageWriter::openUrl(const QString& url)
+{
+    return QDesktopServices::openUrl(QUrl(url, QUrl::TolerantMode));
+}
