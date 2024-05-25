@@ -17,6 +17,7 @@ ImPopup {
     focus: true
 
     property alias text: msgpopupbody.text
+    property alias body: msgpopupbody
     property bool continueButton: true
     property bool quitButton: false
     property bool yesButton: false

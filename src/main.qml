@@ -8,6 +8,7 @@ import QtQuick.Window 2.2
 import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.0
 import QtQuick.Controls.Material 2.2
+import Qt5Compat.GraphicalEffects
 import "qmlcomponents"
 
 import RpiImager
@@ -39,10 +40,9 @@ ApplicationWindow {
     }
 
     width: imageWriter.isEmbeddedMode() ? -1 : 680
-    height: imageWriter.isEmbeddedMode() ? -1 : 450
+    height: imageWriter.isEmbeddedMode() ? -1 : 465
     minimumWidth: imageWriter.isEmbeddedMode() ? -1 : 680
-    minimumHeight: imageWriter.isEmbeddedMode() ? -1 : 420
-
+    minimumHeight: imageWriter.isEmbeddedMode() ? -1 : 465
     color: Style.unraidPrimaryBgColor
 
     title: qsTr("Unraid Imager v%1").arg(imageWriter.constantVersion())
@@ -131,15 +131,14 @@ ApplicationWindow {
             Layout.fillWidth: true
             Rectangle {
                 id: logoContainer
-                implicitHeight: window.height / 6
-
+                implicitHeight: (window.height - 15) / 6
                 Image {
                     id: image
                     source: "icons/UN-logotype-gradient.png"
 
                     // Specify the maximum size of the image
                     width: window.width * 0.45
-                    height: window.height / 3
+                    height: (window.height - 15) / 3
 
                     // Within the image's specified size rectangle, resize the
                     // image to fit within the rectangle while keeping its aspect
@@ -158,26 +157,91 @@ ApplicationWindow {
                     // Equal padding above and below the image
                     anchors.top: logoContainer.top
                     anchors.bottom: logoContainer.bottom
-                    anchors.topMargin: window.height / 25
-                    anchors.bottomMargin: window.height / 25
+                    anchors.topMargin: (window.height - 15) / 25
+                    anchors.bottomMargin: (window.height - 15) / 25
                 }
             }
             Item {
                 Layout.fillWidth: true
             }
 
+            // Text {
+            //     color: Style.unraidAccentColor
+            //     text: qsTr("Help")
+            //     font.pixelSize: 12
+            //     font.family: Style.fontFamilyBold
+            //     font.bold: true
+            //     anchors.right: helpImage.left
+            //     anchors.rightMargin: 5
+            //     anchors.top: parent.top
+            //     anchors.topMargin: 10
+            //     MouseArea {
+            //         anchors.fill: parent
+            //         onClicked: imageWriter.openUrl("https://docs.unraid.net/unraid-os/getting-started/quick-install-guide/")
+            //     }
+            // }
+
+            // Image {
+            //     id: helpImage
+            //     source: "icons/help.png"
+            //     MouseArea {
+            //         anchors.fill: parent
+            //         onClicked: imageWriter.openUrl("https://docs.unraid.net/unraid-os/getting-started/quick-install-guide/")
+            //     }
+            //     Layout.preferredHeight: 15
+            //     Layout.preferredWidth: 15
+            //     sourceSize.width: 15
+            //     sourceSize.height: 15
+            //     anchors.right: parent.right
+            //     anchors.rightMargin: 10
+            //     anchors.top: parent.top
+            //     anchors.topMargin: 10
+            //     fillMode: Image.PreserveAspectFit
+            // }
+            // ColorOverlay {
+            //     anchors.fill: helpImage
+            //     source: helpImage
+            //     color: Style.unraidAccentColor
+            // }
+
+            Text {
+                color: Style.unraidAccentColor
+                text: qsTr("Help")
+                font.pixelSize: 12
+                font.family: Style.fontFamilyBold
+                font.bold: true
+                Layout.alignment: Qt.AlignTop | Qt.AlignRight
+                Layout.topMargin: 10
+                Layout.rightMargin: 5
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: imageWriter.openUrl("https://docs.unraid.net/unraid-os/getting-started/quick-install-guide/")
+                }
+            }
+
             Image {
                 id: helpImage
                 source: "icons/help.png"
+                Layout.preferredWidth: 15
+                Layout.preferredHeight: 15
+                sourceSize.width: 15
+                sourceSize.height: 15
+                fillMode: Image.PreserveAspectFit
+                visible: false  // Hide the original image --> will use color overlay instead
+            }
+
+            ColorOverlay {
+                Layout.alignment: Qt.AlignTop | Qt.AlignRight
+                Layout.topMargin: 10
+                Layout.rightMargin: 15
+                Layout.preferredWidth: 15
+                Layout.preferredHeight: 15
+                source: helpImage //use the original image as source, cannot use image path directly
+                color: Style.unraidAccentColor
                 MouseArea {
                     anchors.fill: parent
-                    onClicked: Qt.openUrlExternally("https://docs.unraid.net/unraid-os/getting-started/quick-install-guide/")
+                    onClicked: imageWriter.openUrl("https://docs.unraid.net/unraid-os/getting-started/quick-install-guide/")
                 }
-                Layout.preferredHeight: image.height
-                Layout.preferredWidth: image.height
-                sourceSize.width: image.height
-                sourceSize.height: image.height
-                fillMode: Image.PreserveAspectFit
             }
         }
 
@@ -190,7 +254,7 @@ ApplicationWindow {
         Rectangle {
             color: Style.unraidPrimaryBgColor
             implicitWidth: window.width
-            implicitHeight: window.height * (1 - 1 / 6)
+            implicitHeight: (window.height - 15) * (1 - 1 / 6)
 
             GridLayout {
                 id: gridLayout
@@ -202,7 +266,7 @@ ApplicationWindow {
                 anchors.rightMargin: 50
                 anchors.leftMargin: 50
 
-                rows: 6
+                rows: 5
                 columns: 3
                 columnSpacing: 15
 
@@ -654,24 +718,6 @@ ApplicationWindow {
                 }
             }
 
-            Image {
-                id: infoImage
-                source: "icons/info.png"
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked: infopopup.openPopup()
-                }
-                Layout.preferredHeight: image.height
-                Layout.preferredWidth: image.height
-                sourceSize.width: image.height
-                sourceSize.height: image.height
-                fillMode: Image.PreserveAspectFit
-                anchors.left: parent.left
-                anchors.leftMargin: 10
-                anchors.bottom: parent.bottom
-                anchors.bottomMargin: 10
-            }
-
             DropArea {
                 anchors.fill: parent
                 onEntered: drag => {
@@ -683,6 +729,46 @@ ApplicationWindow {
                     if (drop.urls && drop.urls.length > 0) {
                         window.onFileSelected(drop.urls[0].toString());
                     }
+                }
+            }
+        }
+
+        Row {
+            anchors.left: parent.left
+            anchors.leftMargin: 15
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: 10
+            spacing: 5
+
+            Text {
+                color: Style.unraidAccentColor
+                text: qsTr("Info")
+                font.pixelSize: 12
+                font.family: Style.fontFamily
+                font.bold: true
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: infopopup.open()
+                }
+            }
+
+            Image {
+                id: infoImage
+                source: "icons/info.png"
+                width: 15
+                height: 15
+                fillMode: Image.PreserveAspectFit
+                visible: false  // Hide the original image
+            }
+
+            ColorOverlay {
+                width: 15
+                height: 15
+                source: infoImage
+                color: Style.unraidAccentColor
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: infopopup.open()
                 }
             }
         }
@@ -724,11 +810,14 @@ ApplicationWindow {
 
     MsgPopup {
         id: infopopup
+        x: 50
+        width: parent.width - 100
         continueButton: false
         yesButton: false
         noButton: false
         title: qsTr("About")
-        text: qsTr("For license, credits and history, please read:<br>https://github.com/unraid/usb-creator-next<br><br>To report issues with this tool, please email:<br>general@support.unraid.net")
+        body.onLinkActivated: imageWriter.openUrl(body.link)
+        text: qsTr("License, Credits, and History: ") + "<a href='https://github.com/unraid/usb-creator-next'><font color='" + Style.unraidAccentColor + "'>https://github.com/unraid/usb-creator-next</font></a><br><br>" + qsTr("Help / Feedback: ") + "<a href='https://unraid.net/contact'><font color='" + Style.unraidAccentColor + "'>https://unraid.net/contact</font></a>"
     }
 
     MsgPopup {
@@ -788,7 +877,7 @@ ApplicationWindow {
         title: qsTr("Update available")
         text: qsTr("There is a newer version of Imager available.<br>Would you like to visit the website to download it?")
         onYes: {
-            Qt.openUrlExternally(url);
+            imageWriter.openUrl(url);
         }
     }
 
@@ -955,6 +1044,11 @@ ApplicationWindow {
         }
 
         msgpopup.open();
+
+        //added for unraid -- Ajit
+        imageWriter.setDst("", false);
+        dstbutton.text = qsTr("CHOOSE STORAGE");
+        resetWriteButton();
     }
 
     function onFileSelected(file) {

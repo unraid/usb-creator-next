@@ -24,7 +24,7 @@ Button {
         implicitWidth: 100
         implicitHeight: 40
         opacity: enabled ? 1.0 : 0.3
-        color: parent.hovered ? Style.unraidAccentColor : Style.unraidPrimaryBgColor
+        color: enabled ? (parent.hovered ? Style.unraidAccentColor : Style.unraidPrimaryBgColor) : Style.unraidPrimaryBgColor
         border.color: Style.unraidAccentColor
         border.width: 1
         radius: 25
@@ -33,7 +33,7 @@ Button {
         text: parent.text
         font: parent.font
         opacity: enabled ? 1.0 : 0.3
-        color: parent.hovered ? Style.unraidTextFocusColor : "white"
+        color: enabled ? (parent.hovered ? Style.unraidTextFocusColor : Style.unraidTextColor) : Style.unraidTextColor
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
         elide: Text.ElideRight

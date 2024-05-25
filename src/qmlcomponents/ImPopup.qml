@@ -17,7 +17,7 @@ Popup {
     width: 550
     padding: 0
     closePolicy: Popup.CloseOnEscape
-    modal: true
+    // modal: true
 
     default property alias content: contents.data
 

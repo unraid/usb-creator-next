@@ -39,6 +39,8 @@
 #include <QPasswordDigestor>
 #include <QVersionNumber>
 #include <QCryptographicHash>
+#include <QtNetwork>
+#include <QDesktopServices>
 #ifndef QT_NO_WIDGETS
 #include <QFileDialog>
 #include <QApplication>
@@ -310,7 +312,7 @@ void ImageWriter::setSrc(const QUrl &url, quint64 downloadLen, quint64 extrLen, 
         }
         else
         {
-            _initFormat = "auto";
+            _initFormat = "UNRAID";
         }
     }
 }
@@ -842,15 +844,15 @@ QJsonDocument ImageWriter::getFilteredOSlistDocument()
     }
 
     reference_os_list_array.append(QJsonObject({
-        {"name", QCoreApplication::translate("main", "Erase")},
-        {"description", QCoreApplication::translate("main", "Format card as FAT32")},
+        {"name", QApplication::translate("main", "Erase")},
+        {"description", QApplication::translate("main", "Format USB Drive as FAT32")},
         {"icon", "icons/erase.png"},
         {"url", "internal://format"},
     }));
 
     reference_os_list_array.append(QJsonObject({
-        {"name", QCoreApplication::translate("main", "Use custom")},
-        {"description", QCoreApplication::translate("main", "Select a custom .img from your computer")},
+        {"name", QApplication::translate("main", "Use custom")},
+        {"description", QApplication::translate("main", "Select an Unraid .zip file from your computer")},
         {"icon", "icons/use_custom.png"},
         {"url", ""},
     }));
@@ -974,9 +976,8 @@ void ImageWriter::openFileDialog()
     if (path.isEmpty() || !fi.exists() || !fi.isReadable())
         path = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
 
-    QFileDialog *fd = new QFileDialog(nullptr, tr("Select image"),
-                                      path,
-                                      "Image files (*.img *.zip *.iso *.gz *.xz *.zst *.wic);;All files (*)");
+    QFileDialog *fd = new QFileDialog(nullptr, tr("Select image"), path, "Unraid Image files (*.zip)");
+
     connect(fd, SIGNAL(fileSelected(QString)), SLOT(onFileSelected(QString)));
 
     if (_engine)
@@ -1804,4 +1805,9 @@ QString ImageWriter::getDstDevice()
 bool ImageWriter::getDstGuidValid()
 {
     return _guidValid;
+}
+
+bool ImageWriter::openUrl(const QString &url)
+{
+    return QDesktopServices::openUrl(QUrl(url, QUrl::TolerantMode));
 }

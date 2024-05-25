@@ -102,7 +102,6 @@ Popup {
                 spacing: -10
 
                 RowLayout {
-                    Layout.fillWidth: true
                     Text {
                         text: "Server Name:"
                         color: !fieldServername.acceptableInput ? "red" : "white"
@@ -116,10 +115,6 @@ Popup {
                         validator: RegularExpressionValidator {
                             regularExpression: /^[A-Za-z0-9]([A-Za-z0-9\-\.]{0,13}[A-Za-z0-9])?$/
                         }
-                    }
-                    ImCheckBox {
-                        id: checkboxLegacyBoot
-                        text: "Enable Legacy Boot"
                     }
                 }
 
@@ -268,7 +263,6 @@ Popup {
         settings.dns = dnsField.fullAddress;
         settings.netmask = fieldNetmask.currentText;
         settings.servername = fieldServername.text;
-        settings.legacyboot = checkboxLegacyBoot.checked;
 
         saveSettingsSignal(settings);
     }
