@@ -16,9 +16,9 @@ ApplicationWindow {
     visible: true
 
     width: imageWriter.isEmbeddedMode() ? -1 : 680
-    height: imageWriter.isEmbeddedMode() ? -1 : 450
+    height: imageWriter.isEmbeddedMode() ? -1 : 465
     minimumWidth: imageWriter.isEmbeddedMode() ? -1 : 680
-    minimumHeight: imageWriter.isEmbeddedMode() ? -1 : 420
+    minimumHeight: imageWriter.isEmbeddedMode() ? -1 : 465
     
     
     color: UnColors.darkGray
@@ -53,7 +53,7 @@ ApplicationWindow {
             Layout.fillWidth: true
             Rectangle {
                 id: logoContainer
-                implicitHeight: window.height/6
+                implicitHeight: (window.height - 15)/6
 
                 Image {
                     id: image
@@ -61,7 +61,7 @@ ApplicationWindow {
 
                     // Specify the maximum size of the image
                     width: window.width * 0.45
-                    height: window.height / 3
+                    height: (window.height - 15) / 3
 
                     // Within the image's specified size rectangle, resize the
                     // image to fit within the rectangle while keeping its aspect
@@ -80,12 +80,28 @@ ApplicationWindow {
                     // Equal padding above and below the image
                     anchors.top: logoContainer.top
                     anchors.bottom: logoContainer.bottom
-                    anchors.topMargin: window.height / 25
-                    anchors.bottomMargin: window.height / 25
+                    anchors.topMargin: (window.height - 15) / 25
+                    anchors.bottomMargin: (window.height - 15) / 25
                 }
             }
             Item {
                 Layout.fillWidth: true
+            }
+
+            Text {
+                color: UnColors.orange
+                text: qsTr("Help")
+                font.pixelSize: 12
+                font.family: robotoBold.name
+                font.bold: true
+                anchors.right: helpImage.left
+                anchors.rightMargin: 5
+                anchors.top: parent.top
+                anchors.topMargin: 10
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: imageWriter.openUrl("https://docs.unraid.net/unraid-os/getting-started/quick-install-guide/")
+                }
             }
 
             Image {
@@ -93,12 +109,16 @@ ApplicationWindow {
                 source: "icons/help.png"
                 MouseArea {
                     anchors.fill: parent
-                    onClicked: Qt.openUrlExternally("https://docs.unraid.net/unraid-os/getting-started/quick-install-guide/")
+                    onClicked: imageWriter.openUrl("https://docs.unraid.net/unraid-os/getting-started/quick-install-guide/")
                 }
-                Layout.preferredHeight: image.height
-                Layout.preferredWidth: image.height
-                sourceSize.width: image.height
-                sourceSize.height: image.height
+                Layout.preferredHeight: 15
+                Layout.preferredWidth: 15
+                sourceSize.width: 15
+                sourceSize.height: 15
+                anchors.right: parent.right
+                anchors.rightMargin: 10
+                anchors.top: parent.top
+                anchors.topMargin: 10
                 fillMode: Image.PreserveAspectFit
             }
             ColorOverlay {
@@ -117,7 +137,7 @@ ApplicationWindow {
         Rectangle {
             color: UnColors.darkGray
             implicitWidth: window.width
-            implicitHeight: window.height * (1 - 1/6)
+            implicitHeight: (window.height - 15) * (1 - 1/6)
 
             GridLayout {
                 id: gridLayout
@@ -128,7 +148,7 @@ ApplicationWindow {
                 anchors.rightMargin: 50
                 anchors.leftMargin: 50
 
-                rows: 6
+                rows: 5
                 columns: 3
                 columnSpacing: 15
 
@@ -495,29 +515,6 @@ ApplicationWindow {
                 }
             }
 
-            Image {
-                id: infoImage
-                source: "icons/info.png"
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked: infopopup.openPopup()
-                }
-                Layout.preferredHeight: image.height
-                Layout.preferredWidth: image.height
-                sourceSize.width: image.height
-                sourceSize.height: image.height
-                fillMode: Image.PreserveAspectFit
-                anchors.left: parent.left
-                anchors.leftMargin: 10
-                anchors.bottom: parent.bottom
-                anchors.bottomMargin: 10
-            }
-            ColorOverlay {
-                anchors.fill: infoImage
-                source: infoImage
-                color: UnColors.orange
-            }
-
             DropArea {
                 anchors.fill: parent
                 onEntered: {
@@ -533,7 +530,45 @@ ApplicationWindow {
             }
 
         }
-
+        RowLayout {
+            Image {
+                id: infoImage
+                source: "icons/info.png"
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: infopopup.openPopup()
+                }
+                Layout.preferredHeight: 15
+                Layout.preferredWidth: 15
+                sourceSize.width: 15
+                sourceSize.height: 15
+                fillMode: Image.PreserveAspectFit
+                anchors.left: parent.left
+                anchors.leftMargin: 10
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 10
+            }
+            ColorOverlay {
+                anchors.fill: infoImage
+                source: infoImage
+                color: UnColors.orange
+            }
+            Text {
+                color: UnColors.orange
+                text: qsTr("Info")
+                font.pixelSize: 12
+                font.family: robotoBold.name
+                font.bold: true
+                anchors.left: infoImage.right
+                anchors.leftMargin: 5
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 10
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: infopopup.openPopup()
+                }
+            }
+        }
     }
 
     Popup {
@@ -1005,7 +1040,7 @@ ApplicationWindow {
                             visible: typeof(website) == "string" && website
                             MouseArea {
                                 anchors.fill: parent
-                                onClicked: Qt.openUrlExternally(website)
+                                onClicked: imageWriter.openUrl(website)
                             }
                         }
                         Item {
@@ -1181,13 +1216,9 @@ ApplicationWindow {
             width: window.width-100
             height: 60
             Accessible.name: {
-                var txt = description+" - "+(size/1000000000).toFixed(1)+" gigabytes"
+                var txt = description+" - "+(size/1000000000).toFixed(1)+" GB"
                 if (mountpoints.length > 0) {
-                    txt += qsTr("Mounted as %1").arg(mountpoints.join(", "))
-                    if(guid != "") {
-                        txt += "GUID: %1".arg(guid)
-                        if(!guidValid)  txt += " <font color='red'>[INVALID]</font>"
-                    }
+                    txt += qsTr(" Mounted as %1").arg(mountpoints.join(", "))
                 }
                 return txt;
             }
@@ -1232,40 +1263,62 @@ ApplicationWindow {
                 }
                 Column {
                     width: parent.parent.width-64
-
-                    Text {
-                        textFormat: Text.StyledText
-                        height: parent.parent.parent.height
-                        verticalAlignment: Text.AlignVCenter
-                        font.family: roboto.name
-                        text: {
-                            var sizeStr = (size/1000000000).toFixed(1)+" GB";
-                            var txt;
-                            if (isReadOnly) {
-                                txt = "<p><font size='4'>"+description+" - "+sizeStr+"</font></p>"
-                                if (mountpoints.length > 0) {
-                                    txt += qsTr("Mounted as %1").arg(mountpoints.join(", "))+"<br>"
-                                    if(guid != "") {
-                                        txt += "GUID: %1".arg(guid)
-                                        if(!guidValid)  txt += " <font color='red'>[INVALID]</font>"
-                                    }
-                                }
-                                txt += qsTr("[WRITE PROTECTED]")+"</font>"
-                            } else {
-                                txt = "<p><font size='4'>"+description+" - "+sizeStr+"</font></p>"
-                                if (mountpoints.length > 0) {
-                                    txt += qsTr("Mounted as %1").arg(mountpoints.join(", "))+"<br>"
-                                    if(guid != "") {
-                                        txt += "GUID: %1".arg(guid)
-                                        if(!guidValid)  txt += " <font color='red'>[INVALID]</font>"
-                                    }
-                                }
-                                txt += "</font>"
+                    ColumnLayout {
+                        spacing: 1
+                        Text {
+                            textFormat: Text.StyledText
+                            height: parent.parent.parent.parent.height / 3
+                            //verticalAlignment: Text.AlignVCenter
+                            font.family: roboto.name
+                            font.pixelSize: 14
+                            text: {
+                                var sizeStr = (size/1000000000).toFixed(1) + " GB";
+                                var txt = description + " - " + sizeStr
+                                return txt
                             }
-                            return txt;
+                            color: dstbgrect.mouseOver ? UnColors.darkGray : "white"
+                            opacity: enabled ? 1.0 : 0.3
+                            Layout.topMargin: 5
                         }
-                        color: dstbgrect.mouseOver ? UnColors.darkGray : "white"
-                        opacity: enabled ? 1.0 : 0.3
+                        Text {
+                            textFormat: Text.StyledText
+                            height: parent.parent.parent.parent.height / 3
+                            //verticalAlignment: Text.AlignVCenter
+                            font.family: roboto.name
+                            font.pixelSize: 12
+                            text: {
+                                var txt = ""
+                                if (mountpoints.length > 0) {
+                                    txt += qsTr("Mounted as %1 ").arg(mountpoints.join(", "))
+                                }
+                                if (isReadOnly) {
+                                    txt += qsTr("[WRITE PROTECTED]")
+                                }
+                                return txt
+                            }
+                            color: dstbgrect.mouseOver ? UnColors.darkGray : "white"
+                            opacity: enabled ? 1.0 : 0.3
+                            anchors.topMargin: 10
+                        }
+                        Text {
+                            textFormat: Text.StyledText
+                            height: parent.parent.parent.parent.height / 3
+                            //verticalAlignment: Text.AlignVCenter
+                            font.family: roboto.name
+                            font.pixelSize: 12
+                            text: {
+                                var txt = ""
+                                if(guid != "") {
+                                    txt += "GUID: %1".arg(guid)
+                                    if(!guidValid)  txt += " <font color='red'>[BLACKLISTED - Choose Another Flash Device]</font>"
+                                } else {
+                                    txt += "<font color='red'>[MISSING GUID - Choose Another Flash Device]</font>"
+                                }
+                                return txt;
+                            }
+                            color: dstbgrect.mouseOver ? UnColors.darkGray : "white"
+                            opacity: enabled ? 1.0 : 0.3
+                        }
                     }
                 }
             }
@@ -1299,11 +1352,14 @@ ApplicationWindow {
     
     MsgPopup {
         id: infopopup
+        x: 50
+        width: parent.width - 100
         continueButton: false
         yesButton: false
         noButton: false
         title: qsTr("About")
-        text: qsTr("For license, credits and history, please read:<br>https://github.com/unraid/usb-creator-next<br><br>To report issues with this tool, please email:<br>general@support.unraid.net")
+        body.onLinkActivated: imageWriter.openUrl(body.link)
+        text: qsTr("License, Credits, and History: ") + "<a href='https://github.com/unraid/usb-creator-next'><font color='" + UnColors.orange + "'>https://github.com/unraid/usb-creator-next</font></a><br><br>" + qsTr("Help / Feedback: ") + "<a href='https://unraid.net/contact'><font color='" + UnColors.orange + "'>https://unraid.net/contact</font></a>"
     }
 
     MsgPopup {
@@ -1364,7 +1420,7 @@ ApplicationWindow {
         title: qsTr("Update available")
         text: qsTr("There is a newer version of Imager available.<br>Would you like to visit the website to download it?")
         onYes: {
-            Qt.openUrlExternally(url)
+            imageWriter.openUrl(url)
         }
     }
 
@@ -1463,7 +1519,7 @@ ApplicationWindow {
         }
 
         msgpopup.openPopup()
-        imageWriter.setDst("")
+        imageWriter.setDst("", false)
         dstbutton.text = qsTr("CHOOSE STORAGE")
         resetWriteButton()
     }
