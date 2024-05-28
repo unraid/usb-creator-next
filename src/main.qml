@@ -23,7 +23,7 @@ ApplicationWindow {
     
     color: UnColors.darkGray
 
-    title: qsTr("Unraid Imager v%1").arg(imageWriter.constantVersion())
+    title: qsTr("Unraid USB Creator v%1").arg(imageWriter.constantVersion())
 
     FontLoader {id: roboto;      source: "fonts/Roboto-Regular.ttf"}
     FontLoader {id: robotoLight; source: "fonts/Roboto-Light.ttf"}
@@ -1368,7 +1368,7 @@ ApplicationWindow {
         yesButton: true
         noButton: true
         title: qsTr("Are you sure you want to quit?")
-        text: qsTr("Raspberry Pi Imager is still busy.<br>Are you sure you want to quit?")
+        text: qsTr("Unraid USB Creator is still busy.<br>Are you sure you want to quit?")
         onYes: {
             Qt.quit()
         }
@@ -1418,7 +1418,7 @@ ApplicationWindow {
         noButton: true
         property url url
         title: qsTr("Update available")
-        text: qsTr("There is a newer version of Imager available.<br>Would you like to visit the website to download it?")
+        text: qsTr("There is a newer version of Unraid USB Creator available.<br>Would you like to visit the website to download it?")
         onYes: {
             imageWriter.openUrl(url)
         }

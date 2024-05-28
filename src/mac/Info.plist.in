@@ -5,19 +5,19 @@
   <key>CFBundleDevelopmentRegion</key>
   <string>English</string>
   <key>CFBundleExecutable</key>
-  <string>unraid-imager</string>
+  <string>unraid-usb-creator</string>
   <key>CFBundleGetInfoString</key>
   <string></string>
   <key>CFBundleIconFile</key>
   <string>unraid.icns</string>
   <key>CFBundleIdentifier</key>
-  <string>org.unraid.imagingutility</string>
+  <string>com.limetech.unraid-usb-creator</string>
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
   <key>CFBundleLongVersionString</key>
   <string></string>
   <key>CFBundleName</key>
-  <string>Raspberry Pi Imager</string>
+  <string>Unraid USB Creator</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleShortVersionString</key>

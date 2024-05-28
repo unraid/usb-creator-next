@@ -29,9 +29,9 @@ Cli::Cli(int &argc, char *argv[]) : QObject(nullptr)
     }
 #endif
     _app = new QCoreApplication(argc, argv);
-    _app->setOrganizationName("Raspberry Pi");
-    _app->setOrganizationDomain("raspberrypi.org");
-    _app->setApplicationName("Imager");
+    _app->setOrganizationName("Lime Technology, Inc");
+    _app->setOrganizationDomain("unraid.net");
+    _app->setApplicationName("Unraid USB Creator");
     _imageWriter = new ImageWriter;
     connect(_imageWriter, &ImageWriter::success, this, &Cli::onSuccess);
     connect(_imageWriter, &ImageWriter::error, this, &Cli::onError);

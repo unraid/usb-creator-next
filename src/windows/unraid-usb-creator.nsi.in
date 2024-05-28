@@ -4,20 +4,20 @@
 #              by Vlasis K. Barkas aka Red Wine red_wine@freemail.gr Sep 2006               
 ############################################################################################
 
-!define APP_NAME "Unraid Imager"
+!define APP_NAME "Unraid USB Creator"
 !define COMP_NAME "Lime Technology, Inc"
 !define VERSION "@IMAGER_VERSION_STR@"
-!define INSTALLER_NAME "imager-${VERSION}.exe"
+!define INSTALLER_NAME "unraid-usb-creator-${VERSION}.exe"
 !define COPYRIGHT "Lime Technology, Inc"
-!define DESCRIPTION "Unraid Imager"
-!define MAIN_APP_EXE "unraid-imager.exe"
+!define DESCRIPTION "Unraid USB Creator"
+!define MAIN_APP_EXE "unraid-usb-creator.exe"
 !define INSTALL_TYPE "SetShellVarContext current"
 !define REG_ROOT "HKCU"
 !define REG_APP_PATH "Software\Microsoft\Windows\CurrentVersion\App Paths\${MAIN_APP_EXE}"
 !define UNINSTALL_PATH "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}"
 
 # Window to close if running
-!define EXE_TO_TERMINATE "unraid-imager.exe"
+!define EXE_TO_TERMINATE "unraid-usb-creator.exe"
 
 ######################################################################
 
@@ -38,7 +38,7 @@ OutFile "${INSTALLER_NAME}"
 BrandingText "${APP_NAME}"
 XPStyle on
 InstallDirRegKey "${REG_ROOT}" "${REG_APP_PATH}" ""
-InstallDir "$PROGRAMFILES\Unraid Imager"
+InstallDir "$PROGRAMFILES\Unraid USB Creator"
 
 ######################################################################
 
@@ -115,14 +115,14 @@ InstallDir "$PROGRAMFILES\Unraid Imager"
 !insertmacro MUI_LANGUAGE "Dutch"
 !insertmacro MUI_LANGUAGE "Italian"
 
-LangString termMsg ${LANG_ENGLISH} "Unraid Imager seems to be running and busy.$\nDo you want to terminate process?"
-LangString stopMsg ${LANG_ENGLISH} "Stopping Unraid Imager"
+LangString termMsg ${LANG_ENGLISH} "Unraid USB Creator seems to be running and busy.$\nDo you want to terminate process?"
+LangString stopMsg ${LANG_ENGLISH} "Stopping Unraid USB Creator"
 LangString win7Msg ${LANG_ENGLISH} "Windows 7 or above required"
-LangString termMsg ${LANG_DUTCH} "Unraid Imager is momenteel actief.$\nWilt u het programma afsluiten?"
-LangString stopMsg ${LANG_DUTCH} "Bezig met afsluiten Unraid Imager"
+LangString termMsg ${LANG_DUTCH} "Unraid USB Creator is momenteel actief.$\nWilt u het programma afsluiten?"
+LangString stopMsg ${LANG_DUTCH} "Bezig met afsluiten Unraid USB Creator"
 LangString win7Msg ${LANG_DUTCH} "Minimaal Windows 7 is vereist"
-LangString termMsg ${LANG_ITALIAN} "Unraid Imager sembra essere in esecuzione e occupato.$\nVuoi terminare il processo Unraid Imager?"
-LangString stopMsg ${LANG_ITALIAN} "Chiusura processo Unraid Imager"
+LangString termMsg ${LANG_ITALIAN} "Unraid USB Creator sembra essere in esecuzione e occupato.$\nVuoi terminare il processo Unraid USB Creator?"
+LangString stopMsg ${LANG_ITALIAN} "Chiusura processo Unraid USB Creator"
 LangString win7Msg ${LANG_ITALIAN} "Per l'esecuzione del programma è richiesto Windows 7 o versioni successive"
 
 ######################################################################
@@ -243,8 +243,8 @@ File "deploy\Qt5QuickTemplates2.dll"
 File "deploy\Qt5Svg.dll"
 File "deploy\Qt5Widgets.dll"
 File "deploy\Qt5WinExtras.dll"
-File "deploy\unraid-imager.exe"
-File "deploy\unraid-imager-cli.cmd"
+File "deploy\unraid-usb-creator.exe"
+File "deploy\unraid-usb-creator-cli.cmd"
 SetOutPath "$INSTDIR\styles"
 File "deploy\styles\qwindowsvistastyle.dll"
 SetOutPath "$INSTDIR\QtQuick.2"
@@ -662,13 +662,13 @@ WriteRegStr ${REG_ROOT} "${UNINSTALL_PATH}"  "URLInfoAbout" "${WEB_SITE}"
 !endif
 
 
-WriteRegStr SHCTX "Software\Classes\.zip\OpenWithProgIds" "UNRAID_IMAGINGUTILITY" ""
-WriteRegStr SHCTX "Software\Classes\.gz\OpenWithProgIds" "UNRAID_IMAGINGUTILITY" ""
-WriteRegStr SHCTX "Software\Classes\.xz\OpenWithProgIds" "UNRAID_IMAGINGUTILITY" ""
-WriteRegStr SHCTX "Software\Classes\.img\OpenWithProgIds" "UNRAID_IMAGINGUTILITY" ""
-WriteRegStr SHCTX "Software\Classes\.zstd\OpenWithProgIds" "UNRAID_IMAGINGUTILITY" ""
-WriteRegStr SHCTX "Software\Classes\UNRAID_IMAGINGUTILITY\shell\open" "FriendlyAppName" "Unraid Imager"
-WriteRegStr SHCTX "Software\Classes\UNRAID_IMAGINGUTILITY\shell\open\command" "" '"$INSTDIR\unraid-imager.exe" "%1"'
+WriteRegStr SHCTX "Software\Classes\.zip\OpenWithProgIds" "UNRAID_USB_CREATOR" ""
+WriteRegStr SHCTX "Software\Classes\.gz\OpenWithProgIds" "UNRAID_USB_CREATOR" ""
+WriteRegStr SHCTX "Software\Classes\.xz\OpenWithProgIds" "UNRAID_USB_CREATOR" ""
+WriteRegStr SHCTX "Software\Classes\.img\OpenWithProgIds" "UNRAID_USB_CREATOR" ""
+WriteRegStr SHCTX "Software\Classes\.zstd\OpenWithProgIds" "UNRAID_USB_CREATOR" ""
+WriteRegStr SHCTX "Software\Classes\UNRAID_USB_CREATOR\shell\open" "FriendlyAppName" "Unraid USB Creator"
+WriteRegStr SHCTX "Software\Classes\UNRAID_USB_CREATOR\shell\open\command" "" '"$INSTDIR\unraid-usb-creator.exe" "%1"'
 
 SectionEnd
 
@@ -700,9 +700,8 @@ Delete "$INSTDIR\Qt5Svg.dll"
 Delete "$INSTDIR\Qt5Widgets.dll"
 Delete "$INSTDIR\Qt5WinExtras.dll"
 # Old name
-Delete "$INSTDIR\imagingutility.exe"
-Delete "$INSTDIR\unraid-imager.exe"
-Delete "$INSTDIR\unraid-imager-cli.cmd"
+Delete "$INSTDIR\unraid-usb-creator.exe"
+Delete "$INSTDIR\unraid-usb-creator-cli.cmd"
 Delete "$INSTDIR\styles\qwindowsvistastyle.dll"
 Delete "$INSTDIR\QtQuick.2\plugins.qmltypes"
 Delete "$INSTDIR\QtQuick.2\qmldir"
@@ -1110,18 +1109,18 @@ DeleteRegKey ${REG_ROOT} "${REG_APP_PATH}"
 DeleteRegKey ${REG_ROOT} "${UNINSTALL_PATH}"
 
 # File associations
-DeleteRegValue SHCTX "Software\Classes\.zip\OpenWithProgIds" "UNRAID_IMAGINGUTILITY"
-DeleteRegValue SHCTX "Software\Classes\.gz\OpenWithProgIds" "UNRAID_IMAGINGUTILITY"
-DeleteRegValue SHCTX "Software\Classes\.xz\OpenWithProgIds" "UNRAID_IMAGINGUTILITY"
-DeleteRegValue SHCTX "Software\Classes\.img\OpenWithProgIds" "UNRAID_IMAGINGUTILITY"
-DeleteRegValue SHCTX "Software\Classes\.zstd\OpenWithProgIds" "UNRAID_IMAGINGUTILITY"
-DeleteRegKey SHCTX "Software\Classes\UNRAID_IMAGINGUTILITY"
+DeleteRegValue SHCTX "Software\Classes\.zip\OpenWithProgIds" "UNRAID_USB_CREATOR"
+DeleteRegValue SHCTX "Software\Classes\.gz\OpenWithProgIds" "UNRAID_USB_CREATOR"
+DeleteRegValue SHCTX "Software\Classes\.xz\OpenWithProgIds" "UNRAID_USB_CREATOR"
+DeleteRegValue SHCTX "Software\Classes\.img\OpenWithProgIds" "UNRAID_USB_CREATOR"
+DeleteRegValue SHCTX "Software\Classes\.zstd\OpenWithProgIds" "UNRAID_USB_CREATOR"
+DeleteRegKey SHCTX "Software\Classes\UNRAID_USB_CREATOR"
 
 DeleteRegKey ${REG_ROOT} ""
 
-RMDir /r "$APPDATA\Unraid\Imager"
+RMDir /r "$APPDATA\Unraid\${APP_NAME}"
 RMDir "$APPDATA\Unraid"
-RMDir /r "$LOCALAPPDATA\Unraid\Imager"
+RMDir /r "$LOCALAPPDATA\Unraid\${APP_NAME}"
 RMDir "$LOCALAPPDATA\Unraid"
 
 SectionEnd
