@@ -27,7 +27,7 @@
   <launchable type="desktop-id">com.limetech.unraid-usb-creator.desktop</launchable>
   <screenshots>
     <screenshot type="default">
-      <image>http://downloads.raspberrypi.org/imager/IMAGING-UTILITY-MAIN.png</image>
+      <image>https://github.com/unraid/usb-creator-next/assets/47037553/c4fbe528-3505-40ba-87b4-727b6b333cf3</image>
       <caption>Main window</caption>
     </screenshot>
   </screenshots>
