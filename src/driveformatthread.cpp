@@ -115,7 +115,8 @@ void DriveFormatThread::run()
 #elif defined(Q_OS_DARWIN)
     QProcess proc;
     QStringList args;
-    args << "eraseDisk" << "FAT32" << "SDCARD" << "MBRFormat" << _device;
+    QString name = (_label.isEmpty()) ? "SDCARD" : _label;
+    args << "eraseDisk" << "FAT32" << name << "MBRFormat" << _device;
     proc.start("diskutil", args);
     proc.waitForFinished();
 
