@@ -106,7 +106,7 @@ ApplicationWindow {
 
             Image {
                 id: helpImage
-                source: "icons/help.png"
+                source: "unraid/icons/help_orange.svg"
                 MouseArea {
                     anchors.fill: parent
                     onClicked: imageWriter.openUrl("https://docs.unraid.net/unraid-os/getting-started/quick-install-guide/")
@@ -120,11 +120,6 @@ ApplicationWindow {
                 anchors.top: parent.top
                 anchors.topMargin: 10
                 fillMode: Image.PreserveAspectFit
-            }
-            ColorOverlay {
-                anchors.fill: helpImage
-                source: helpImage
-                color: UnColors.orange
             }
         }
         
@@ -533,7 +528,7 @@ ApplicationWindow {
         RowLayout {
             Image {
                 id: infoImage
-                source: "icons/info.png"
+                source: "unraid/icons/info_orange.svg"
                 MouseArea {
                     anchors.fill: parent
                     onClicked: infopopup.openPopup()
@@ -547,11 +542,6 @@ ApplicationWindow {
                 anchors.leftMargin: 10
                 anchors.bottom: parent.bottom
                 anchors.bottomMargin: 10
-            }
-            ColorOverlay {
-                anchors.fill: infoImage
-                source: infoImage
-                color: UnColors.orange
             }
             Text {
                 color: UnColors.orange
@@ -917,11 +907,6 @@ ApplicationWindow {
                     verticalAlignment: Image.AlignVCenter
                     Layout.alignment: Qt.AlignVCenter
                 }
-                ColorOverlay {
-                    anchors.fill: iconimage
-                    source: iconimage
-                    color: bgrect.mouseOver ? UnColors.darkGray : UnColors.orange
-                }
                 ColumnLayout {
                     Layout.fillWidth: true
 
@@ -1007,7 +992,7 @@ ApplicationWindow {
 
                 Image {
                     id: iconimage
-                    source: icon == "icons/ic_build_48px.svg" ? "icons/cat_misc_utility_images.png": icon
+                    source: (icon == "https://craftassets.unraid.net/static/favicon/favicon.ico") ? (bgrect.mouseOver ? "unraid/icons/un-mark-dark-gray.svg" : "unraid/icons/un-mark-gradient.svg") : (icon == "icons/erase.png" ? (bgrect.mouseOver ? "unraid/icons/erase_dark_gray.svg" : "unraid/icons/erase_orange.svg")  : (icon == "icons/use_custom.png" ? (bgrect.mouseOver ? "unraid/icons/use_custom_dark_gray.svg" : "unraid/icons/use_custom_orange.svg") : icon))
                     Layout.preferredHeight: 40
                     Layout.preferredWidth: 40
                     sourceSize.width: 40
@@ -1015,11 +1000,6 @@ ApplicationWindow {
                     fillMode: Image.PreserveAspectFit
                     verticalAlignment: Image.AlignVCenter
                     Layout.alignment: Qt.AlignVCenter
-                }
-                ColorOverlay {
-                    anchors.fill: iconimage
-                    source: iconimage
-                    color: bgrect.mouseOver ? UnColors.darkGray : UnColors.orange
                 }
                 ColumnLayout {
                     Layout.fillWidth: true
@@ -1034,7 +1014,7 @@ ApplicationWindow {
                             color: bgrect.mouseOver ? UnColors.darkGray : "white"
                         }
                         Image {
-                            source: "icons/ic_info_16px.png"
+                            source: bgrect.mouseOver ? "unraid/icons/info_dark_gray.svg" : "unraid/icons/info_orange.svg"
                             Layout.preferredHeight: 16
                             Layout.preferredWidth: 16
                             visible: typeof(website) == "string" && website
@@ -1086,7 +1066,7 @@ ApplicationWindow {
                     }
                 }
                 Image {
-                    source: "icons/ic_chevron_right_40px.svg"
+                    source: "icons/ic_chevron_right_40px_orange.svg"
                     visible: (typeof(subitems_json) == "string" && subitems_json != "") || (typeof(subitems_url) == "string" && subitems_url != "" && subitems_url != "internal://back")
                     Layout.preferredHeight: 40
                     Layout.preferredWidth: 40
