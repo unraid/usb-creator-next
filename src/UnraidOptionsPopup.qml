@@ -105,13 +105,25 @@ Popup {
                         text : "Server Name:"
                         color: !fieldServername.acceptableInput ? "red" : "white"
                     }
+                    Loader {
+                        // try to account for RegExpValidator renaming in Qt6
+                        source: "qmlcomponents/regex_validator_qt5.qml"
+                        property bool valid: item !== null
+                        id: regexValidatorQt5
+                    }
+                    Loader {
+                        // try to account for RegExpValidator renaming in Qt6
+                        source: "qmlcomponents/regex_validator_qt6.qml"
+                        property bool valid: item !== null
+                        id: regexValidatorQt6
+                    }
                     TextField {
                         id: fieldServername
                         text: "Tower"
                         horizontalAlignment: TextInput.AlignHCenter
                         selectByMouse: true
                         maximumLength: 15
-                        validator: RegExpValidator { regExp: /^[A-Za-z0-9]([A-Za-z0-9\-\.]{0,13}[A-Za-z0-9])?$/ }
+                        validator: regexValidatorQt5.valid ? regexValidatorQt5.item : regexValidatorQt6.item
                     }
                 }
                 

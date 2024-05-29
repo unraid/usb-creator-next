@@ -24,6 +24,7 @@
 #import <IOKit/IOKitLib.h>
 #import <IOKit/storage/IOMedia.h>
 #import <IOKit/IOBSD.h>
+#import <IOKit/usb/IOUSBLib.h>
 
 namespace Drivelist {
   bool IsDiskPartition(NSString *disk) {
@@ -106,6 +107,62 @@ namespace Drivelist {
       return result;
   }
 
+// BEGIN: FUNCTION ADDED FOR UNRAID USB CREATOR
+void GetDeviceVidPidSerialNumber(const std::string& diskBsdName, DeviceDescriptor* device_descriptor) {
+  CFMutableDictionaryRef matchingDict = IOServiceMatching("IOUSBHostDevice");
+  if (matchingDict == NULL) {
+      return;
+  }
+  io_iterator_t iter;
+  kern_return_t ret = IOServiceGetMatchingServices(kIOMasterPortDefault, matchingDict, &iter);
+  if (ret != KERN_SUCCESS) {
+      return;
+  }
+  io_service_t device;
+  while ((device = IOIteratorNext(iter))) {
+    std::string bsdName{""};
+    CFTypeRef bsdNameAsCFTypeRef = IORegistryEntrySearchCFProperty(device, kIOServicePlane, CFSTR(kIOBSDNameKey), kCFAllocatorDefault, kIORegistryIterateRecursively);
+    if (bsdNameAsCFTypeRef) {
+      if (CFGetTypeID(bsdNameAsCFTypeRef) == CFStringGetTypeID()) {
+        NSString* s = (NSString *) bsdNameAsCFTypeRef;
+        bsdName = std::string([s UTF8String]);
+        // match usb device to disk device using bsdname
+        if(bsdName == diskBsdName) {
+          CFTypeRef serialNumberAsCFTypeRef = IORegistryEntrySearchCFProperty(device, kIOServicePlane, CFSTR(kUSBSerialNumberString), kCFAllocatorDefault, kIORegistryIterateRecursively);
+          CFTypeRef vendorIdAsCFTypeRef = IORegistryEntrySearchCFProperty(device, kIOServicePlane, CFSTR(kUSBVendorID), kCFAllocatorDefault, kIORegistryIterateRecursively);
+          CFTypeRef productIdAsCFTypeRef = IORegistryEntrySearchCFProperty(device, kIOServicePlane, CFSTR(kUSBProductID), kCFAllocatorDefault, kIORegistryIterateRecursively);
+
+          bool allNotNull = serialNumberAsCFTypeRef && vendorIdAsCFTypeRef && productIdAsCFTypeRef;
+          bool allCorrectType = (CFGetTypeID(serialNumberAsCFTypeRef) == CFStringGetTypeID()) && (CFGetTypeID(vendorIdAsCFTypeRef) == CFNumberGetTypeID()) && (CFGetTypeID(productIdAsCFTypeRef) == CFNumberGetTypeID());
+          if(allNotNull && allCorrectType) {
+            s = (NSString *) serialNumberAsCFTypeRef;
+            device_descriptor->serialNumber = std::string([s UTF8String]);
+            NSNumber * n = (NSNumber *) vendorIdAsCFTypeRef;
+            s = [NSString stringWithFormat:@"%X", [n intValue]];
+            device_descriptor->vid = std::string([s UTF8String]);
+            n = (NSNumber *) productIdAsCFTypeRef;
+            s = [NSString stringWithFormat:@"%X", [n intValue]];
+            device_descriptor->pid = std::string([s UTF8String]);
+          }
+          if(serialNumberAsCFTypeRef) CFRelease(serialNumberAsCFTypeRef);
+          if(vendorIdAsCFTypeRef) CFRelease(vendorIdAsCFTypeRef);
+          if(productIdAsCFTypeRef) CFRelease(productIdAsCFTypeRef);
+        }
+      }
+      CFRelease(bsdNameAsCFTypeRef);
+    }
+    IOObjectRelease(device);
+    if(!device_descriptor->serialNumber.empty() && !device_descriptor->vid.empty() && !device_descriptor->pid.empty()) {
+      IOObjectRelease(iter);
+      return;
+    }
+  }
+  IOObjectRelease(iter);
+
+}
+
+// END: FUNCTION ADDED FOR UNRAID USB CREATOR
+
   DeviceDescriptor CreateDeviceDescriptorFromDiskDescription(std::string diskBsdName, CFDictionaryRef diskDescription) {
     NSString *deviceProtocol = (NSString*)CFDictionaryGetValue(diskDescription, kDADiskDescriptionDeviceProtocolKey);
     NSNumber *blockSize = DictionaryGetNumber(diskDescription, kDADiskDescriptionMediaBlockSizeKey);
@@ -147,6 +204,10 @@ namespace Drivelist {
     device.isUSB = ((deviceProtocol != nil) && [deviceProtocol isEqualToString:@"USB"]);
     device.isUAS = false;
     device.isUASNull = true;
+
+// BEGIN: FUNCTION ADDED FOR UNRAID USB CREATOR
+    GetDeviceVidPidSerialNumber(diskBsdName, &device);
+// END: FUNCTION ADDED FOR UNRAID USB CREATOR
 
     return device;
   }

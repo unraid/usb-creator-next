@@ -423,6 +423,10 @@ void DownloadExtractThread::extractMultiFileRun()
             QStringList args;
             args << "/C" << "echo Y | make_bootable.bat";
         #elif defined(Q_OS_DARWIN)
+            QString makeBootableScriptName{"make_bootable_mac"};
+            QString program{"/bin/bash"};
+            QStringList args;
+            args << "-c" << "\"$(yes | ./make_bootable_mac)\"";
         #elif defined(Q_OS_LINUX)
         #else
             throw runtime_error(tr("Formatting not implemented for this platform"));

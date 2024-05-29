@@ -32,6 +32,8 @@
         <file>qmlcomponents/UnColors.qml</file>
         <file>qmlcomponents/qmldir</file>
         <file>qmlcomponents/IpTextField.qml</file>
+        <file>qmlcomponents/regex_validator_qt5.qml</file>
+        <file>qmlcomponents/regex_validator_qt6.qml</file>
         <file>icons/unraid.icns</file>
         <file>unraid/icons/help_orange.svg</file>
         <file>unraid/icons/help_dark_gray.svg</file>

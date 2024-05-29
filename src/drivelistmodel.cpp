@@ -61,7 +61,6 @@ void DriveListModel::processDriveList(std::vector<Drivelist::DeviceDescriptor> l
     bool changes = false;
     bool filterSystemDrives = DRIVELIST_FILTER_SYSTEM_DRIVES;
     QSet<QString> drivesInNewList;
-    QLocale locale;
     
     UnraidGuidValidator unraidGuidValidator;
 
