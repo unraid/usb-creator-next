@@ -1,13 +1,17 @@
-# Raspberry Pi Imager
+# Unraid USB Creator
 
-Raspberry Pi Imaging Utility
+Unraid USB Creation Utility
 
 - To install on Raspberry Pi OS, use `sudo apt update && sudo apt install rpi-imager`.
-- Download the latest version for Windows, macOS and Ubuntu from the [Raspberry Pi downloads page](https://www.raspberrypi.com/software/).
+- Download the latest version for Windows, macOS and Ubuntu from the [USB Creator Download Page](https://unraid.net/getting-started/).
 
 ## How to use Raspberry Pi Imager
 
-Please see our [official documentation](https://www.raspberrypi.com/documentation/computers/getting-started.html#raspberry-pi-imager).
+Based on the work by [Raspberry Pi](https://github.com/raspberrypi/rpi-imager)
+
+# How to use the Unraid USB Creator
+
+Please see our [official documentation](https://docs.unraid.net/legacy/FAQ/usb-flash-drive-preparation/).
 
 ## Contributing
 
@@ -24,7 +28,7 @@ sudo apt install --no-install-recommends build-essential cmake git libgnutls28-d
 #### Get the source
 
 ```sh
-git clone --depth 1 https://github.com/raspberrypi/rpi-imager
+git clone --depth 1 https://github.com/unraid/usb-creator-next
 ```
 
 #### Build Qt
