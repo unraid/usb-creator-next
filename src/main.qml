@@ -8,7 +8,6 @@ import QtQuick.Window 2.2
 import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.0
 import QtQuick.Controls.Material 2.2
-import QtGraphicalEffects 1.0
 import "qmlcomponents"
 
 ApplicationWindow {
@@ -23,7 +22,7 @@ ApplicationWindow {
     
     color: UnColors.darkGray
 
-    title: qsTr("Unraid Imager v%1").arg(imageWriter.constantVersion())
+    title: qsTr("Unraid USB Creator v%1").arg(imageWriter.constantVersion())
 
     FontLoader {id: roboto;      source: "fonts/Roboto-Regular.ttf"}
     FontLoader {id: robotoLight; source: "fonts/Roboto-Light.ttf"}
@@ -106,7 +105,7 @@ ApplicationWindow {
 
             Image {
                 id: helpImage
-                source: "icons/help.png"
+                source: "unraid/icons/help_orange.svg"
                 MouseArea {
                     anchors.fill: parent
                     onClicked: imageWriter.openUrl("https://docs.unraid.net/unraid-os/getting-started/quick-install-guide/")
@@ -120,11 +119,6 @@ ApplicationWindow {
                 anchors.top: parent.top
                 anchors.topMargin: 10
                 fillMode: Image.PreserveAspectFit
-            }
-            ColorOverlay {
-                anchors.fill: helpImage
-                source: helpImage
-                color: UnColors.orange
             }
         }
         
@@ -533,7 +527,7 @@ ApplicationWindow {
         RowLayout {
             Image {
                 id: infoImage
-                source: "icons/info.png"
+                source: "unraid/icons/info_orange.svg"
                 MouseArea {
                     anchors.fill: parent
                     onClicked: infopopup.openPopup()
@@ -547,11 +541,6 @@ ApplicationWindow {
                 anchors.leftMargin: 10
                 anchors.bottom: parent.bottom
                 anchors.bottomMargin: 10
-            }
-            ColorOverlay {
-                anchors.fill: infoImage
-                source: infoImage
-                color: UnColors.orange
             }
             Text {
                 color: UnColors.orange
@@ -917,11 +906,6 @@ ApplicationWindow {
                     verticalAlignment: Image.AlignVCenter
                     Layout.alignment: Qt.AlignVCenter
                 }
-                ColorOverlay {
-                    anchors.fill: iconimage
-                    source: iconimage
-                    color: bgrect.mouseOver ? UnColors.darkGray : UnColors.orange
-                }
                 ColumnLayout {
                     Layout.fillWidth: true
 
@@ -1007,7 +991,7 @@ ApplicationWindow {
 
                 Image {
                     id: iconimage
-                    source: icon == "icons/ic_build_48px.svg" ? "icons/cat_misc_utility_images.png": icon
+                    source: (icon == "https://craftassets.unraid.net/static/favicon/favicon.ico") ? (bgrect.mouseOver ? "unraid/icons/un-mark-dark-gray.svg" : "unraid/icons/un-mark-gradient.svg") : (icon == "icons/erase.png" ? (bgrect.mouseOver ? "unraid/icons/erase_dark_gray.svg" : "unraid/icons/erase_orange.svg")  : (icon == "icons/use_custom.png" ? (bgrect.mouseOver ? "unraid/icons/use_custom_dark_gray.svg" : "unraid/icons/use_custom_orange.svg") : icon))
                     Layout.preferredHeight: 40
                     Layout.preferredWidth: 40
                     sourceSize.width: 40
@@ -1015,11 +999,6 @@ ApplicationWindow {
                     fillMode: Image.PreserveAspectFit
                     verticalAlignment: Image.AlignVCenter
                     Layout.alignment: Qt.AlignVCenter
-                }
-                ColorOverlay {
-                    anchors.fill: iconimage
-                    source: iconimage
-                    color: bgrect.mouseOver ? UnColors.darkGray : UnColors.orange
                 }
                 ColumnLayout {
                     Layout.fillWidth: true
@@ -1034,7 +1013,7 @@ ApplicationWindow {
                             color: bgrect.mouseOver ? UnColors.darkGray : "white"
                         }
                         Image {
-                            source: "icons/ic_info_16px.png"
+                            source: bgrect.mouseOver ? "unraid/icons/info_dark_gray.svg" : "unraid/icons/info_orange.svg"
                             Layout.preferredHeight: 16
                             Layout.preferredWidth: 16
                             visible: typeof(website) == "string" && website
@@ -1086,7 +1065,7 @@ ApplicationWindow {
                     }
                 }
                 Image {
-                    source: "icons/ic_chevron_right_40px.svg"
+                    source: "icons/ic_chevron_right_40px_orange.svg"
                     visible: (typeof(subitems_json) == "string" && subitems_json != "") || (typeof(subitems_url) == "string" && subitems_url != "" && subitems_url != "internal://back")
                     Layout.preferredHeight: 40
                     Layout.preferredWidth: 40
@@ -1358,7 +1337,7 @@ ApplicationWindow {
         yesButton: false
         noButton: false
         title: qsTr("About")
-        body.onLinkActivated: imageWriter.openUrl(body.link)
+        body.onLinkActivated: imageWriter.openUrl(link)
         text: qsTr("License, Credits, and History: ") + "<a href='https://github.com/unraid/usb-creator-next'><font color='" + UnColors.orange + "'>https://github.com/unraid/usb-creator-next</font></a><br><br>" + qsTr("Help / Feedback: ") + "<a href='https://unraid.net/contact'><font color='" + UnColors.orange + "'>https://unraid.net/contact</font></a>"
     }
 
@@ -1368,7 +1347,7 @@ ApplicationWindow {
         yesButton: true
         noButton: true
         title: qsTr("Are you sure you want to quit?")
-        text: qsTr("Raspberry Pi Imager is still busy.<br>Are you sure you want to quit?")
+        text: qsTr("Unraid USB Creator is still busy.<br>Are you sure you want to quit?")
         onYes: {
             Qt.quit()
         }
@@ -1418,7 +1397,7 @@ ApplicationWindow {
         noButton: true
         property url url
         title: qsTr("Update available")
-        text: qsTr("There is a newer version of Imager available.<br>Would you like to visit the website to download it?")
+        text: qsTr("There is a newer version of Unraid USB Creator available.<br>Would you like to visit the website to download it?")
         onYes: {
             imageWriter.openUrl(url)
         }
@@ -1511,8 +1490,12 @@ ApplicationWindow {
             /* Just reboot to the installed OS */
             Qt.quit()
         }
-        else
-            msgpopup.text = qsTr("<b>%1</b> has been written to <b>%2</b>.<br><br>Your drive has been ejected, you can now safely remove it.").arg(osbutton.text).arg(dstbutton.text)
+        else {
+            msgpopup.text = qsTr("<b>%1</b> has been written to <b>%2</b>.").arg(osbutton.text).arg(dstbutton.text)
+            if(imageWriter.getInitFormat() === "UNRAID") {
+                msgpopup.text += qsTr("<br><br>If you would like to enable legacy boot (bios), helpful for old hardware, please run the 'make_bootable_(mac/linux/windows)' script from this computer, located in the main folder of the UNRAID flash drive.")
+            }
+        }
         if (imageWriter.isEmbeddedMode()) {
             msgpopup.continueButton = false
             msgpopup.quitButton = true

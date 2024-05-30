@@ -1,9 +1,0 @@
-[Desktop Entry]
-Type=Application
-Version=1.0
-Name=Unraid Imager
-Comment=Unraid Imager
-Icon=unraid128
-Exec=unraid-imager %F
-Categories=Utility
-StartupNotify=false

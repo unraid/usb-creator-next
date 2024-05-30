@@ -115,7 +115,8 @@ void DriveFormatThread::run()
 #elif defined(Q_OS_DARWIN)
     QProcess proc;
     QStringList args;
-    args << "eraseDisk" << "FAT32" << "SDCARD" << "MBRFormat" << _device;
+    QString name = (_label.isEmpty()) ? "SDCARD" : _label;
+    args << "eraseDisk" << "FAT32" << name << "MBRFormat" << _device;
     proc.start("diskutil", args);
     proc.waitForFinished();
 
@@ -137,21 +138,26 @@ void DriveFormatThread::run()
     if (::access(_device.constData(), W_OK) != 0)
     {
         /* Not running as root, try to outsource formatting to udisks2 */
-
-#ifndef QT_NO_DBUS
-        UDisks2Api udisks2;
-        if (udisks2.formatDrive(_device))
+        if(_label.isEmpty())
         {
-            emit success();
+#ifndef QT_NO_DBUS
+            UDisks2Api udisks2;
+            if (udisks2.formatDrive(_device))
+            {
+                emit success();
+            }
+            else
+            {
+#endif
+                emit error(tr("Error formatting (through udisks2)"));
+#ifndef QT_NO_DBUS
+            }
+#endif
         }
         else
         {
-#endif
-            emit error(tr("Error formatting (through udisks2)"));
-#ifndef QT_NO_DBUS
+            emit error(tr("Elevated privileges needed to properly format drive."));
         }
-#endif
-
         return;
     }
 
@@ -206,6 +212,10 @@ void DriveFormatThread::run()
 
     args.clear();
     args << fatpartition;
+    if(!_label.isEmpty())
+    {
+        args << "-n" << _label;
+    }
     proc.start("mkfs.fat", args);
     if (!proc.waitForStarted())
     {
