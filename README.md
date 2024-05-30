@@ -141,23 +141,6 @@ xcrun notarytool wait SUBMISSION_ID --apple-id YOUR-EMAIL-ADDRESS --password YOU
 xcrun stapler staple "Unraid USB Creator.dmg"
 ```
 
-### Linux embedded (netboot) build
-
-The embedded build runs under a minimalistic Linux distribution compiled by buildroot.
-To build:
-
-- You must be running a Linux system, and have the buildroot dependencies installed as listed in the buildroot manual: https://buildroot.org/downloads/manual/manual.html#requirement
-- Run:
-
-```
-cd usb-creator-next/embedded
-./build.sh
-```
-
-The result will be in the "output" directory.
-The files can be copied to a FAT32 formatted SD card, and inserted in a Pi for testing.
-If you would like to build a (signed) netboot image there are tools for that at: https://github.com/raspberrypi/usbboot/tree/master/tools
-
 ## Other notes
 
 ### Debugging
