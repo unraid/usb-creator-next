@@ -2,12 +2,13 @@
 
 Unraid USB Creation Utility
 
-
-- Download the latest version for Windows, macOS and Ubuntu from the [USB Creator Download Page](https://unraid.net/getting-started/).
+Download the latest version for Windows, macOS and Ubuntu from the [USB Creator Download Page](https://unraid.net/getting-started/).
+ 
+![main page](./screenshots/main_page.png)
 
 Based on the work by [Raspberry Pi](https://github.com/raspberrypi/rpi-imager)
 
-# How to use the Unraid USB Creator
+## How to use the Unraid USB Creator
 
 Please see our [official documentation](https://docs.unraid.net/legacy/FAQ/usb-flash-drive-preparation/).
 
@@ -85,7 +86,7 @@ sudo make install
 
 ### Windows
 
-#### Get dependencies
+#### Get Windows dependencies
 
 - Get the Qt online installer from: https://www.qt.io/download-open-source
 During installation, choose a Qt 5.x with Mingw32 32-bit toolchain and CMake.
@@ -97,7 +98,7 @@ During installation, choose a Qt 5.x with Mingw32 32-bit toolchain and CMake.
 - It is assumed you already have a proper code signing certificate, and signtool.exe from the Windows SDK installed.
 If NOT and are you only compiling for your own personal use, comment out all lines mentioning signtool from CMakelists.txt and the .nsi installer script.
 
-#### Building
+#### Building on Windows
 
 Building can be done manually using the command-line, using "cmake", "make", etc., but if you are not that familar with setting up a proper Windows build environment (setting paths, etc.), it is easiest to use the Qt creator GUI instead.
 
@@ -110,23 +111,35 @@ Building can be done manually using the command-line, using "cmake", "make", etc
 
 Note: the CMake integration in Qt Creator is a bit flaky at times. If you made any custom changes to the CMakeLists.txt file and it subsequently gets in an endless loop where it never finishes the "configures" stage while re-processing the file, delete "build_unraid-usb-creator_someversion" directory and try again.
 
+#### Signing
+
+To sign the .exe installer on Windows, [follow these instructions](https://github.com/unraid/digicert-keylockertools) (private repo)
+
 ### macOS
 
-#### Get dependencies
+#### Get macOS dependencies
 
 - Get the Qt online installer from: https://www.qt.io/download-open-source
 During installation, choose a Qt 5.x edition and CMake.
 - For creating a .DMG for distribution you can use an utility like: https://github.com/sindresorhus/create-dmg
 - It is assumed you have an Apple developer subscription, and already have a "Developer ID" code signing certificate for distribution outside the Mac Store. (Privileged apps are not allowed in the Mac store)
 
-#### Building
+#### Building on Mac
 
 - Download source .zip from github and extract it to a folder on disk
 - Start Qt Creator (may need to start "finder" navigate to home folder using the "Go" menu, and find Qt folder to start it manually as it may not have created icon in Applications), and open src/CMakeLists.txt
 - Menu "Build" -> "Build all"
 - Result will be in build_unraid-usb-creator_someversion
 - Install create-dmg for signing `brew install create-dmg`
-- For distribution to others: code sign the .app, create a DMG, code sign the DMG, submit it for notarization to Apple and staple the notarization ticket to the DMG.
+
+#### Signing on Mac
+
+For distribution to others:
+
+1. code sign the .app
+2. create a DMG
+3. submit the DMG for notarization to Apple
+4. staple the notarization ticket to the DMG.
 
 E.g.:
 
@@ -156,3 +169,32 @@ So can simply create another 'start menu shortcut' to the application with that 
 ### Telemetry
 
 Telemetry is currently disabled on the Unraid USB Creator
+### Images
+
+#### Homepage
+
+![main page](./screenshots/main_page.png)
+
+#### OS Selection
+
+![os selection](./screenshots/os_selection.png)
+
+#### Drive Selection
+
+Blacklisted
+![blacklisted](./screenshots/blacklisted_drive.png)
+
+Good Drive
+![good](./screenshots/good_drive.png)
+
+#### Options Selection
+
+![options](./screenshots/options_selection.png)
+
+#### Writing in Progress
+
+![writing progress](./screenshots/writing_in_progress.png)
+
+#### Success
+
+![success message](./screenshots/success.png)
