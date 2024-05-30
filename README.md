@@ -177,32 +177,35 @@ The main code of the Imaging Utility is made available under the terms of the Ap
 See license.txt and files in "src/dependencies" folder for more information about the various open source licenses that apply to the third-party dependencies used such as Qt, libarchive, drivelist, mountutils and libcurl.
 For the embedded (netboot) build see also "embedded/legal-info" for more information about the extra system software included in that.
 Telemetry is currently disabled on the Unraid USB Creator
-### Images
 
-#### Homepage
+## Images
+
+### Homepage
 
 ![main page](./screenshots/main_page.png)
 
-#### OS Selection
+### OS Selection
 
 ![os selection](./screenshots/os_selection.png)
 
-#### Drive Selection
+### Drive Selection
 
-Blacklisted
+#### Blacklisted
+
 ![blacklisted](./screenshots/blacklisted_drive.png)
 
-Good Drive
+#### Good Drive
+
 ![good](./screenshots/good_drive.png)
 
-#### Options Selection
+### Options Selection
 
 ![options](./screenshots/options_selection.png)
 
-#### Writing in Progress
+### Writing in Progress
 
 ![writing progress](./screenshots/writing_in_progress.png)
 
-#### Success
+### Success
 
 ![success message](./screenshots/success.png)
