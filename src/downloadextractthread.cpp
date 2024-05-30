@@ -419,6 +419,19 @@ void DownloadExtractThread::extractMultiFileRun()
                 QFile::copy(":/unraid/make_bootable_mac", folder + "/make_bootable_mac");
                 QFile::copy(":/unraid/make_bootable.bat", folder + "/make_bootable.bat");
             }
+
+#ifdef Q_OS_WIN
+            QString program{"cmd.exe"};
+            QStringList args;
+            args << "/C" << "echo Y | make_bootable.bat";
+
+            int retcode = QProcess::execute(program, args);
+
+            if (retcode)
+            {
+                throw runtime_error("Error running make_bootable script");
+            }
+#endif
         }
         emit success();
     }
