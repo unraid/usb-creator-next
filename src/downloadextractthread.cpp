@@ -415,43 +415,9 @@ void DownloadExtractThread::extractMultiFileRun()
                 QFile::copy(":/unraid/syslinux/syslinux.cfg", folder + "/syslinux/syslinux.cfg");
                 QFile::copy(":/unraid/syslinux/syslinux.cfg-", folder + "/syslinux/syslinux.cfg-");
                 QFile::copy(":/unraid/syslinux/syslinux.exe", folder + "/syslinux/syslinux.exe");
-            }
-
-        #ifdef Q_OS_WIN
-            QString makeBootableScriptName{"make_bootable.bat"};
-            QString program{"cmd.exe"};
-            QStringList args;
-            args << "/C" << "echo Y | make_bootable.bat";
-        #elif defined(Q_OS_DARWIN)
-            QString makeBootableScriptName{"make_bootable_mac"};
-            QString program{"/bin/bash"};
-            QStringList args;
-            args << "-c" << "\"$(yes | ./make_bootable_mac)\"";
-        #elif defined(Q_OS_LINUX)
-        #else
-            throw runtime_error(tr("Formatting not implemented for this platform"));
-        #endif
-            QFile makeBootableScript(folder + "/" + makeBootableScriptName);
-            if (!makeBootableScript.exists())
-            {
-                QFile::copy(":/unraid/" + makeBootableScriptName, folder + "/" + makeBootableScriptName);
-            }
-            QProcess proc;
-            proc.setProgram(program);
-            proc.setArguments(args);
-            proc.setWorkingDirectory(folder);
-            proc.start();
-            proc.waitForFinished();
-
-            QByteArray output = proc.readAllStandardOutput();
-            std::cout << output.toStdString() << std::endl;
-            output = proc.readAllStandardError();
-            std::cout << output.toStdString() << std::endl;
-            std::cout << "Done running make_bootable script. Exit status code =" << proc.exitCode() << std::endl;
-
-            if (proc.exitCode())
-            {
-                throw runtime_error("Error running make_bootable script");
+                QFile::copy(":/unraid/make_bootable_linux", folder + "/make_bootable_linux");
+                QFile::copy(":/unraid/make_bootable_mac", folder + "/make_bootable_mac");
+                QFile::copy(":/unraid/make_bootable.bat", folder + "/make_bootable.bat");
             }
         }
         emit success();
@@ -501,7 +467,7 @@ void DownloadExtractThread::extractMultiFileRun()
     }
 #endif
 
-    eject_disk(_filename.constData());
+    //eject_disk(_filename.constData());
 }
 
 ssize_t DownloadExtractThread::_on_read(struct archive *, const void **buff)

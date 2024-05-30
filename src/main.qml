@@ -1490,8 +1490,12 @@ ApplicationWindow {
             /* Just reboot to the installed OS */
             Qt.quit()
         }
-        else
-            msgpopup.text = qsTr("<b>%1</b> has been written to <b>%2</b>.<br><br>Your drive has been ejected, you can now safely remove it.").arg(osbutton.text).arg(dstbutton.text)
+        else {
+            msgpopup.text = qsTr("<b>%1</b> has been written to <b>%2</b>.").arg(osbutton.text).arg(dstbutton.text)
+            if(imageWriter.getInitFormat() === "UNRAID") {
+                msgpopup.text += qsTr("<br><br>If you would like to enable legacy boot (bios), helpful for old hardware, please run the 'make_bootable_(mac/linux/windows)' script from this computer, located in the main folder of the UNRAID flash drive.")
+            }
+        }
         if (imageWriter.isEmbeddedMode()) {
             msgpopup.continueButton = false
             msgpopup.quitButton = true
