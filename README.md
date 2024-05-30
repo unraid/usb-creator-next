@@ -125,18 +125,20 @@ During installation, choose a Qt 5.x edition and CMake.
 - Start Qt Creator (may need to start "finder" navigate to home folder using the "Go" menu, and find Qt folder to start it manually as it may not have created icon in Applications), and open src/CMakeLists.txt
 - Menu "Build" -> "Build all"
 - Result will be in build_unraid-usb-creator_someversion
+- Install create-dmg for signing `brew install create-dmg`
 - For distribution to others: code sign the .app, create a DMG, code sign the DMG, submit it for notarization to Apple and staple the notarization ticket to the DMG.
 
 E.g.:
 
-```
+```sh
 cd build-rpi-imager-Desktop_Qt_5_14_1_clang_64bit-Release/
 codesign --deep --force --verify --verbose --sign "YOUR KEYID" --options runtime unraid-usb-creator.app
 mv unraid-usb-creator.app "Unraid USB Creator.app"
-create-dmg Unraid\ USB\ Creator.app
+create-dmg "Unraid USB Creator.dmg" "Unraid USB Creator.app" 
 mv Unraid\ USB\ Creator.dmg imager.dmg
-xcrun altool --notarize-app -t osx -f imager.dmg --primary-bundle-id="net.unraid.usb-creator-next" -u YOUR-EMAIL-ADDRESS -p YOUR-APP-SPECIFIC-APPLE-PASSWORD -itc_provider TEAM-ID-IF-APPLICABLE
-xcrun stapler staple imager.dmg
+xcrun notarytool submit "Unraid USB Creator.dmg"  --apple-id YOUR-EMAIL-ADDRESS --password YOUR-APP-SPECIFIC-APPLE-PASSWORD --team-id TEAM-ID-FOUND-ON-https://developer.apple.com/account
+xcrun notarytool wait SUBMISSION_ID --apple-id YOUR-EMAIL-ADDRESS --password YOUR-APP-SPECIFIC-APPLE-PASSWORD --team-id TEAM-ID-FOUND-ON-https://developer.apple.com/account
+xcrun stapler staple "Unraid USB Creator.dmg"
 ```
 
 ### Linux embedded (netboot) build
