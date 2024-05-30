@@ -169,32 +169,35 @@ So can simply create another 'start menu shortcut' to the application with that 
 ### Telemetry
 
 Telemetry is currently disabled on the Unraid USB Creator
-### Images
 
-#### Homepage
+## Images
+
+### Homepage
 
 ![main page](./screenshots/main_page.png)
 
-#### OS Selection
+### OS Selection
 
 ![os selection](./screenshots/os_selection.png)
 
-#### Drive Selection
+### Drive Selection
 
-Blacklisted
+#### Blacklisted
+
 ![blacklisted](./screenshots/blacklisted_drive.png)
 
-Good Drive
+#### Good Drive
+
 ![good](./screenshots/good_drive.png)
 
-#### Options Selection
+### Options Selection
 
 ![options](./screenshots/options_selection.png)
 
-#### Writing in Progress
+### Writing in Progress
 
 ![writing progress](./screenshots/writing_in_progress.png)
 
-#### Success
+### Success
 
 ![success message](./screenshots/success.png)
