@@ -185,9 +185,9 @@ int main(int argc, char *argv[])
 #else
     QApplication app(argc, argv);
 #endif
-    app.setOrganizationName("Unraid");
+    app.setOrganizationName("Lime Technology, Inc");
     app.setOrganizationDomain("unraid.net");
-    app.setApplicationName("Imager");
+    app.setApplicationName("Unraid USB Creator");
     app.setWindowIcon(QIcon(":/icons/unraid.ico"));
     ImageWriter imageWriter;
     NetworkAccessManagerFactory namf;

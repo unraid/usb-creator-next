@@ -106,6 +106,18 @@ Popup {
                         text: "Server Name:"
                         color: !fieldServername.acceptableInput ? "red" : "white"
                     }
+                    Loader {
+                        // try to account for RegExpValidator renaming in Qt6
+                        source: "qmlcomponents/regex_validator_qt5.qml"
+                        property bool valid: item !== null
+                        id: regexValidatorQt5
+                    }
+                    Loader {
+                        // try to account for RegExpValidator renaming in Qt6
+                        source: "qmlcomponents/regex_validator_qt6.qml"
+                        property bool valid: item !== null
+                        id: regexValidatorQt6
+                    }
                     TextField {
                         id: fieldServername
                         text: "Tower"

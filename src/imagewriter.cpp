@@ -460,7 +460,7 @@ void ImageWriter::startWrite()
     }
 
     _thread->setVerifyEnabled(_verifyEnabled);
-    _thread->setUserAgent(QString("Mozilla/5.0 rpi-imager/%1").arg(constantVersion()).toUtf8());
+    _thread->setUserAgent(QString("Mozilla/5.0 unraid-usb-creator/%1").arg(constantVersion()).toUtf8());
     _thread->setImageCustomization(_config, _cmdline, _firstrun, _cloudinit, _cloudinitNetwork, _initFormat, getSavedCustomizationSettings());
 
     // Only set up cache operations for remote downloads, not when using cached files as source

@@ -22,7 +22,7 @@ endif()
 
 set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "Which macOS architectures to build for")
 
-project(unraid-imager LANGUAGES CXX C)
+project(unraid-usb-creator LANGUAGES CXX C)
 set(IMAGER_VERSION_MAJOR 1)
 set(IMAGER_VERSION_MINOR 9)
 set(IMAGER_VERSION_PATCH 6)
@@ -817,7 +817,7 @@ if (WIN32)
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy
             "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.exe"
-            "${CMAKE_SOURCE_DIR}/../license.txt" "${CMAKE_SOURCE_DIR}/windows/unraid-imager-cli.cmd"
+            "${CMAKE_SOURCE_DIR}/../license.txt" "${CMAKE_SOURCE_DIR}/windows/unraid-usb-creator.cmd"
             "${CMAKE_BINARY_DIR}/deploy")
 
     # Inno Setup configuration
@@ -875,7 +875,7 @@ if (WIN32)
 
     add_custom_command(TARGET ${PROJECT_NAME}
         POST_BUILD
-        COMMAND "${WINDEPLOYQT}" --no-translations --qmldir "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_BINARY_DIR}/deploy/unraid-imager.exe")
+        COMMAND "${WINDEPLOYQT}" --no-translations --qmldir "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_BINARY_DIR}/deploy/unraid-usb-creator.exe")
 
     # Remove excess files
     add_custom_command(TARGET ${PROJECT_NAME}
@@ -900,7 +900,7 @@ elseif(APPLE)
     # Set all required bundle properties
     set(MACOSX_BUNDLE_BUNDLE_NAME "${APP_NAME}")
     set(MACOSX_BUNDLE_EXECUTABLE_NAME "${PROJECT_NAME}")
-    set(MACOSX_BUNDLE_GUI_IDENTIFIER "org.raspberrypi.imagingutility")
+    set(MACOSX_BUNDLE_GUI_IDENTIFIER "com.limetech.unraid-usb-creator")
     set(MACOSX_BUNDLE_BUNDLE_VERSION "${IMAGER_VERSION_STR}")
     set(MACOSX_BUNDLE_SHORT_VERSION_STRING "${IMAGER_VERSION_STR}")
     set(MACOSX_BUNDLE_LONG_VERSION_STRING "${IMAGER_VERSION_STR}")

@@ -14,28 +14,18 @@
         <file>fonts/Roboto-Bold.ttf</file>
         <file>fonts/Roboto-Light.ttf</file>
         <file>fonts/Roboto-Regular.ttf</file>
-        <file>icons/ic_chevron_left_40px.svg</file>
-        <file>icons/ic_chevron_right_40px.svg</file>
-        <file>icons/ic_sd_storage_40px.svg</file>
+        <file>icons/ic_chevron_left_40px_orange.svg</file>
+        <file>icons/ic_chevron_right_40px_orange.svg</file>
         <file>icons/ic_sd_storage_40px_orange.svg</file>
-        <file>icons/ic_storage_40px.svg</file>
         <file>icons/ic_storage_40px_orange.svg</file>
-        <file>icons/ic_usb_40px.svg</file>
         <file>icons/ic_usb_40px_orange.svg</file>
-        <file>icons/use_custom.png</file>
-        <file>icons/erase.png</file>
-        <file>icons/cat_raspberry_pi_os.png</file>
-        <file>icons/cat_other_specific_purpose_operating_systems.png</file>
-        <file>icons/cat_other_general_purpose_operating_systems.png</file>
-        <file>icons/cat_misc_utility_images.png</file>
-        <file>icons/cat_media_players.png</file>
-        <file>icons/cat_emulation_and_games.png</file>
-        <file>icons/ic_info_16px.png</file>
-        <file>icons/ic_info_12px.png</file>
-        <file>icons/ic_cog_red.svg</file>
-        <file>icons/cat_home_automation.png</file>
-        <file>icons/cat_language_specific_operating_systems.png</file>
-        <file>icons/cat_3d_printing.png</file>
+        <file>icons/ic_sd_storage_40px.svg</file>
+        <file>icons/ic_storage_40px.svg</file>
+        <file>icons/ic_usb_40px.svg</file>
+        <file>unraid/icons/use_custom_orange.svg</file>
+        <file>unraid/icons/use_custom_dark_gray.svg</file>
+        <file>unraid/icons/erase_orange.svg</file>
+        <file>unraid/icons/erase_dark_gray.svg</file>
         <file>icons/UN-logotype-gradient.svg</file>
         <file>icons/UN-logotype-gradient.png</file>
         <file>UnraidOptionsPopup.qml</file>
@@ -43,10 +33,15 @@
         <file>qmlcomponents/ImCheckBox.qml</file>
         <file>qmlcomponents/ImRadioButton.qml</file>
         <file>qmlcomponents/IpTextField.qml</file>
-        <file>icons/cat_digital_signage.png</file>
+        <file>qmlcomponents/regex_validator_qt5.qml</file>
+        <file>qmlcomponents/regex_validator_qt6.qml</file>
         <file>icons/unraid.icns</file>
-        <file>icons/help.png</file>
-        <file>icons/info.png</file>
+        <file>unraid/icons/help_orange.svg</file>
+        <file>unraid/icons/help_dark_gray.svg</file>
+        <file>unraid/icons/info_orange.svg</file>
+        <file>unraid/icons/info_dark_gray.svg</file>
+        <file>unraid/icons/un-mark-dark-gray.svg</file>
+        <file>unraid/icons/un-mark-gradient.svg</file>
         <file>unraid/syslinux/ldlinux.c32</file>
         <file>unraid/syslinux/libcom32.c32</file>
         <file>unraid/syslinux/libutil.c32</file>

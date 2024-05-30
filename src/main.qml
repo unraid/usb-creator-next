@@ -45,7 +45,7 @@ ApplicationWindow {
     minimumHeight: imageWriter.isEmbeddedMode() ? -1 : 465
     color: Style.unraidPrimaryBgColor
 
-    title: qsTr("Unraid Imager v%1").arg(imageWriter.constantVersion())
+    title: qsTr("Unraid USB Creator v%1").arg(imageWriter.constantVersion())
 
     Component.onCompleted: {
         // Set initial focus to the anchor
@@ -165,54 +165,16 @@ ApplicationWindow {
                 Layout.fillWidth: true
             }
 
-            // Text {
-            //     color: Style.unraidAccentColor
-            //     text: qsTr("Help")
-            //     font.pixelSize: 12
-            //     font.family: Style.fontFamilyBold
-            //     font.bold: true
-            //     anchors.right: helpImage.left
-            //     anchors.rightMargin: 5
-            //     anchors.top: parent.top
-            //     anchors.topMargin: 10
-            //     MouseArea {
-            //         anchors.fill: parent
-            //         onClicked: imageWriter.openUrl("https://docs.unraid.net/unraid-os/getting-started/quick-install-guide/")
-            //     }
-            // }
-
-            // Image {
-            //     id: helpImage
-            //     source: "icons/help.png"
-            //     MouseArea {
-            //         anchors.fill: parent
-            //         onClicked: imageWriter.openUrl("https://docs.unraid.net/unraid-os/getting-started/quick-install-guide/")
-            //     }
-            //     Layout.preferredHeight: 15
-            //     Layout.preferredWidth: 15
-            //     sourceSize.width: 15
-            //     sourceSize.height: 15
-            //     anchors.right: parent.right
-            //     anchors.rightMargin: 10
-            //     anchors.top: parent.top
-            //     anchors.topMargin: 10
-            //     fillMode: Image.PreserveAspectFit
-            // }
-            // ColorOverlay {
-            //     anchors.fill: helpImage
-            //     source: helpImage
-            //     color: Style.unraidAccentColor
-            // }
-
             Text {
                 color: Style.unraidAccentColor
                 text: qsTr("Help")
                 font.pixelSize: 12
                 font.family: Style.fontFamilyBold
                 font.bold: true
-                Layout.alignment: Qt.AlignTop | Qt.AlignRight
-                Layout.topMargin: 10
-                Layout.rightMargin: 5
+                anchors.right: helpImage.left
+                anchors.rightMargin: 5
+                anchors.top: parent.top
+                anchors.topMargin: 10
                 MouseArea {
                     anchors.fill: parent
                     onClicked: imageWriter.openUrl("https://docs.unraid.net/unraid-os/getting-started/quick-install-guide/")
@@ -221,27 +183,20 @@ ApplicationWindow {
 
             Image {
                 id: helpImage
-                source: "icons/help.png"
-                Layout.preferredWidth: 15
-                Layout.preferredHeight: 15
-                sourceSize.width: 15
-                sourceSize.height: 15
-                fillMode: Image.PreserveAspectFit
-                visible: false  // Hide the original image --> will use color overlay instead
-            }
-
-            ColorOverlay {
-                Layout.alignment: Qt.AlignTop | Qt.AlignRight
-                Layout.topMargin: 10
-                Layout.rightMargin: 15
-                Layout.preferredWidth: 15
-                Layout.preferredHeight: 15
-                source: helpImage //use the original image as source, cannot use image path directly
-                color: Style.unraidAccentColor
+                source: "unraid/icons/help_orange.svg"
                 MouseArea {
                     anchors.fill: parent
                     onClicked: imageWriter.openUrl("https://docs.unraid.net/unraid-os/getting-started/quick-install-guide/")
                 }
+                Layout.preferredHeight: 15
+                Layout.preferredWidth: 15
+                sourceSize.width: 15
+                sourceSize.height: 15
+                anchors.right: parent.right
+                anchors.rightMargin: 10
+                anchors.top: parent.top
+                anchors.topMargin: 10
+                fillMode: Image.PreserveAspectFit
             }
         }
 
@@ -740,32 +695,25 @@ ApplicationWindow {
             anchors.bottomMargin: 10
             spacing: 5
 
+            Image {
+                id: infoImage
+                source: "unraid/icons/info_orange.svg"
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: infopopup.openPopup()
+                }
+                Layout.preferredHeight: 15
+                Layout.preferredWidth: 15
+                sourceSize.width: 15
+                sourceSize.height: 15
+                fillMode: Image.PreserveAspectFit
+            }
             Text {
                 color: Style.unraidAccentColor
                 text: qsTr("Info")
                 font.pixelSize: 12
-                font.family: Style.fontFamily
+                font.family: Style.fontFamilyBold
                 font.bold: true
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked: infopopup.open()
-                }
-            }
-
-            Image {
-                id: infoImage
-                source: "icons/info.png"
-                width: 15
-                height: 15
-                fillMode: Image.PreserveAspectFit
-                visible: false  // Hide the original image
-            }
-
-            ColorOverlay {
-                width: 15
-                height: 15
-                source: infoImage
-                color: Style.unraidAccentColor
                 MouseArea {
                     anchors.fill: parent
                     onClicked: infopopup.open()
@@ -816,7 +764,7 @@ ApplicationWindow {
         yesButton: false
         noButton: false
         title: qsTr("About")
-        body.onLinkActivated: imageWriter.openUrl(body.link)
+        body.onLinkActivated: imageWriter.openUrl(link)
         text: qsTr("License, Credits, and History: ") + "<a href='https://github.com/unraid/usb-creator-next'><font color='" + Style.unraidAccentColor + "'>https://github.com/unraid/usb-creator-next</font></a><br><br>" + qsTr("Help / Feedback: ") + "<a href='https://unraid.net/contact'><font color='" + Style.unraidAccentColor + "'>https://unraid.net/contact</font></a>"
     }
 
@@ -875,7 +823,7 @@ ApplicationWindow {
         noButton: true
         property url url
         title: qsTr("Update available")
-        text: qsTr("There is a newer version of Imager available.<br>Would you like to visit the website to download it?")
+        text: qsTr("There is a newer version of Unraid USB Creator available.<br>Would you like to visit the website to download it?")
         onYes: {
             imageWriter.openUrl(url);
         }
@@ -1036,8 +984,12 @@ ApplicationWindow {
             //msgpopup.text = qsTr("<b>%1</b> has been written to <b>%2</b>").arg(osbutton.text).arg(dstbutton.text)
             /* Just reboot to the installed OS */
             Qt.quit();
-        } else
-            msgpopup.text = qsTr("<b>%1</b> has been written to <b>%2</b>.<br><br>Your drive has been ejected, you can now safely remove it.").arg(osbutton.text).arg(dstbutton.text);
+        } else {
+            msgpopup.text = qsTr("<b>%1</b> has been written to <b>%2</b>.").arg(osbutton.text).arg(dstbutton.text);
+            if (imageWriter.getInitFormat() === "UNRAID") {
+                msgpopup.text += qsTr("<br><br>If you would like to enable legacy boot (bios), helpful for old hardware, please run the 'make_bootable_(mac/linux/windows)' script from this computer, located in the main folder of the UNRAID flash drive.");
+            }
+        }
         if (imageWriter.isEmbeddedMode()) {
             msgpopup.continueButton = false;
             msgpopup.quitButton = true;

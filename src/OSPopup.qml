@@ -241,9 +241,8 @@ MainPopupBase {
                 }
                 spacing: 12
 
-                // Might need to find a way to change this color as ColorOverlay not working/requires more troubleshooting in QT 6 -- Ajit
                 Image {
-                    source: delegateItem.icon == "icons/ic_build_48px.svg" ? "icons/cat_misc_utility_images.png" : delegateItem.icon
+                    source: (delegateItem.icon == "https://craftassets.unraid.net/static/favicon/favicon.ico") ? (bgrect.mouseOver ? "unraid/icons/un-mark-dark-gray.svg" : "unraid/icons/un-mark-gradient.svg") : (delegateItem.icon == "icons/erase.png" ? (bgrect.mouseOver ? "unraid/icons/erase_dark_gray.svg" : "unraid/icons/erase_orange.svg") : (delegateItem.icon == "icons/use_custom.png" ? (bgrect.mouseOver ? "unraid/icons/use_custom_dark_gray.svg" : "unraid/icons/use_custom_orange.svg") : delegateItem.icon))
                     Layout.preferredHeight: 40
                     Layout.preferredWidth: 40
                     sourceSize.width: 40
@@ -265,7 +264,7 @@ MainPopupBase {
                             color: bgrect.mouseOver ? Style.unraidTextFocusColor : Style.unraidTextColor
                         }
                         Image {
-                            source: "icons/ic_info_16px.png"
+                            source: bgrect.mouseOver ? "unraid/icons/info_dark_gray.svg" : "unraid/icons/info_orange.svg"
                             Layout.preferredHeight: 16
                             Layout.preferredWidth: 16
                             visible: typeof (website) == "string" && delegateItem.website
@@ -312,7 +311,7 @@ MainPopupBase {
                     }
                 }
                 Image {
-                    source: "icons/ic_chevron_right_40px.svg"
+                    source: "icons/ic_chevron_right_40px_orange.svg"
                     visible: (typeof (delegateItem.subitems_json) == "string" && delegateItem.subitems_json != "") || (typeof (delegateItem.subitems_url) == "string" && delegateItem.subitems_url != "" && delegateItem.subitems_url != "internal://back")
                     Layout.preferredHeight: 40
                     Layout.preferredWidth: 40
