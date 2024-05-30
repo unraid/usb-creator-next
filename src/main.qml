@@ -1337,7 +1337,7 @@ ApplicationWindow {
         yesButton: false
         noButton: false
         title: qsTr("About")
-        body.onLinkActivated: imageWriter.openUrl(body.link)
+        body.onLinkActivated: imageWriter.openUrl(link)
         text: qsTr("License, Credits, and History: ") + "<a href='https://github.com/unraid/usb-creator-next'><font color='" + UnColors.orange + "'>https://github.com/unraid/usb-creator-next</font></a><br><br>" + qsTr("Help / Feedback: ") + "<a href='https://unraid.net/contact'><font color='" + UnColors.orange + "'>https://unraid.net/contact</font></a>"
     }
 
