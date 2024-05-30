@@ -176,6 +176,7 @@ public:
     Q_INVOKABLE QString getDstDevice();
     Q_INVOKABLE bool getDstGuidValid();
     Q_INVOKABLE bool openUrl(const QString& url);
+    Q_INVOKABLE bool windowsBuild();
 
 signals:
     /* We are emiting signals with QVariant as parameters because QML likes it that way */

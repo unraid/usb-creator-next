@@ -1811,3 +1811,11 @@ bool ImageWriter::openUrl(const QString &url)
 {
     return QDesktopServices::openUrl(QUrl(url, QUrl::TolerantMode));
 }
+
+bool ImageWriter::windowsBuild() {
+#ifdef Q_OS_WIN
+    return true;
+#else
+    return false;
+#endif
+}
