@@ -1,4 +1,4 @@
-Source: unraid-imager
+Source: unraid-usb-creator
 Section: admin
 Priority: optional
 Maintainer: Floris Bos <bos@je-eigen-domein.nl>
@@ -8,7 +8,7 @@ Build-Depends: debhelper (>= 10), cmake, libarchive-dev, liblzma-dev, libcurl4-g
 Standards-Version: 4.1.2
 Homepage: https://github.com/unraid/usb-creator-next
 
-Package: unraid-imager
+Package: unraid-usb-creator
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, 
  qml-module-qtquick2, qml-module-qtquick-controls2, qml-module-qtquick-layouts, qml-module-qtquick-templates2, qml-module-qtquick-window2, qml-module-qtgraphicaleffects,

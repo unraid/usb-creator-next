@@ -1,7 +1,7 @@
-2009eb3403da64aeb2b76053628a1242  usr/bin/unraid-imager
-cba2931217918222b765e4ea81c33c0d  usr/share/applications/org.unraid.unraid-imager.desktop
-15b6ebdc7562a5f7b818db84f2a9d3e8  usr/share/doc/unraid-imager/changelog.gz
-e76b52ec7376da3b1fe9a6562bddaf56  usr/share/doc/unraid-imager/copyright
-9b0562763ed6ad02c7f2ef239ec80b17  usr/share/icons/hicolor/128x128/apps/unraid128.png
-ba3bb63af2e38e3fcc38da401b8e6231  usr/share/man/man1/unraid-imager.1.gz
-deb89c28db7018482e66254e6dd1670a  usr/share/metainfo/unraid-imager.metainfo.xml
+00402ea2d83f2dc8bf56b12036a133bc  usr/bin/unraid-usb-creator
+56dbceb5198ff7545c315f9a812e3484  usr/share/applications/com.limetech.unraid-usb-creator.desktop
+cf8cee94e0a222f252e30701d87be77b  usr/share/doc/unraid-usb-creator/changelog.gz
+9cc7fd7ca7041b8d8b8335041ad0fe75  usr/share/doc/unraid-usb-creator/copyright
+123e8a8371979ae319bfce1e351066d4  usr/share/icons/hicolor/128x128/apps/unraid128.png
+3aabc017165ad2720ab6bef324d5e901  usr/share/man/man1/unraid-usb-creator.1.gz
+1c114514f76627c98334c800569951c2  usr/share/metainfo/unraid-usb-creator.metainfo.xml
