@@ -12,7 +12,7 @@ Based on the work by [Raspberry Pi](https://github.com/raspberrypi/rpi-imager)
 
 ## How to use the Unraid USB Creator
 
-Please see our [official documentation](https://docs.unraid.net/legacy/FAQ/usb-flash-drive-preparation/).
+Please see our [official documentation](https://docs.unraid.net/unraid-os/getting-started/quick-install-guide/).
 
 ## Contributing
 
