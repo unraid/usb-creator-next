@@ -651,7 +651,7 @@ bool GetDeviceVidPidSerialNumber(HDEVINFO hDeviceInfo, PSP_DEVINFO_DATA deviceIn
 
         std::string deviceId_usb{wbuffer};
         std::smatch vid_pid_sn_match;
-        std::regex vid_pid_sn_regex("USB\\\\VID_([0-9A-Za-z]{4}).+&PID_([0-9A-Za-z]{4}).+\\\\([0-9A-Za-z]+)");
+        std::regex vid_pid_sn_regex("USB\\\\VID_([0-9A-Za-z]{4})(?:.*)&PID_([0-9A-Za-z]{4})(?:.*)\\\\([0-9A-Za-z]+)");
         if (std::regex_search(deviceId_usb, vid_pid_sn_match, vid_pid_sn_regex) && vid_pid_sn_match.size() == 4)
         {
             VID = vid_pid_sn_match[1];
