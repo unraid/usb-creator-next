@@ -572,7 +572,7 @@ ApplicationWindow {
                 font.family: robotoBold.name
                 font.bold: true
                 anchors.right: parent.right
-                anchors.rightMargin: 10
+                anchors.rightMargin: 12
                 anchors.bottom: parent.bottom
                 anchors.bottomMargin: 25
                 MouseArea {
