@@ -517,8 +517,8 @@ ApplicationWindow {
                     id: langbarRect
                     Layout.columnSpan: 3
                     Layout.alignment: Qt.AlignHCenter | Qt.AlignBottom
-                    Layout.bottomMargin: 5
-                    visible: window.imageWriter.isEmbeddedMode()
+                    Layout.bottomMargin: 15
+                    visible: imageWriter.isEmbeddedMode()
                     implicitWidth: langbar.width
                     implicitHeight: langbar.height
 
@@ -717,6 +717,29 @@ ApplicationWindow {
                 MouseArea {
                     anchors.fill: parent
                     onClicked: infopopup.open()
+                }
+            }
+        }
+        ColumnLayout {
+            id: columnLayout4
+            Layout.row: 1
+            Layout.column: 2
+            Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
+            spacing: 0
+
+            Text {
+                color: UnColors.orange
+                text: qsTr("Select Language")
+                font.pixelSize: 12
+                font.family: robotoBold.name
+                font.bold: true
+                anchors.right: parent.right
+                anchors.rightMargin: 10
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 25
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: langbarRect.visible = true
                 }
             }
         }

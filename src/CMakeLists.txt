@@ -798,9 +798,9 @@ if (WIN32)
     endif()
     add_definitions(-DSIGNTOOL="${SIGNTOOL}")
 
-    add_custom_command(TARGET ${PROJECT_NAME}
-        POST_BUILD
-        COMMAND "${SIGNTOOL}" sign /tr http://timestamp.digicert.com /td sha256 /fd sha256 /a "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.exe")
+    #add_custom_command(TARGET ${PROJECT_NAME}
+        #POST_BUILD
+        #COMMAND "${SIGNTOOL}" sign /tr http://timestamp.digicert.com /td sha256 /fd sha256 /a "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.exe")
 
 
     endif(IMAGER_SIGNED_APP)
