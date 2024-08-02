@@ -1,7 +1,7 @@
 Package: unraid-usb-creator
 Version: 1.0
 Architecture: amd64
-Maintainer: Floris Bos <bos@je-eigen-domein.nl>
+Maintainer: Unraid Developers contact@unraid.net
 Installed-Size: 2970
 Depends: libarchive13 (>= 3.0.4), libc6 (>= 2.34), libcurl3-gnutls (>= 7.16.2), libgcc-s1 (>= 3.3.1), libgnutls30 (>= 3.7.0), liblzma5 (>= 5.1.1alpha+20110809), libqt5core5a (>= 5.15.1), libqt5dbus5 (>= 5.14.1), libqt5gui5 (>= 5.10.0) | libqt5gui5-gles (>= 5.10.0), libqt5network5 (>= 5.12.2), libqt5qml5 (>= 5.10.0), libqt5widgets5 (>= 5.0.2), libstdc++6 (>= 12), qml-module-qtquick2, qml-module-qtquick-controls2, qml-module-qtquick-layouts, qml-module-qtquick-templates2, qml-module-qtquick-window2, qml-module-qtgraphicaleffects, dosfstools, fdisk
 Recommends: udisks2
