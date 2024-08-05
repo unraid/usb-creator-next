@@ -2,9 +2,9 @@ name: Build Ubuntu .deb
 
 on:
   push:
-    branches: [ "qml" ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ "qml" ]
+    branches: [ "main" ]
 
 jobs:
   build:
