@@ -138,10 +138,16 @@ void GetDeviceVidPidSerialNumber(const std::string& diskBsdName, DeviceDescripto
             s = (NSString *) serialNumberAsCFTypeRef;
             device_descriptor->serialNumber = std::string([s UTF8String]);
             NSNumber * n = (NSNumber *) vendorIdAsCFTypeRef;
-            s = [NSString stringWithFormat:@"%04X", [n intValue]];
+            s = [NSString stringWithFormat:@"%X", [n intValue]];
+            while ([s length] < 4) {
+              s = [@"0" stringByAppendingString:s];
+            }
             device_descriptor->vid = std::string([s UTF8String]);
             n = (NSNumber *) productIdAsCFTypeRef;
-            s = [NSString stringWithFormat:@"%04X", [n intValue]];
+            s = [NSString stringWithFormat:@"%X", [n intValue]];
+            while ([s length] < 4) {
+              s = [@"0" stringByAppendingString:s];
+            }
             device_descriptor->pid = std::string([s UTF8String]);
           }
           if(serialNumberAsCFTypeRef) CFRelease(serialNumberAsCFTypeRef);
