@@ -228,21 +228,21 @@ if (WIN32)
         COMMAND ${CMAKE_STRIP} "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.exe")
 
     # Code signing
-    find_program(SIGNTOOL "signtool.exe" PATHS
-        "c:/Program Files (x86)/Microsoft SDKs/ClickOnce/SignTool"
-        "c:/Program Files (x86)/Windows Kits/10/bin/10.0.22621.0/x64")
-    if (NOT SIGNTOOL)
-        message(FATAL_ERROR "Unable to locate signtool.exe used for code signing")
-    endif()
-    add_definitions(-DSIGNTOOL="${SIGNTOOL}")
+    #find_program(SIGNTOOL "signtool.exe" PATHS
+        #"c:/Program Files (x86)/Microsoft SDKs/ClickOnce/SignTool"
+        #"c:/Program Files (x86)/Windows Kits/10/bin/10.0.22621.0/x64")
+    #if (NOT SIGNTOOL)
+        #message(FATAL_ERROR "Unable to locate signtool.exe used for code signing")
+    #endif()
+    #add_definitions(-DSIGNTOOL="${SIGNTOOL}")
 
-    add_custom_command(TARGET ${PROJECT_NAME}
-        POST_BUILD
-        COMMAND "${SIGNTOOL}" sign /tr http://timestamp.digicert.com /td sha256 /fd sha256 /a "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.exe")
+    #add_custom_command(TARGET ${PROJECT_NAME}
+        #POST_BUILD
+        #COMMAND "${SIGNTOOL}" sign /tr http://timestamp.digicert.com /td sha256 /fd sha256 /a "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.exe")
 
-    add_custom_command(TARGET ${PROJECT_NAME}
-        POST_BUILD
-        COMMAND "${SIGNTOOL}" sign /tr http://timestamp.digicert.com /td sha256 /fd sha256 /a "${CMAKE_BINARY_DIR}/dependencies/fat32format/fat32format.exe")
+    #add_custom_command(TARGET ${PROJECT_NAME}
+        #POST_BUILD
+        #COMMAND "${SIGNTOOL}" sign /tr http://timestamp.digicert.com /td sha256 /fd sha256 /a "${CMAKE_BINARY_DIR}/dependencies/fat32format/fat32format.exe")
 
     # Windeploy
     find_program(WINDEPLOYQT "windeployqt.exe" PATHS "${${QT}_DIR}/../../../bin")
