@@ -32,12 +32,11 @@ jobs:
         tar -xzvf openssl.tar.gz
         cd openssl-1.1.1
         # Run commands in MSYS2 shell
-        "C:\msys64\usr\bin\bash.exe" -c "export PATH=\$PATH:/c/openssl-1.1.1/dist/bin"
-        "C:\msys64\usr\bin\bash.exe" -c "export INCLUDE=\$INCLUDE:/c/openssl-1.1.1/dist/include"
-        "C:\msys64\usr\bin\bash.exe" -c "export LIB=\$LIB:/c/openssl-1.1.1/dist/lib"
-        "C:\msys64\usr\bin\bash.exe" -c "perl Configure mingw"
-        "C:\msys64\usr\bin\bash.exe" -c "make"
-        "C:\msys64\usr\bin\bash.exe" -c "make install"
+        & "C:\msys64\usr\bin\bash.exe" -c "export PATH=\$PATH:/c/openssl-1.1.1/dist/bin; 
+          export INCLUDE=\$INCLUDE:/c/openssl-1.1.1/dist/include; 
+          export LIB=\$LIB:/c/openssl-1.1.1/dist/lib; 
+          perl Configure mingw; 
+          make; make install"
         echo "Listing the OpenSSL installation directory:"
         dir C:/qt/5.x/mingw73_32/bin
         dir C:/qt/5.x/mingw73_32/include/openssl
