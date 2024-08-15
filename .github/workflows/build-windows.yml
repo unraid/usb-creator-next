@@ -35,8 +35,8 @@ jobs:
         & "C:\msys64\usr\bin\bash.exe" -c 'export PATH=\$PATH:/c/openssl-1.1.1/dist/bin; 
           export INCLUDE=\$INCLUDE:/c/openssl-1.1.1/dist/include; 
           export LIB=\$LIB:/c/openssl-1.1.1/dist/lib; 
-          perl Configure mingw; 
-          make; make install'
+          ./Configure --prefix=$PWD/dist no-idea no-mdc2 no-rc5 shared mingw; 
+          make depend && make && make install'
           
         # Verify the OpenSSL installation
         echo "Verifying the OpenSSL build output:"
@@ -46,22 +46,22 @@ jobs:
         dir C:/openssl-1.1.1/dist/lib
         
         # Create directories for Qt
-        mkdir -p C:/qt/5.x/mingw73_32/bin
-        mkdir -p C:/qt/5.x/mingw73_32/include
-        mkdir -p C:/qt/5.x/mingw73_32/lib
+        mkdir -p C:/qt/5.15.2/mingw73_32/bin
+        mkdir -p C:/qt/5.15.2/mingw73_32/include
+        mkdir -p C:/qt/5.15.2/mingw73_32/lib
 
         # Copy the OpenSSL output to Qt directories
-        copy out32dll/libssl.dll C:/qt/5.x/mingw73_32/bin
-        copy out32dll/libcrypto.dll C:/qt/5.x/mingw73_32/bin
-        copy -r include/openssl C:/qt/5.x/mingw73_32/include
-        copy out32dll/libssl.lib C:/qt/5.x/mingw73_32/lib
-        copy out32dll/libcrypto.lib C:/qt/5.x/mingw73_32/lib
+        copy out32dll/libssl.dll C:/qt/5.15.2/mingw73_32/bin
+        copy out32dll/libcrypto.dll C:/qt/5.15.2/mingw73_32/bin
+        copy -r include/openssl C:/qt/5.15.2/mingw73_32/include
+        copy out32dll/libssl.lib C:/qt/5.15.2/mingw73_32/lib
+        copy out32dll/libcrypto.lib C:/qt/5.15.2/mingw73_32/lib
         
         # Verify the copy operation
         echo "Verifying the copied files:"
-        dir C:/qt/5.x/mingw73_32/bin
-        dir C:/qt/5.x/mingw73_32/include/openssl
-        dir C:/qt/5.x/mingw73_32/lib
+        dir C:/qt/5.15.2/mingw73_32/bin
+        dir C:/qt/5.15.2/mingw73_32/include/openssl
+        dir C:/qt/5.15.2/mingw73_32/lib
 
     - name: Configure CMake
       run: cmake -B ${{github.workspace}}/build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
