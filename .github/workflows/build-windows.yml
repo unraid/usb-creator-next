@@ -32,6 +32,8 @@ jobs:
         pacman -S perl ruby python2 mingw-w64-i686-toolchain mingw-w64-x86_64-toolchain << Y
         cpan install CPAN::Author Pod::Usage CPAN
 
+        source /etc/profile
+
     - name: Install Qt
       uses: jurplel/install-qt-action@v3
 
