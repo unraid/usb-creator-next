@@ -17,10 +17,15 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Install MSYS
+    - name: Install Chocolatey
+      uses: choco/install-action@v1
+
+    - name: Install MSYS2
       run: |
-        choco install msys2
-        refreshenv
+        choco install msys2 --yes
+        # Add MSYS2 to the PATH manually
+        echo "## Adding MSYS2 to PATH"
+        echo "C:\\tools\\msys64\\usr\\bin" >> $GITHUB_ENV
 
     - name: Install Qt
       uses: jurplel/install-qt-action@v3
@@ -30,7 +35,7 @@ jobs:
         curl -L -o openssl.tar.gz https://www.openssl.org/source/openssl-1.1.1.tar.gz
         tar -xzvf openssl.tar.gz
         cd openssl-1.1.1
-        # Use MSYS shell to configure and build OpenSSL
+        # Use MSYS2 shell to configure and build OpenSSL
         msys2_shell.cmd -c "perl Configure mingw"
         msys2_shell.cmd -c "mingw32-make"
         msys2_shell.cmd -c "mingw32-make install"
