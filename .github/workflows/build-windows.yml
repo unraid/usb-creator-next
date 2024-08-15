@@ -28,6 +28,7 @@ jobs:
       shell: bash
       run: |
         pacman -Sy --noconfirm perl make mingw-w64-x86_64-toolchain
+        cpan Pod::Usage
 
     - name: Install Qt
       uses: jurplel/install-qt-action@v3
