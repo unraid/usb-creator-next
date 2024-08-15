@@ -37,7 +37,28 @@ jobs:
           export LIB=\$LIB:/c/openssl-1.1.1/dist/lib; 
           perl Configure mingw; 
           make; make install'
-        echo "Listing the OpenSSL installation directory:"
+          
+        # Verify the OpenSSL installation
+        echo "Verifying the OpenSSL build output:"
+        dir out32dll  # This checks if the DLLs are generated in the expected directory
+        dir C:/openssl-1.1.1/dist/bin
+        dir C:/openssl-1.1.1/dist/include
+        dir C:/openssl-1.1.1/dist/lib
+        
+        # Create directories for Qt
+        mkdir -p C:/qt/5.x/mingw73_32/bin
+        mkdir -p C:/qt/5.x/mingw73_32/include
+        mkdir -p C:/qt/5.x/mingw73_32/lib
+
+        # Copy the OpenSSL output to Qt directories
+        copy out32dll/libssl.dll C:/qt/5.x/mingw73_32/bin
+        copy out32dll/libcrypto.dll C:/qt/5.x/mingw73_32/bin
+        copy -r include/openssl C:/qt/5.x/mingw73_32/include
+        copy out32dll/libssl.lib C:/qt/5.x/mingw73_32/lib
+        copy out32dll/libcrypto.lib C:/qt/5.x/mingw73_32/lib
+        
+        # Verify the copy operation
+        echo "Verifying the copied files:"
         dir C:/qt/5.x/mingw73_32/bin
         dir C:/qt/5.x/mingw73_32/include/openssl
         dir C:/qt/5.x/mingw73_32/lib
