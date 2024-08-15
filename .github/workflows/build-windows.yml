@@ -27,9 +27,9 @@ jobs:
     - name: Install MSYS2 Packages
       shell: bash
       run: |
-        pacman -Sy --yes
+        yes | pacman -Sy
         pacman -S base-devel git mercurial cvs wget p7zip
-        pacman -S --yes perl ruby python2 mingw-w64-i686-toolchain mingw-w64-x86_64-toolchain
+        yes | pacman -S perl ruby python2 mingw-w64-i686-toolchain mingw-w64-x86_64-toolchain
         cpan install CPAN::Author Pod::Usage CPAN
 
     - name: Install Qt
