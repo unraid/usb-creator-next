@@ -17,6 +17,11 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
+    - name: Install MSYS
+      run: |
+        choco install msys2
+        refreshenv
+
     - name: Install Qt
       uses: jurplel/install-qt-action@v3
 
@@ -25,18 +30,14 @@ jobs:
         curl -L -o openssl.tar.gz https://www.openssl.org/source/openssl-1.1.1.tar.gz
         tar -xzvf openssl.tar.gz
         cd openssl-1.1.1
-        perl Configure mingw32  # or mingw64 if using 64-bit MinGW
-        mingw32-make
-        echo "Listing the OpenSSL build directory:"
-        dir out32dll  # List the contents to ensure the files are there
-        mkdir -p C:/qt/5.x/mingw73_32/bin
-        mkdir -p C:/qt/5.x/mingw73_32/include
-        mkdir -p C:/qt/5.x/mingw73_32/lib
-        copy out32dll\libssl.dll C:\qt\5.x\mingw73_32\bin
-        copy out32dll\libcrypto.dll C:\qt\5.x\mingw73_32\bin
-        copy -r include\openssl C:\qt\5.x\mingw73_32\include
-        copy out32dll\libssl.lib C:\qt\5.x\mingw73_32\lib
-        copy out32dll\libcrypto.lib C:\qt\5.x\mingw73_32\lib
+        # Use MSYS shell to configure and build OpenSSL
+        msys2_shell.cmd -c "perl Configure mingw"
+        msys2_shell.cmd -c "mingw32-make"
+        msys2_shell.cmd -c "mingw32-make install"
+        echo "Listing the OpenSSL installation directory:"
+        dir C:/qt/5.x/mingw73_32/bin
+        dir C:/qt/5.x/mingw73_32/include/openssl
+        dir C:/qt/5.x/mingw73_32/lib
 
     - name: Configure CMake
       run: cmake -B ${{github.workspace}}/build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
