@@ -44,7 +44,7 @@ jobs:
         export INCLUDE="$INCLUDE:/c/openssl-1.0.1c/dist/include"
         export LIB="$LIB:/c/openssl-1.0.1c/dist/lib"
         
-        ./Configure --prefix=$PWD/dist no-idea no-mdc2 no-rc5 shared mingw
+        ./Configure --prefix=$PWD/dist no-idea no-mdc2 no-rc5 no-capi shared mingw
         make depend && make && make install
 
     - name: Configure CMake
