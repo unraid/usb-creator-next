@@ -35,7 +35,7 @@ jobs:
     - name: Download and Install OpenSSL
       shell: msys2 {0}
       run: |
-        wget https://www.openssl.org/source/openssl-1.0.1c.tar.gz
+        wget https://www.openssl.org/source/openssl-1.1.1c.tar.gz
         tar xvzf openssl-1.1.1c.tar.gz
         cd openssl-1.1.1c
         
