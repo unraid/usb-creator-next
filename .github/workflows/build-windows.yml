@@ -19,11 +19,9 @@ jobs:
 
     - name: Install MSYS2
       run: |
-        # Download and install MSYS2 silently
-        Invoke-WebRequest -Uri https://github.com/msys2/msys2-installer/releases/latest/download/msys2-x86_64-latest.exe -OutFile msys2-installer.exe
-        Start-Process -Wait -FilePath msys2-installer.exe -ArgumentList '/SILENT'
-        # Add MSYS2 to PATH
-        echo "C:\\msys64\\usr\\bin" >> $GITHUB_ENV
+        choco install msys2 --yes
+        # Manually add MSYS2 to PATH
+        echo "C:\\tools\\msys64\\usr\\bin" >> $GITHUB_ENV
 
     - name: Install Qt
       uses: jurplel/install-qt-action@v3
