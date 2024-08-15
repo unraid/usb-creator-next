@@ -33,6 +33,7 @@ jobs:
         cpan install CPAN::Author Pod::Usage CPAN
 
         source /etc/profile
+        exec bash -l
 
     - name: Install Qt
       uses: jurplel/install-qt-action@v3
