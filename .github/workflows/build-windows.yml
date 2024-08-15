@@ -18,54 +18,57 @@ jobs:
       uses: actions/checkout@v3
 
     - name: Install MSYS2
+      shell: pwsh
       run: |
         choco install msys2 --yes
-        # Manually add MSYS2 to PATH
-        echo "C:\\tools\\msys64\\usr\\bin" >> $GITHUB_ENV
-        refreshenv
+        # Add MSYS2 to PATH for this session
+        [System.IO.File]::WriteAllText("$env:GITHUB_ENV", "PATH=$($env:PATH);C:\tools\msys64\usr\bin;C:\tools\msys64\mingw64\bin")
 
-        # Install essential tools: perl, make, and other build essentials
-        C:\tools\msys64\usr\bin\bash.exe -c "pacman -Sy --noconfirm perl make mingw-w64-x86_64-toolchain"
+    - name: Install MSYS2 Packages
+      shell: bash
+      run: |
+        pacman -Sy --noconfirm perl make mingw-w64-x86_64-toolchain
 
     - name: Install Qt
       uses: jurplel/install-qt-action@v3
 
     - name: Download and Install OpenSSL
+      shell: bash
       run: |
         curl -L -o openssl.tar.gz https://www.openssl.org/source/openssl-1.1.1.tar.gz
         tar -xzvf openssl.tar.gz
         cd openssl-1.1.1
-        # Run commands in MSYS2 shell
-        & "C:\msys64\usr\bin\bash.exe" -c 'export PATH=\$PATH:/c/openssl-1.1.1/dist/bin; 
-          export INCLUDE=\$INCLUDE:/c/openssl-1.1.1/dist/include; 
-          export LIB=\$LIB:/c/openssl-1.1.1/dist/lib; 
-          ./Configure --prefix=$PWD/dist no-idea no-mdc2 no-rc5 shared mingw; 
-          make depend && make && make install'
-          
+        # Set environment variables and run OpenSSL build
+        export PATH=$PATH:/c/openssl-1.1.1/dist/bin
+        export INCLUDE=$INCLUDE:/c/openssl-1.1.1/dist/include
+        export LIB=$LIB:/c/openssl-1.1.1/dist/lib
+        ./Configure --prefix=$PWD/dist no-idea no-mdc2 no-rc5 shared mingw
+        make depend && make && make install
+
         # Verify the OpenSSL installation
         echo "Verifying the OpenSSL build output:"
-        dir out32dll  # This checks if the DLLs are generated in the expected directory
-        dir C:/openssl-1.1.1/dist/bin
-        dir C:/openssl-1.1.1/dist/include
-        dir C:/openssl-1.1.1/dist/lib
-        
+        ls out32dll  # Check if the DLLs are generated
+        ls /c/openssl-1.1.1/dist/bin
+        ls /c/openssl-1.1.1/dist/include
+        ls /c/openssl-1.1.1/dist/lib
+
         # Create directories for Qt
-        mkdir -p C:/qt/5.15.2/mingw73_32/bin
-        mkdir -p C:/qt/5.15.2/mingw73_32/include
-        mkdir -p C:/qt/5.15.2/mingw73_32/lib
+        mkdir -p /c/qt/5.15.2/mingw73_32/bin
+        mkdir -p /c/qt/5.15.2/mingw73_32/include
+        mkdir -p /c/qt/5.15.2/mingw73_32/lib
 
         # Copy the OpenSSL output to Qt directories
-        copy out32dll/libssl.dll C:/qt/5.15.2/mingw73_32/bin
-        copy out32dll/libcrypto.dll C:/qt/5.15.2/mingw73_32/bin
-        copy -r include/openssl C:/qt/5.15.2/mingw73_32/include
-        copy out32dll/libssl.lib C:/qt/5.15.2/mingw73_32/lib
-        copy out32dll/libcrypto.lib C:/qt/5.15.2/mingw73_32/lib
-        
+        cp out32dll/libssl.dll /c/qt/5.15.2/mingw73_32/bin
+        cp out32dll/libcrypto.dll /c/qt/5.15.2/mingw73_32/bin
+        cp -r include/openssl /c/qt/5.15.2/mingw73_32/include
+        cp out32dll/libssl.lib /c/qt/5.15.2/mingw73_32/lib
+        cp out32dll/libcrypto.lib /c/qt/5.15.2/mingw73_32/lib
+
         # Verify the copy operation
         echo "Verifying the copied files:"
-        dir C:/qt/5.15.2/mingw73_32/bin
-        dir C:/qt/5.15.2/mingw73_32/include/openssl
-        dir C:/qt/5.15.2/mingw73_32/lib
+        ls /c/qt/5.15.2/mingw73_32/bin
+        ls /c/qt/5.15.2/mingw73_32/include/openssl
+        ls /c/qt/5.15.2/mingw73_32/lib
 
     - name: Configure CMake
       run: cmake -B ${{github.workspace}}/build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
