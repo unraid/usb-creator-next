@@ -16,74 +16,33 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
-
-    - name: Install MSYS2
-      shell: pwsh
+          
+    - name: Configure MSYS2
+    - uses: msys2/setup-msys2@v2
+      with:
+        update: true
+        msystem: MSYS
+    - shell: msys2 {0}
       run: |
-        choco install msys2 --yes
-        # Add MSYS2 to PATH for this session
-        [System.IO.File]::WriteAllText("$env:GITHUB_ENV", "PATH=$($env:PATH);C:\tools\msys64\usr\bin;C:\tools\msys64\mingw64\bin")
-
-    - name: Update MSYS2 Core Components
-      shell: bash
-      run: |
-        pacman -Sy << Y
-        pacman --needed -S bash pacman pacman-mirrors msys2-runtime << Y
-
-    - name: Install MSYS2 Packages
-      shell: bash
-      run: |
-        pacman -Sy << Y
-        pacman --needed -S bash pacman pacman-mirrors msys2-runtime
-
-    - name: Restart MSYS2 Shell
-      shell: pwsh
-      run: |
-        # Create a temporary script to run after the shell restarts
-        [System.IO.File]::WriteAllText("$env:GITHUB_WORKSPACE\update_msys2.sh", @" #!/bin/bash pacman -Su << Y pacman -S base-devel git mercurial cvs wget p7zip perl ruby python2 mingw-w64-i686-toolchain mingw-w64-x86_64-toolchain << Y"@)
-        # Execute the script after restarting the shell
-        & "C:\tools\msys64\usr\bin\bash.exe" "$env:GITHUB_WORKSPACE\update_msys2.sh"
+        pacman -S base-devel git mercurial cvs wget p7zip
+        pacman -S perl ruby python2 mingw-w64-i686-toolchain mingw-w64-x86_64-toolchain
 
     - name: Install Qt
       uses: jurplel/install-qt-action@v3
 
     - name: Download and Install OpenSSL
-      shell: bash
+      shell: msys2 {0}
       run: |
-        curl -L -o openssl.tar.gz https://www.openssl.org/source/openssl-1.1.1.tar.gz
-        tar -xzvf openssl.tar.gz
-        cd openssl-1.1.1
+        tar xvzf openssl-1.0.1c.tar.gz
+        cd openssl-1.0.1c
+        
         # Set environment variables and run OpenSSL build
-        export PATH=$PATH:/c/openssl-1.1.1/dist/bin
-        export INCLUDE=$INCLUDE:/c/openssl-1.1.1/dist/include
-        export LIB=$LIB:/c/openssl-1.1.1/dist/lib
+        export PATH="$PATH:/c/openssl-1.0.1c/dist/bin"
+        export INCLUDE="$INCLUDE:/c/openssl-1.0.1c/dist/include"
+        export LIB="$LIB:/c/openssl-1.0.1c/dist/lib"
+        
         ./Configure --prefix=$PWD/dist no-idea no-mdc2 no-rc5 shared mingw
         make depend && make && make install
-
-        # Verify the OpenSSL installation
-        echo "Verifying the OpenSSL build output:"
-        ls out32dll  # Check if the DLLs are generated
-        ls /c/openssl-1.1.1/dist/bin
-        ls /c/openssl-1.1.1/dist/include
-        ls /c/openssl-1.1.1/dist/lib
-
-        # Create directories for Qt
-        mkdir -p /c/qt/5.15.2/mingw73_32/bin
-        mkdir -p /c/qt/5.15.2/mingw73_32/include
-        mkdir -p /c/qt/5.15.2/mingw73_32/lib
-
-        # Copy the OpenSSL output to Qt directories
-        cp out32dll/libssl.dll /c/qt/5.15.2/mingw73_32/bin
-        cp out32dll/libcrypto.dll /c/qt/5.15.2/mingw73_32/bin
-        cp -r include/openssl /c/qt/5.15.2/mingw73_32/include
-        cp out32dll/libssl.lib /c/qt/5.15.2/mingw73_32/lib
-        cp out32dll/libcrypto.lib /c/qt/5.15.2/mingw73_32/lib
-
-        # Verify the copy operation
-        echo "Verifying the copied files:"
-        ls /c/qt/5.15.2/mingw73_32/bin
-        ls /c/qt/5.15.2/mingw73_32/include/openssl
-        ls /c/qt/5.15.2/mingw73_32/lib
 
     - name: Configure CMake
       run: cmake -B ${{github.workspace}}/build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
