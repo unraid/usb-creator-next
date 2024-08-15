@@ -18,14 +18,16 @@ jobs:
       uses: actions/checkout@v3
           
     - name: Configure MSYS2
-    - uses: msys2/setup-msys2@v2
+      uses: msys2/setup-msys2@v2
       with:
         update: true
         msystem: MSYS
-    - shell: msys2 {0}
+
+    - name: Install Required Packages
+      shell: msys2 {0}
       run: |
-        pacman -S base-devel git mercurial cvs wget p7zip
-        pacman -S perl ruby python2 mingw-w64-i686-toolchain mingw-w64-x86_64-toolchain
+        pacman -S --noconfirm base-devel git mercurial cvs wget p7zip
+        pacman -S --noconfirm perl ruby python2 mingw-w64-i686-toolchain mingw-w64-x86_64-toolchain
 
     - name: Install Qt
       uses: jurplel/install-qt-action@v3
@@ -33,6 +35,7 @@ jobs:
     - name: Download and Install OpenSSL
       shell: msys2 {0}
       run: |
+        wget https://www.openssl.org/source/openssl-1.0.1c.tar.gz
         tar xvzf openssl-1.0.1c.tar.gz
         cd openssl-1.0.1c
         
