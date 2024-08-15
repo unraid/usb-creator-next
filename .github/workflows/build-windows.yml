@@ -28,12 +28,20 @@ jobs:
       shell: bash
       run: |
         pacman -Sy << Y
+        pacman --needed -S bash pacman pacman-mirrors msys2-runtime
+
+        reset
+
+        pacman -Su
         pacman -S base-devel git mercurial cvs wget p7zip
         pacman -S perl ruby python2 mingw-w64-i686-toolchain mingw-w64-x86_64-toolchain << Y
-        cpan install CPAN::Author Pod::Usage CPAN
 
-        source /etc/profile
-        exec bash -l
+        cpanm Pod::Usage || true 
+
+        # Confirm installed tools and modules
+        which perl
+        which make
+        perl -e "use Pod::Usage"
 
     - name: Install Qt
       uses: jurplel/install-qt-action@v3
