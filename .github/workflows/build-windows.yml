@@ -32,16 +32,11 @@ jobs:
 
         reset
 
-        pacman -Su
+        pacman -Su << Y
         pacman -S base-devel git mercurial cvs wget p7zip
         pacman -S perl ruby python2 mingw-w64-i686-toolchain mingw-w64-x86_64-toolchain << Y
-
-        cpanm Pod::Usage || true 
-
-        # Confirm installed tools and modules
-        which perl
-        which make
-        perl -e "use Pod::Usage"
+        cpanm Pod::Usage
+        perl -e "use Pod::Usage; print 'Pod::Usage is installed\n';"
 
     - name: Install Qt
       uses: jurplel/install-qt-action@v3
