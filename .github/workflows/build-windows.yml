@@ -19,10 +19,11 @@ jobs:
 
     - name: Install MSYS2
       run: |
-        choco install msys2 --yes
-        # Add MSYS2 to the PATH manually
-        echo "## Adding MSYS2 to PATH"
-        echo "C:\\tools\\msys64\\usr\\bin" >> $GITHUB_ENV
+        # Download and install MSYS2 silently
+        Invoke-WebRequest -Uri https://github.com/msys2/msys2-installer/releases/latest/download/msys2-x86_64-latest.exe -OutFile msys2-installer.exe
+        Start-Process -Wait -FilePath msys2-installer.exe -ArgumentList '/SILENT'
+        # Add MSYS2 to PATH
+        echo "C:\\msys64\\usr\\bin" >> $GITHUB_ENV
 
     - name: Install Qt
       uses: jurplel/install-qt-action@v3
@@ -32,10 +33,13 @@ jobs:
         curl -L -o openssl.tar.gz https://www.openssl.org/source/openssl-1.1.1.tar.gz
         tar -xzvf openssl.tar.gz
         cd openssl-1.1.1
-        # Use MSYS2 shell to configure and build OpenSSL
-        msys2_shell.cmd -c "perl Configure mingw"
-        msys2_shell.cmd -c "mingw32-make"
-        msys2_shell.cmd -c "mingw32-make install"
+        # Run commands in MSYS2 shell
+        "C:\msys64\usr\bin\bash.exe" -c "export PATH=\$PATH:/c/openssl-1.1.1/dist/bin"
+        "C:\msys64\usr\bin\bash.exe" -c "export INCLUDE=\$INCLUDE:/c/openssl-1.1.1/dist/include"
+        "C:\msys64\usr\bin\bash.exe" -c "export LIB=\$LIB:/c/openssl-1.1.1/dist/lib"
+        "C:\msys64\usr\bin\bash.exe" -c "perl Configure mingw"
+        "C:\msys64\usr\bin\bash.exe" -c "make"
+        "C:\msys64\usr\bin\bash.exe" -c "make install"
         echo "Listing the OpenSSL installation directory:"
         dir C:/qt/5.x/mingw73_32/bin
         dir C:/qt/5.x/mingw73_32/include/openssl
