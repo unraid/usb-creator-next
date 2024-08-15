@@ -23,6 +23,9 @@ jobs:
         # Manually add MSYS2 to PATH
         echo "C:\\tools\\msys64\\usr\\bin" >> $GITHUB_ENV
 
+        # Install essential tools: perl, make, and other build essentials
+        C:\tools\msys64\usr\bin\bash.exe -c "pacman -Sy --noconfirm perl make mingw-w64-x86_64-toolchain"
+
     - name: Install Qt
       uses: jurplel/install-qt-action@v3
 
