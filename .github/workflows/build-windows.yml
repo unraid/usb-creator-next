@@ -24,18 +24,25 @@ jobs:
         # Add MSYS2 to PATH for this session
         [System.IO.File]::WriteAllText("$env:GITHUB_ENV", "PATH=$($env:PATH);C:\tools\msys64\usr\bin;C:\tools\msys64\mingw64\bin")
 
+    - name: Update MSYS2 Core Components
+      shell: bash
+      run: |
+        pacman -Sy << Y
+        pacman --needed -S bash pacman pacman-mirrors msys2-runtime << Y
+
     - name: Install MSYS2 Packages
       shell: bash
       run: |
         pacman -Sy << Y
         pacman --needed -S bash pacman pacman-mirrors msys2-runtime
 
-        reset
-
-        pacman -Su << Y
-        pacman -S base-devel git mercurial cvs wget p7zip
-        pacman -S perl ruby python2 mingw-w64-i686-toolchain mingw-w64-x86_64-toolchain << Y
-        cpan Pod::Usage
+    - name: Restart MSYS2 Shell
+      shell: pwsh
+      run: |
+        # Create a temporary script to run after the shell restarts
+        [System.IO.File]::WriteAllText("$env:GITHUB_WORKSPACE\update_msys2.sh", @" #!/bin/bash pacman -Su << Y pacman -S base-devel git mercurial cvs wget p7zip perl ruby python2 mingw-w64-i686-toolchain mingw-w64-x86_64-toolchain << Y"@)
+        # Execute the script after restarting the shell
+        & "C:\tools\msys64\usr\bin\bash.exe" "$env:GITHUB_WORKSPACE\update_msys2.sh"
 
     - name: Install Qt
       uses: jurplel/install-qt-action@v3
