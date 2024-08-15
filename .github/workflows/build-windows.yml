@@ -40,11 +40,11 @@ jobs:
         cd openssl-1.1.1c
         
         # Set environment variables and run OpenSSL build
-        export PATH="$PATH:/c/openssl-1.0.1c/dist/bin"
-        export INCLUDE="$INCLUDE:/c/openssl-1.0.1c/dist/include"
-        export LIB="$LIB:/c/openssl-1.0.1c/dist/lib"
+        export PATH="$PATH:/c/openssl-1.1.1c/dist/bin"
+        export INCLUDE="$INCLUDE:/c/openssl-1.1.1c/dist/include"
+        export LIB="$LIB:/c/openssl-1.1.1c/dist/lib"
         
-        ./Configure --prefix=$PWD/dist no-idea no-mdc2 no-rc5 no-capi shared mingw
+        ./Configure --prefix=$PWD/dist no-idea no-mdc2 no-rc5 shared mingw
         make depend && make && make install
 
     - name: Configure CMake
