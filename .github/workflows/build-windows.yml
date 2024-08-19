@@ -35,9 +35,7 @@ jobs:
     - name: Configure CMake
       run: |
         echo ${{github.workspace}}/../Qt/5.15.2/mingw81_32/bin >> $GITHUB_PATH
-        echo "CC=${{github.workspace}}/../Qt/5.15.2/mingw81_32/bin/gcc" >> "$GITHUB_ENV"
-        echo "CXX=${{github.workspace}}/../Qt/5.15.2/mingw81_32/bin/g++" >> "$GITHUB_ENV"
-        cmake ${{github.workspace}}/src -B ${{github.workspace}}/build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DOPENSSL_ROOT_DIR=${{github.workspace}}/../Qt/5.15.2/mingw81_32
+        cmake ${{github.workspace}}/src -B ${{github.workspace}}/build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DOPENSSL_ROOT_DIR=${{github.workspace}}/../Qt/5.15.2/mingw81_32 -DCMAKE_C_COMPILER=${{github.workspace}}/../Qt/5.15.2/mingw81_32/bin/gcc -DCMAKE_CXX_COMPILER=${{github.workspace}}/../Qt/5.15.2/mingw81_32/bin/g++
 
     - name: Build
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
