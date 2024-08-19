@@ -27,7 +27,7 @@ jobs:
       shell: msys2 {0}
       run: |
         pacman -S --noconfirm base-devel git mercurial cvs wget p7zip
-        pacman -S --noconfirm perl ruby mingw-w64-i686-toolchain mingw-w64-x86_64-toolchain
+        pacman -S --noconfirm perl ruby mingw-w64-i686-toolchain
 
     - name: Install Qt
       uses: jurplel/install-qt-action@v3
