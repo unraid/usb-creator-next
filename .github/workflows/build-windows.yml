@@ -30,7 +30,7 @@ jobs:
 
     - name: Extract OpenSSL
       run: |
-        tar xvzf ${{github.workspace}}/src/windows/openssl-1.1.1s.zip -C  %QT_ROOT_DIR%
+        tar xvzf ${{github.workspace}}/src/windows/openssl-1.1.1s.zip -C  $QT_ROOT_DIR
 
     - name: Configure CMake
       run: cmake -B ${{github.workspace}}/build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
