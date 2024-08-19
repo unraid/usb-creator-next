@@ -28,13 +28,25 @@ jobs:
         tools: 'tools_mingw,qt.tools.win32_mingw810'
         add-tools-to-path: true
 
+    - name: Configure MSYS2
+      uses: msys2/setup-msys2@v2
+      with:
+        update: true
+        msystem: MINGW32
+
+    - name: Install Required Packages
+      shell: msys2 {0}
+      run: |
+        pacman -S --noconfirm base-devel git mercurial cvs wget p7zip
+        pacman -S --noconfirm perl ruby mingw-w32
+
     - name: Download and Install OpenSSL
       run: |
-        wget https://www.openssl.org/source/openssl-1.1.1.tar.gz
-        tar xvzf openssl-1.1.1.tar.gz
-        cd openssl-1.1.1
+        wget https://www.openssl.org/source/openssl-1.1.1s.tar.gz
+        tar xvzf openssl-1.1.1s.tar.gz
+        cd openssl-1.1.1s
         
-        ./Configure --prefix=%cd%/dist no-idea no-mdc2 no-rc5 shared mingw64
+        ./Configure --prefix=$PWD/dist no-idea no-mdc2 no-rc5 shared mingw
         make depend && make && make install
 
     - name: Configure CMake
