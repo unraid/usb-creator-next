@@ -38,7 +38,7 @@ jobs:
       shell: msys2 {0}
       run: |
         pacman -S --noconfirm base-devel git mercurial cvs wget p7zip
-        pacman -S --noconfirm perl ruby mingw-w32
+        pacman -S --noconfirm perl ruby mingw-w32-i686-toolchain
 
     - name: Download and Install OpenSSL
       run: |
