@@ -32,13 +32,13 @@ jobs:
       uses: msys2/setup-msys2@v2
       with:
         update: true
-        msystem: MINGW32
+        msystem: MINGW64
 
     - name: Install Required Packages
       shell: msys2 {0}
       run: |
         pacman -S --noconfirm base-devel git mercurial cvs wget p7zip
-        pacman -S --noconfirm perl ruby mingw-w32-i686-toolchain
+        pacman -S --noconfirm perl ruby mingw-w64-i686-toolchain
 
     - name: Download and Install OpenSSL
       run: |
