@@ -17,16 +17,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Install Qt
-      uses: jurplel/install-qt-action@v3
-      with:
-        aqtversion: '==3.1.*'
-        version: '5.15.2'
-        host: 'windows'
-        target: 'desktop'
-        arch: 'win32_mingw81'
-        tools: 'tools_mingw,qt.tools.win32_mingw810'
-        add-tools-to-path: true
+
 
     - name: Configure MSYS2
       uses: msys2/setup-msys2@v2
@@ -41,6 +32,7 @@ jobs:
         pacman -S --noconfirm perl ruby mingw-w64-i686-toolchain
 
     - name: Download and Install OpenSSL
+      shell: msys2 {0}
       run: |
         wget https://www.openssl.org/source/openssl-1.1.1s.tar.gz
         tar xvzf openssl-1.1.1s.tar.gz
