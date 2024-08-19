@@ -34,12 +34,7 @@ jobs:
         tar xvzf openssl-1.1.1.tar.gz
         cd openssl-1.1.1
         
-        # Set environment variables and run OpenSSL build
-        export PATH="$PATH:/c/openssl-1.1.1/dist/bin"
-        export INCLUDE="$INCLUDE:/c/openssl-1.1.1/dist/include"
-        export LIB="$LIB:/c/openssl-1.1.1/dist/lib"
-        
-        ./Configure --prefix=$PWD/dist no-idea no-mdc2 no-rc5 shared mingw64
+        ./Configure --prefix=%cd%/dist no-idea no-mdc2 no-rc5 shared mingw64
         make depend && make && make install
 
     - name: Configure CMake
