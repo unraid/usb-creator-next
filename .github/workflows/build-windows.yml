@@ -34,7 +34,7 @@ jobs:
 
     - name: Configure CMake
       run: |
-        set PATH=%PATH%;${{github.workspace}}/../Qt/5.15.2/mingw81_32/bin
+        echo ${{github.workspace}}/../Qt/5.15.2/mingw81_32/bin >> $GITHUB_PATH
         set CC=${{github.workspace}}/../Qt/5.15.2/mingw81_32/bin/gcc
         set CXX=${{github.workspace}}/../Qt/5.15.2/mingw81_32/bin/g++
         where gcc
