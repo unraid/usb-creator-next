@@ -33,7 +33,7 @@ jobs:
         tar xvzf ${{github.workspace}}/src/windows/openssl-1.1.1s.zip -C  ${{github.workspace}}/../Qt/5.15.2/mingw81_32
 
     - name: Configure CMake
-      run: cmake -B ${{github.workspace}}/build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+      run: cmake ${{github.workspace}}/src -B ${{github.workspace}}/build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
 
     - name: Build
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
