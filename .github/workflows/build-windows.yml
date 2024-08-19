@@ -33,7 +33,8 @@ jobs:
         tar xvzf ${{github.workspace}}/src/windows/openssl-1.1.1s.zip -C  ${{github.workspace}}/../Qt/5.15.2/mingw81_32
 
     - name: Configure CMake
-      run: cmake ${{github.workspace}}/src -B ${{github.workspace}}/build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_C_COMPILER==${{github.workspace}}/../Qt/5.15.2/mingw81_32/bin/gcc.exe -DCMAKE_CXX_COMPILER==${{github.workspace}}/../Qt/5.15.2/mingw81_32/bin/g++.exe -DOPENSSL_ROOT_DIR==${{github.workspace}}/../Qt/5.15.2/mingw81_32
+      run: |
+        cmake ${{github.workspace}}/src -B ${{github.workspace}}/build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_C_COMPILER=gcc-8.1 -DCMAKE_CXX_COMPILER=g++-8.1 -DOPENSSL_ROOT_DIR=${{github.workspace}}/../Qt/5.15.2/mingw81_32
 
     - name: Build
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
