@@ -28,8 +28,8 @@ jobs:
 
     - name: Install Windows SDK
       uses: GuillaumeFalourd/setup-windows10-sdk-action@main
-        with:
-          sdk-version: 22621
+      with:
+        sdk-version: 22621
 
     - name: Configure CMake
       run: |
