@@ -26,11 +26,6 @@ jobs:
         curl -L "https://drive.usercontent.google.com/download?id=1TMCedICTUBlkgP0DBJo2b1IxPTl7RjRF&confirm=xxx" -o ${{github.workspace}}/NSIS.zip
         tar xvzf ${{github.workspace}}/NSIS.zip
 
-    - name: Install Windows SDK
-      uses: GuillaumeFalourd/setup-windows10-sdk-action@main
-      with:
-        sdk-version: 22621
-
     - name: Configure CMake
       run: |
         $env:Path = "${{github.workspace}}/mingw810_32/bin;" + $env:Path
@@ -41,12 +36,8 @@ jobs:
         $env:Path = "${{github.workspace}}/mingw810_32/bin;" + $env:Path
         cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
         
-    - name: Compress
-      run: |
-        tar cvzf ${{github.workspace}}/build.zip ${{github.workspace}}/build
-        
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
         name: WindowsInstaller
-        path: ${{github.workspace}}/build.zip
+        path: ${{github.workspace}}/build
