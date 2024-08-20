@@ -229,7 +229,7 @@ if (WIN32)
 
     # Code signing
     find_program(SIGNTOOL "signtool.exe" PATHS
-        "c:/Program Files (x86)/Microsoft SDKs/ClickOnce/SignTool"
+        #"c:/Program Files (x86)/Microsoft SDKs/ClickOnce/SignTool"
         "c:/Program Files (x86)/Windows Kits/10/bin/10.0.22621.0/x64")
     if (NOT SIGNTOOL)
         message(FATAL_ERROR "Unable to locate signtool.exe used for code signing")
