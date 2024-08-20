@@ -27,7 +27,6 @@ jobs:
         tar xvzf ${{github.workspace}}/NSIS.zip
 
     - name: Install Windows SDK
-      uses: actions/checkout@v2.3.4
       uses: GuillaumeFalourd/setup-windows10-sdk-action@main
         with:
           sdk-version: 22621
