@@ -28,7 +28,9 @@ jobs:
 
     - name: Configure CMake
       run: |
-        echo ${{github.workspace}}/mingw810_32/bin >> $GITHUB_PATH
+        echo ${{github.workspace}}/mingw810_32/bin > tmpenv.txt
+        type $GITHUB_PATH >> tmpenv.txt
+        type tmpenv.txt > $GITHUB_PATH
         cmake ${{github.workspace}}/src -B ${{github.workspace}}/build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DOPENSSL_ROOT_DIR=${{github.workspace}}/5.15.2/mingw81_32 -DCMAKE_C_COMPILER=${{github.workspace}}/mingw810_32/bin/gcc.exe -DCMAKE_CXX_COMPILER=${{github.workspace}}/mingw810_32/bin/g++.exe
 
     - name: Build
