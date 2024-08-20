@@ -34,7 +34,7 @@ jobs:
     - name: Configure CMake
       run: |
         $env:Path = "${{github.workspace}}/mingw810_32/bin;" + $env:Path
-        cmake ${{github.workspace}}/src -B ${{github.workspace}}/build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DOPENSSL_ROOT_DIR=${{github.workspace}}/5.15.2/mingw81_32 -DCMAKE_C_COMPILER=${{github.workspace}}/mingw810_32/bin/gcc.exe -DCMAKE_CXX_COMPILER=${{github.workspace}}/mingw810_32/bin/g++.exe -DQt5_DIR=${{github.workspace}}/5.15.2/mingw81_32/lib/cmake/Qt5 -DCMAKE_SYSTEM_VERSION=10.0.22621.0
+        cmake ${{github.workspace}}/src -B ${{github.workspace}}/build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DOPENSSL_ROOT_DIR=${{github.workspace}}/5.15.2/mingw81_32 -DCMAKE_C_COMPILER=${{github.workspace}}/mingw810_32/bin/gcc.exe -DCMAKE_CXX_COMPILER=${{github.workspace}}/mingw810_32/bin/g++.exe -DQt5_DIR=${{github.workspace}}/5.15.2/mingw81_32/lib/cmake/Qt5 -DCMAKE_SYSTEM_VERSION="10.0.22621.0"
 
     - name: Build
       run: |
