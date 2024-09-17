@@ -50,7 +50,7 @@ elseif (UNIX)
     endif()
 elseif (WIN32)
     set(DEPENDENCIES acceleratedcryptographichash.cpp dependencies/mountutils/src/windows/functions.cpp dependencies/drivelist/src/windows/list.cpp
-        windows/winfile.cpp windows/winfile.h windows/winwlancredentials.h windows/winwlancredentials.cpp
+        windows/winfile.cpp windows/winfile.h #windows/winwlancredentials.h windows/winwlancredentials.cpp
         windows/unraid-usb-creator.rc wlanapi_delayed.lib)
     set(EXTRALIBS setupapi ${CMAKE_CURRENT_BINARY_DIR}/wlanapi_delayed.lib)
     add_custom_command(
@@ -181,16 +181,18 @@ if (WIN32)
 
     find_package(OpenSSL REQUIRED)
 
+    find_package(ZLIB REQUIRED)
     # Bundled zlib
-    add_subdirectory(dependencies/zlib-1.2.13)
-    set(ZLIB_LIBRARY zlibstatic)
-    set(ZLIB_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/zlib-1.2.13 CACHE PATH "zlib include dir")
+    #add_subdirectory(dependencies/zlib-1.2.13)
+    #set(ZLIB_LIBRARY zlibstatic)
+    #set(ZLIB_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/zlib-1.2.13 CACHE PATH "zlib include dir")
 
+    find_package(CURL REQUIRED)
     # Bundled libcurl
-    set(CMAKE_CURL_INCLUDES)
-    set(CURL_LIBRARIES cmcurl)
-    add_subdirectory(dependencies/cmcurl)
-    set(CURL_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/cmcurl/include)
+    #set(CMAKE_CURL_INCLUDES)
+    #set(CURL_LIBRARIES cmcurl)
+    #add_subdirectory(dependencies/cmcurl)
+    #set(CURL_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/cmcurl/include)
 
     # Bundled liblzma
     add_subdirectory(dependencies/cmliblzma)
@@ -200,12 +202,13 @@ if (WIN32)
     set(LIBLZMA_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/cmliblzma/liblzma/api)
     set(LIBLZMA_LIBRARY cmliblzma)
 
+    find_package(zstd REQUIRED)
     # Bundled zstd
-    set(ZSTD_BUILD_PROGRAMS OFF)
-    set(ZSTD_BUILD_SHARED OFF)
-    add_subdirectory(dependencies/zstd-1.5.4/build/cmake)
-    set(ZSTD_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/zstd-1.5.4/lib CACHE PATH "zstd include dir")
-    set(ZSTD_LIBRARY libzstd_static)
+    #set(ZSTD_BUILD_PROGRAMS OFF)
+    #set(ZSTD_BUILD_SHARED OFF)
+    #add_subdirectory(dependencies/zstd-1.5.4/build/cmake)
+    #set(ZSTD_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/zstd-1.5.4/lib CACHE PATH "zstd include dir")
+    #set(ZSTD_LIBRARY libzstd_static)
 
     # Bundled libarchive
     set(ENABLE_TEST OFF CACHE BOOL "")
@@ -227,7 +230,8 @@ if (WIN32)
         POST_BUILD
         COMMAND ${CMAKE_STRIP} "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.exe")
 
-    # Code signing
+if(WIN_CODESIGN)
+# Code signing
 if(DO_CODESIGNING)
     find_program(SIGNTOOL "signtool.exe" PATHS
         "c:/Program Files (x86)/Microsoft SDKs/ClickOnce/SignTool"
@@ -245,11 +249,13 @@ if(DO_CODESIGNING)
         POST_BUILD
         COMMAND "${SIGNTOOL}" sign /tr http://timestamp.digicert.com /td sha256 /fd sha256 /a "${CMAKE_BINARY_DIR}/dependencies/fat32format/fat32format.exe")
 endif()
+if(USE_WINDEPLOYQT)
     # Windeploy
     find_program(WINDEPLOYQT "windeployqt.exe" PATHS "${${QT}_DIR}/../../../bin")
     if (NOT WINDEPLOYQT)
         message(FATAL_ERROR "Unable to locate windeployqt.exe")
     endif()
+endif()
 
     file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/deploy")
 
@@ -260,20 +266,21 @@ endif()
             "${CMAKE_SOURCE_DIR}/../license.txt" "${CMAKE_SOURCE_DIR}/windows/unraid-usb-creator-cli.cmd"
             "${CMAKE_BINARY_DIR}/deploy")
 
-    add_custom_command(TARGET ${PROJECT_NAME}
-        POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy
-            "${${QT}_DIR}/../../../bin/libssl-1_1.dll" "${${QT}_DIR}/../../../bin/libcrypto-1_1.dll"
-            "${CMAKE_BINARY_DIR}/deploy")
+    #add_custom_command(TARGET ${PROJECT_NAME}
+    #    POST_BUILD
+    #    COMMAND ${CMAKE_COMMAND} -E copy
+    #        "${${QT}_DIR}/../../../bin/libssl-1_1.dll" "${${QT}_DIR}/../../../bin/libcrypto-1_1.dll"
+    #        "${CMAKE_BINARY_DIR}/deploy")
 
     configure_file(
         "${CMAKE_CURRENT_SOURCE_DIR}/windows/unraid-usb-creator.nsi.in"
         "${CMAKE_CURRENT_BINARY_DIR}/unraid-usb-creator.nsi"
         @ONLY)
-
+if(USE_WINDEPLOYQT)
     add_custom_command(TARGET ${PROJECT_NAME}
         POST_BUILD
         COMMAND "${WINDEPLOYQT}" --no-translations --no-webkit2 --no-opengl-sw --angle --qmldir "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_BINARY_DIR}/deploy/unraid-usb-creator.exe")
+endif()
 
     # Remove excess files
     add_custom_command(TARGET ${PROJECT_NAME}
