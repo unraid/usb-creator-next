@@ -21,7 +21,7 @@ jobs:
 
     - name: Configure CMake
       run: |
-        cmake ${{github.workspace}}/src -B ${{github.workspace}}/build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DQt5_DIR=/opt/mxe/usr/i686-w64-mingw32.shared/qt5/lib/cmake/Qt5
+        cmake ${{github.workspace}}/src -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DQt5_DIR=/opt/mxe/usr/i686-w64-mingw32.shared/qt5/lib/cmake/Qt5
 
     - name: Build
       run: |
