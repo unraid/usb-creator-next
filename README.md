@@ -111,7 +111,7 @@ cd usb-creator-next
 mkdir build
 cd build
 cmake ../src -DQt5_DIR=/opt/mxe/usr/i686-w64-mingw32.shared/qt5/lib/cmake/Qt5 -DCMAKE_BUILD_TYPE=Release
-i686-w64-mingw32.shared-makensis 
+i686-w64-mingw32.shared-makensis unraid-usb-creator.nsi
 
 ```
 
