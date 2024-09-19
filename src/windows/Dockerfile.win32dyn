@@ -3,7 +3,7 @@ FROM fffaraz/qt:mxe
 RUN apt update
 RUN apt install python3-pip -y
 RUN pip3 install packaging
-RUN apt install nsis
+RUN apt install nsis -y
 
 RUN \
     cd /opt/mxe && \
