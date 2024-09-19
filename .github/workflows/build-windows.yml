@@ -31,7 +31,7 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           push: true
-          file: Dockerfile.win32dyn
+          file: src/windows/Dockerfile.win32dyn
           tags: ghcr.io/${{ github.repository }}/usb-creator-mxe:latest
   build:
     runs-on: ghcr.io/${{ github.repository }}/usb-creator-mxe:latest
