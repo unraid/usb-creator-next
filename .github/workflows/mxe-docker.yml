@@ -4,7 +4,7 @@ on:
   workflow_dispatch: # Enables manual triggering of the workflow via a button push
 
 jobs:
-  build-and-push:
+  build-and-push-docker:
     runs-on: ubuntu-latest
 
     steps:
@@ -25,5 +25,5 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           push: true
-          file: Dockerfile.win32dyn
+          file: src/windows/Dockerfile.win32dyn
           tags: ghcr.io/${{ github.repository }}/usb-creator-mxe:latest
