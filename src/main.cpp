@@ -151,8 +151,7 @@ int main(int argc, char *argv[])
      */
     qputenv("QML_DISABLE_DISK_CACHE", "true");
 #ifdef Q_OS_WIN
-    // prefer ANGLE (DirectX) over desktop OpenGL
-    //QCoreApplication::setAttribute(Qt::AA_UseOpenGLES);
+    // QT_QUICK_BACKEND must be set to software for MXE crosscompile
     qputenv("QT_QUICK_BACKEND", "software");
     qputenv("QT_QPA_PLATFORM", "windows:darkmode=1");
 #endif

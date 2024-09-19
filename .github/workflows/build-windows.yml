@@ -11,29 +11,18 @@ env:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: ghcr.io/${{ github.repository }}/usb-creator-mxe:latest
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Download & Extract Windows Dependencies
-      run: |
-        curl -L "https://drive.usercontent.google.com/download?id=1wguVgKGFbzUoj_RXF-RPB-MdPCH8ZGEU&confirm=xxx" -o ${{github.workspace}}/5.15.2.zip
-        tar xvzf ${{github.workspace}}/5.15.2.zip
-        curl -L "https://drive.usercontent.google.com/download?id=1Dk_HobWfzUPRJ-3-9-IIS1EOM6CNtSgT&confirm=xxx" -o ${{github.workspace}}/mingw810_32.zip
-        tar xvzf ${{github.workspace}}/mingw810_32.zip
-        curl -L "https://drive.usercontent.google.com/download?id=1TMCedICTUBlkgP0DBJo2b1IxPTl7RjRF&confirm=xxx" -o ${{github.workspace}}/NSIS.zip
-        tar xvzf ${{github.workspace}}/NSIS.zip
-
     - name: Configure CMake
       run: |
-        $env:Path = "${{github.workspace}}/mingw810_32/bin;" + $env:Path
-        cmake ${{github.workspace}}/src -B ${{github.workspace}}/build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DOPENSSL_ROOT_DIR=${{github.workspace}}/5.15.2/mingw81_32 -DCMAKE_C_COMPILER=${{github.workspace}}/mingw810_32/bin/gcc.exe -DCMAKE_CXX_COMPILER=${{github.workspace}}/mingw810_32/bin/g++.exe -DQt5_DIR=${{github.workspace}}/5.15.2/mingw81_32/lib/cmake/Qt5 -DCMAKE_SYSTEM_VERSION="10.0.22621.0"
+        cmake ${{github.workspace}}/src -B ${{github.workspace}}/build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DQt5_DIR=/opt/mxe/usr/i686-w64-mingw32.shared/qt5/lib/cmake/Qt5
 
     - name: Build
       run: |
-        $env:Path = "${{github.workspace}}/mingw810_32/bin;" + $env:Path
         cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
         
     - name: Upload Artifact
