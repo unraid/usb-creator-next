@@ -24,7 +24,6 @@ jobs:
         ls -la .
         ls -la /
         ls -la ${{github.workspace}}
-        ls -la ${{ GITHUB_WORKSPACE }
         cmake usb-creator-next/src -B usb-creator-next/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DQt5_DIR=/opt/mxe/usr/i686-w64-mingw32.shared/qt5/lib/cmake/Qt5
 
     - name: Build
