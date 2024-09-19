@@ -186,7 +186,7 @@ Section -MainProgram
 ${INSTALL_TYPE}
 !insertmacro TerminateApp
 SetOverwrite ifnewer
-SetOutPath "$INSTDIR"/app
+SetOutPath "$INSTDIR/app"
 File /r "deploy/*.*"
 SectionEnd
 
