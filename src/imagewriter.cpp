@@ -11,7 +11,6 @@
 #include "driveformatthread.h"
 #include "localfileextractthread.h"
 #include "downloadstatstelemetry.h"
-#include "wlancredentials.h"
 #include <archive.h>
 #include <archive_entry.h>
 #include <lzma.h>
@@ -1194,7 +1193,7 @@ QStringList ImageWriter::getKeymapLayoutList()
 
 QString ImageWriter::getSSID()
 {
-    return WlanCredentials::instance()->getSSID();
+    return QString();
 }
 
 QString ImageWriter::getPSK()
@@ -1209,8 +1208,7 @@ QString ImageWriter::getPSK()
         return QString();
     }
 #endif
-
-    return WlanCredentials::instance()->getPSK();
+    return QString();
 }
 
 bool ImageWriter::getBoolSetting(const QString &key)

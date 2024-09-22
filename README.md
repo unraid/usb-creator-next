@@ -76,7 +76,7 @@ git clone --depth 1 https://github.com/unraid/usb-creator-next
 #### Build and install the software
 
 ```
-cd rpi-imager
+cd usb-creator-next
 mkdir -p build
 cd build
 cmake ../src
@@ -86,30 +86,35 @@ sudo make install
 
 ### Windows
 
-#### Get Windows dependencies
+#### Cross-compile for Windows with Docker + MXE
 
-- Get the Qt online installer from: https://www.qt.io/download-open-source
-During installation, choose a Qt 5.x with Mingw32 32-bit toolchain and CMake.
+Prerequisite: [Docker](https://www.docker.com/)
 
-- If using the official Qt distribution that does NOT have schannel (Windows native SSL library) support, compile OpenSSL libraries ( https://wiki.qt.io/Compiling_OpenSSL_with_MinGW ) and copy the libssl/crypto DLLs to C:\qt\5.x\mingw73_32\bin  the include files to C:\qt\5.x\mingw73_32\include and the import library files to C:\qt\5.x\mingw73_32\lib
+Dockerfile: src/windows/Dockerfile.win32dyn
 
-- For building installer get Nullsoft scriptable install system: https://nsis.sourceforge.io/Download
+To build the image (might take a few hours) and start a new container in interactive mode:
+```
+docker build --force-rm -f Dockerfile.win32dyn -t unraid/usb-creator:win32dyn .
+docker run --rm -it unraid/usb-creator:win32dyn
+```
 
-- It is assumed you already have a proper code signing certificate, and signtool.exe from the Windows SDK installed.
-If NOT and are you only compiling for your own personal use, comment out all lines mentioning signtool from CMakelists.txt and the .nsi installer script.
+Or, to pull the image from GitHub and start a new container in interactive mode:
+```
+docker pull ghcr.io/unraid/usb-creator-next/usb-creator-mxe:latest
+docker run --rm -it ghcr.io/unraid/usb-creator-next/usb-creator-mxe:latest
+```
 
-#### Building on Windows
+Then, inside the container:
+```
+git clone https://github.com/unraid/usb-creator-next
+cd usb-creator-next
+mkdir build
+cd build
+cmake ../src -DQt5_DIR=/opt/mxe/usr/i686-w64-mingw32.shared/qt5/lib/cmake/Qt5 -DCMAKE_BUILD_TYPE=Release
+cmake --build . --config Release
+makensis unraid-usb-creator.nsi
 
-Building can be done manually using the command-line, using "cmake", "make", etc., but if you are not that familar with setting up a proper Windows build environment (setting paths, etc.), it is easiest to use the Qt creator GUI instead.
-
-- Download source .zip from github and extract it to a folder on disk
-- Open src/CMakeLists.txt in Qt creator.
-- For builds you distribute to others, make sure you choose "Release" in the toolchain settings and not the debug flavour.
-- Menu "Build" -> "Build all"
-- Result will be in build_unraid-usb-creator_someversion
-- Go to the BUILD folder, right click on the .nsi script "Compile NSIS script", to create installer.
-
-Note: the CMake integration in Qt Creator is a bit flaky at times. If you made any custom changes to the CMakeLists.txt file and it subsequently gets in an endless loop where it never finishes the "configures" stage while re-processing the file, delete "build_unraid-usb-creator_someversion" directory and try again.
+```
 
 #### Signing
 
@@ -144,7 +149,7 @@ For distribution to others:
 E.g.:
 
 ```sh
-cd build-rpi-imager-Desktop_Qt_5_14_1_clang_64bit-Release/
+cd build-usb-creator-next-Desktop_Qt_5_14_1_clang_64bit-Release/
 codesign --deep --force --verify --verbose --sign "YOUR KEYID" --options runtime unraid-usb-creator.app
 mv unraid-usb-creator.app "Unraid USB Creator.app"
 create-dmg "Unraid USB Creator.dmg" "Unraid USB Creator.app" 
