@@ -49,7 +49,7 @@ This will build and install the version of Qt preferred for Raspberry Pi Imager 
 
 ### Windows
 
-#### Get Windows dependencies
+#### Cross-compile for Windows with Docker + MXE
 
 - Get the Qt online installer from: https://www.qt.io/download-open-source
   - During installation, choose Qt 6.9 with Mingw64 64-bit toolchain.
@@ -57,7 +57,15 @@ This will build and install the version of Qt preferred for Raspberry Pi Imager 
 - Install Visual Studio Code (or a derivative) and the Qt Extension Pack.
 - It is assumed you already have a valid code signing certificate, and the Windows 10 Kit (SDK) installed.
 
-#### Building on Windows
+Then, inside the container:
+```
+git clone https://github.com/unraid/usb-creator-next
+cd usb-creator-next
+mkdir build
+cd build
+cmake ../src -DQt5_DIR=/opt/mxe/usr/i686-w64-mingw32.shared/qt5/lib/cmake/Qt5 -DCMAKE_BUILD_TYPE=Release
+cmake --build . --config Release
+makensis unraid-usb-creator.nsi
 
 Building Raspberry Pi Imager on Windows is best done with Visual Studio Code (or a derivative).
 
@@ -87,6 +95,7 @@ To sign the .exe installer on Windows, [follow these instructions](https://githu
 #### Building on Mac
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 Building Raspberry Pi Imager on macOS is best done with Visual Studio Code (or a derivative).
 =======
 <<<<<<< HEAD
@@ -108,6 +117,9 @@ For distribution to others:
 4. staple the notarization ticket to the DMG.
 >>>>>>> f22862a9 (chore(docs): add screenshots to readme)
 >>>>>>> e7b342f1 (chore(docs): add screenshots to readme)
+=======
+Building Raspberry Pi Imager on Windows is best done with Visual Studio Code (or a derivative).
+>>>>>>> 30704eaf (Create build-windows.yml (#51))
 
 - Open Visual Studio Code, and select 'Clone repo'. Give it the git url of this project.
 - Open the CMake plugin settings, and set the following Configure Args:

@@ -810,7 +810,7 @@ if (WIN32)
     if (NOT WINDEPLOYQT)
         message(FATAL_ERROR "Unable to locate windeployqt.exe")
     endif()
-
+	
     file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/deploy")
 
     add_custom_command(TARGET ${PROJECT_NAME}
