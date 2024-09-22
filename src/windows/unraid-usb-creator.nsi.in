@@ -21,7 +21,7 @@
 
 ######################################################################
 
-VIProductVersion "@IMAGER_VERSION_MAJOR@.@IMAGER_VERSION_MINOR@.0.0"
+VIProductVersion "@IMAGER_VERSION_MAJOR@.@IMAGER_VERSION_MINOR@.@IMAGER_VERSION_PATCH@.0"
 VIAddVersionKey "ProductName"  "${APP_NAME}"
 VIAddVersionKey "CompanyName"  "${COMP_NAME}"
 VIAddVersionKey "LegalCopyright"  "${COPYRIGHT}"
@@ -65,7 +65,7 @@ InstallDir "$PROGRAMFILES\Unraid USB Creator"
 
 !insertmacro MUI_PAGE_INSTFILES
 
-!define MUI_FINISHPAGE_RUN "$INSTDIR/${MAIN_APP_EXE}"
+!define MUI_FINISHPAGE_RUN "$INSTDIR\${MAIN_APP_EXE}"
 !insertmacro MUI_PAGE_FINISH
 
 !insertmacro MUI_UNPAGE_CONFIRM
@@ -186,7 +186,8 @@ Section -MainProgram
 ${INSTALL_TYPE}
 !insertmacro TerminateApp
 SetOverwrite ifnewer
-SetOutPath "$INSTDIR/app"
+SetOutPath "$INSTDIR"
+WriteUninstaller "uninstall.exe"
 File /r "deploy/*.*"
 SectionEnd
 
@@ -194,35 +195,30 @@ SectionEnd
 
 Section -Icons_Reg
 
-!ifndef INNER
-SetOutPath "$INSTDIR"
-File "uninstall.exe"
-!endif
-
 !ifdef REG_START_MENU
 !insertmacro MUI_STARTMENU_WRITE_BEGIN Application
-CreateDirectory "$SMPROGRAMS/$SM_Folder"
-CreateShortCut "$SMPROGRAMS/$SM_Folder/${APP_NAME}.lnk" "$INSTDIR/${MAIN_APP_EXE}"
+CreateDirectory "$SMPROGRAMS\$SM_Folder"
+CreateShortCut "$SMPROGRAMS\$SM_Folder\${APP_NAME}.lnk" "$INSTDIR\${MAIN_APP_EXE}"
 !ifdef WEB_SITE
-WriteIniStr "$INSTDIR/${APP_NAME} website.url" "InternetShortcut" "URL" "${WEB_SITE}"
-CreateShortCut "$SMPROGRAMS/$SM_Folder/${APP_NAME} Website.lnk" "$INSTDIR/${APP_NAME} website.url"
+WriteIniStr "$INSTDIR\${APP_NAME} website.url" "InternetShortcut" "URL" "${WEB_SITE}"
+CreateShortCut "$SMPROGRAMS\$SM_Folder\${APP_NAME} Website.lnk" "$INSTDIR\${APP_NAME} website.url"
 !endif
 !insertmacro MUI_STARTMENU_WRITE_END
 !endif
 
 !ifndef REG_START_MENU
-CreateDirectory "$SMPROGRAMS/Unraid"
-CreateShortCut "$SMPROGRAMS/Unraid/${APP_NAME}.lnk" "$INSTDIR/${MAIN_APP_EXE}"
+CreateDirectory "$SMPROGRAMS\Unraid"
+CreateShortCut "$SMPROGRAMS\Unraid\${APP_NAME}.lnk" "$INSTDIR\${MAIN_APP_EXE}"
 !ifdef WEB_SITE
-WriteIniStr "$INSTDIR/${APP_NAME} website.url" "InternetShortcut" "URL" "${WEB_SITE}"
-CreateShortCut "$SMPROGRAMS/Unraid/${APP_NAME} Website.lnk" "$INSTDIR/${APP_NAME} website.url"
+WriteIniStr "$INSTDIR\${APP_NAME} website.url" "InternetShortcut" "URL" "${WEB_SITE}"
+CreateShortCut "$SMPROGRAMS\Unraid\${APP_NAME} Website.lnk" "$INSTDIR\${APP_NAME} website.url"
 !endif
 !endif
 
-WriteRegStr ${REG_ROOT} "${REG_APP_PATH}" "" "$INSTDIR/${MAIN_APP_EXE}"
+WriteRegStr ${REG_ROOT} "${REG_APP_PATH}" "" "$INSTDIR\${MAIN_APP_EXE}"
 WriteRegStr ${REG_ROOT} "${UNINSTALL_PATH}"  "DisplayName" "${APP_NAME}"
-WriteRegStr ${REG_ROOT} "${UNINSTALL_PATH}"  "UninstallString" "$INSTDIR/uninstall.exe"
-WriteRegStr ${REG_ROOT} "${UNINSTALL_PATH}"  "DisplayIcon" "$INSTDIR/${MAIN_APP_EXE}"
+WriteRegStr ${REG_ROOT} "${UNINSTALL_PATH}"  "UninstallString" "$INSTDIR\uninstall.exe"
+WriteRegStr ${REG_ROOT} "${UNINSTALL_PATH}"  "DisplayIcon" "$INSTDIR\${MAIN_APP_EXE}"
 WriteRegStr ${REG_ROOT} "${UNINSTALL_PATH}"  "DisplayVersion" "${VERSION}"
 WriteRegStr ${REG_ROOT} "${UNINSTALL_PATH}"  "Publisher" "${COMP_NAME}"
 
@@ -231,63 +227,57 @@ WriteRegStr ${REG_ROOT} "${UNINSTALL_PATH}"  "URLInfoAbout" "${WEB_SITE}"
 !endif
 
 
-WriteRegStr SHCTX "Software/Classes/.zip/OpenWithProgIds" "UNRAID_USB_CREATOR" ""
-WriteRegStr SHCTX "Software/Classes/.gz/OpenWithProgIds" "UNRAID_USB_CREATOR" ""
-WriteRegStr SHCTX "Software/Classes/.xz/OpenWithProgIds" "UNRAID_USB_CREATOR" ""
-WriteRegStr SHCTX "Software/Classes/.img/OpenWithProgIds" "UNRAID_USB_CREATOR" ""
-WriteRegStr SHCTX "Software/Classes/.zstd/OpenWithProgIds" "UNRAID_USB_CREATOR" ""
-WriteRegStr SHCTX "Software/Classes/UNRAID_USB_CREATOR/shell/open" "FriendlyAppName" "Unraid USB Creator"
-WriteRegStr SHCTX "Software/Classes/UNRAID_USB_CREATOR/shell/open/command" "" '"$INSTDIR/unraid-usb-creator.exe" "%1"'
+WriteRegStr SHCTX "Software\Classes\.zip\OpenWithProgIds" "UNRAID_USB_CREATOR" ""
+WriteRegStr SHCTX "Software\Classes\.gz\OpenWithProgIds" "UNRAID_USB_CREATOR" ""
+WriteRegStr SHCTX "Software\Classes\.xz\OpenWithProgIds" "UNRAID_USB_CREATOR" ""
+WriteRegStr SHCTX "Software\Classes\.img\OpenWithProgIds" "UNRAID_USB_CREATOR" ""
+WriteRegStr SHCTX "Software\Classes\.zstd\OpenWithProgIds" "UNRAID_USB_CREATOR" ""
+WriteRegStr SHCTX "Software\Classes\UNRAID_USB_CREATOR\shell\open" "FriendlyAppName" "Unraid USB Creator"
+WriteRegStr SHCTX "Software\Classes\UNRAID_USB_CREATOR\shell\open\command" "" '"$INSTDIR\unraid-usb-creator.exe" "%1"'
 
 SectionEnd
 
-######################################################################
+#############################################################################################
 
 Section Uninstall
 ${INSTALL_TYPE}
-RMDIR /r "$INSTDIR/app"
- 
-Delete "$INSTDIR/uninstall.exe"
-!ifdef WEB_SITE
-Delete "$INSTDIR/${APP_NAME} website.url"
-!endif
 
-RmDir "$INSTDIR"
+RmDir /r "$INSTDIR"
 
 !ifdef REG_START_MENU
 !insertmacro MUI_STARTMENU_GETFOLDER "Application" $SM_Folder
-Delete "$SMPROGRAMS/$SM_Folder/${APP_NAME}.lnk"
+Delete "$SMPROGRAMS\$SM_Folder\${APP_NAME}.lnk"
 !ifdef WEB_SITE
-Delete "$SMPROGRAMS/$SM_Folder/${APP_NAME} Website.lnk"
+Delete "$SMPROGRAMS\$SM_Folder\${APP_NAME} Website.lnk"
 !endif
-RmDir "$SMPROGRAMS/$SM_Folder"
+RmDir "$SMPROGRAMS\$SM_Folder"
 !endif
 
 !ifndef REG_START_MENU
-Delete "$SMPROGRAMS/Unraid/${APP_NAME}.lnk"
+Delete "$SMPROGRAMS\Unraid\${APP_NAME}.lnk"
 !ifdef WEB_SITE
-Delete "$SMPROGRAMS/Unraid/${APP_NAME} Website.lnk"
+Delete "$SMPROGRAMS\Unraid\${APP_NAME} Website.lnk"
 !endif
-RmDir "$SMPROGRAMS/Unraid"
+RmDir "$SMPROGRAMS\Unraid"
 !endif
 
 DeleteRegKey ${REG_ROOT} "${REG_APP_PATH}"
 DeleteRegKey ${REG_ROOT} "${UNINSTALL_PATH}"
 
 # File associations
-DeleteRegValue SHCTX "Software/Classes/.zip/OpenWithProgIds" "UNRAID_USB_CREATOR"
-DeleteRegValue SHCTX "Software/Classes/.gz/OpenWithProgIds" "UNRAID_USB_CREATOR"
-DeleteRegValue SHCTX "Software/Classes/.xz/OpenWithProgIds" "UNRAID_USB_CREATOR"
-DeleteRegValue SHCTX "Software/Classes/.img/OpenWithProgIds" "UNRAID_USB_CREATOR"
-DeleteRegValue SHCTX "Software/Classes/.zstd/OpenWithProgIds" "UNRAID_USB_CREATOR"
-DeleteRegKey SHCTX "Software/Classes/UNRAID_USB_CREATOR"
+DeleteRegValue SHCTX "Software\Classes\.zip\OpenWithProgIds" "UNRAID_USB_CREATOR"
+DeleteRegValue SHCTX "Software\Classes\.gz\OpenWithProgIds" "UNRAID_USB_CREATOR"
+DeleteRegValue SHCTX "Software\Classes\.xz\OpenWithProgIds" "UNRAID_USB_CREATOR"
+DeleteRegValue SHCTX "Software\Classes\.img\OpenWithProgIds" "UNRAID_USB_CREATOR"
+DeleteRegValue SHCTX "Software\Classes\.zstd\OpenWithProgIds" "UNRAID_USB_CREATOR"
+DeleteRegKey SHCTX "Software\Classes\UNRAID_USB_CREATOR"
 
 DeleteRegKey ${REG_ROOT} ""
 
-RMDir /r "$APPDATA/Unraid/${APP_NAME}"
-RMDir "$APPDATA/Unraid"
-RMDir /r "$LOCALAPPDATA/Unraid/${APP_NAME}"
-RMDir "$LOCALAPPDATA/Unraid"
+RMDir /r "$APPDATA\Unraid\${APP_NAME}"
+RMDir "$APPDATA\Unraid"
+RMDir /r "$LOCALAPPDATA\Unraid\${APP_NAME}"
+RMDir "$LOCALAPPDATA\Unraid"
 
 SectionEnd
 
@@ -295,18 +285,8 @@ SectionEnd
 
 
 Function .onInit
-!ifdef INNER
- 
-  ; If INNER is defined, then we aren't supposed to do anything except write out
-  ; the uninstaller.  This is better than processing a command line option as it means
-  ; this entire code path is not present in the final (real) installer.
-  SetSilent silent
-  WriteUninstaller "uninstall.exe"
-  Quit  ; just bail out quickly when running the "inner" installer
-!else
-  ${IfNot} ${AtLeastWin7}
-    MessageBox MB_OK "$(win7Msg)"
-    Quit
-  ${EndIf}
-!endif
+	${IfNot} ${AtLeastWin7}
+		MessageBox MB_OK "$(win7Msg)"
+		Quit
+	${EndIf}
 FunctionEnd
