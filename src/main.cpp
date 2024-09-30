@@ -332,7 +332,7 @@ int main(int argc, char *argv[])
         QLocale::setDefault(QLocale(langcode));
 #endif
 
-        if (translator->load(QLocale(), "rpi-imager", "_", QLatin1String(":/i18n")))
+        if (translator->load(QLocale(), "unraid-usb-creator", "_", QLatin1String(":/i18n")))
             imageWriter.replaceTranslator(translator);
         else
             delete translator;

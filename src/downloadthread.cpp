@@ -118,7 +118,7 @@ bool DownloadThread::_openAndPrepareDevice()
 {
     if (_filename.startsWith("/dev/"))
     {
-        emit preparationStatusUpdate(tr("unmounting drive"));
+        emit preparationStatusUpdate(tr("Unmounting drive"));
 #ifdef Q_OS_DARWIN
         /* Also unmount any APFS volumes using this physical disk */
         auto l = Drivelist::ListStorageDevices();
@@ -138,7 +138,7 @@ bool DownloadThread::_openAndPrepareDevice()
         qDebug() << "Unmounting:" << _filename;
         unmount_disk(_filename.constData());
     }
-    emit preparationStatusUpdate(tr("opening drive"));
+    emit preparationStatusUpdate(tr("Opening drive"));
 
     _file.setFileName(_filename);
 
@@ -281,7 +281,7 @@ bool DownloadThread::_openAndPrepareDevice()
                 qDebug() << "Try to perform TRIM/DISCARD on device";
                 range[0] = 0;
                 range[1] = devsize;
-                emit preparationStatusUpdate(tr("discarding existing data on drive"));
+                emit preparationStatusUpdate(tr("Discarding existing data on drive"));
                 _timer.start();
                 if (::ioctl(fd, BLKDISCARD, &range) == -1)
                 {
@@ -301,7 +301,7 @@ bool DownloadThread::_openAndPrepareDevice()
     qint64 knownsize = _file.size();
     QByteArray emptyMB(1024*1024, 0);
 
-    emit preparationStatusUpdate(tr("zeroing out first and last MB of drive"));
+    emit preparationStatusUpdate(tr("Zeroing out first and last MB of drive"));
     qDebug() << "Zeroing out first and last MB of drive";
     _timer.start();
 
@@ -408,7 +408,7 @@ void DownloadThread::run()
     if (!_proxy.isEmpty())
         curl_easy_setopt(_c, CURLOPT_PROXY, _proxy.constData());
 
-    emit preparationStatusUpdate(tr("starting download"));
+    emit preparationStatusUpdate(tr("Starting download"));
     _timer.start();
     CURLcode ret = curl_easy_perform(_c);
 
