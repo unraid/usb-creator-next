@@ -212,7 +212,16 @@ ImageWriter::ImageWriter(QObject *parent)
 
         QLocale loc(langcode);
         /* Use "English" for "en" and not "American English" */
-        QString langname = (langcode == "en" ? "English" : loc.nativeLanguageName());
+        QString langname = loc.nativeLanguageName();
+        if (langcode == "en")
+        {
+            langname = "English";
+        }
+        else if (langcode == "es")
+        {
+            langname = "Español";
+        }
+
         _translations.insert(langname, langcode);
         if (langcode == currentlangcode)
         {
