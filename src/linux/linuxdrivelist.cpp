@@ -61,7 +61,7 @@ namespace Drivelist
         }
 
 
-        QRegularExpression vidRegExp("VENDOR_ID=([0-9A-Za-z]{4})"), pidRegExp("MODEL_ID=([0-9A-Za-z]{4})"), snRegExp("SERIAL_SHORT=([0-9A-Za-z]+)");
+        QRegularExpression vidRegExp("VENDOR_ID=([0-9A-Za-z]{4})(?:.*)"), pidRegExp("MODEL_ID=([0-9A-Za-z]{4})(?:.*)"), snRegExp("SERIAL_SHORT=([0-9A-Za-z]+)");
 
         QJsonDocument d = QJsonDocument::fromJson(output);
         const QJsonArray a = d.object()["blockdevices"].toArray();

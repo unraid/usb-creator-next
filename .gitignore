@@ -5,4 +5,4 @@ debian/rpi-imager/**
 debian/.debhelper**
 debian/files
 debian/*.substvars
-debian/debhelper**
+debian/debhelper**.DS_Store
