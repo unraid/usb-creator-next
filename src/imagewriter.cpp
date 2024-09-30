@@ -154,7 +154,7 @@ ImageWriter::ImageWriter(QObject *parent)
     }
     _settings.endGroup();
 
-    QDir dir(":/i18n", "rpi-imager_*.qm");
+    QDir dir(":/i18n", "unraid-usb-creator_*.qm");
     const QStringList transFiles = dir.entryList();
     QLocale currentLocale;
     QStringList localeComponents = currentLocale.name().split('_');
@@ -164,7 +164,7 @@ ImageWriter::ImageWriter(QObject *parent)
 
     for (const QString &tf : transFiles)
     {
-        QString langcode = tf.mid(11, tf.length()-14);
+        QString langcode = tf.mid(19, tf.length()-22);
         /* FIXME: we currently lack a font with support for Chinese characters in embedded mode */
         //if (isEmbeddedMode() && langcode == "zh")
         //    continue;
@@ -1339,7 +1339,7 @@ void ImageWriter::changeLanguage(const QString &newLanguageName)
     qDebug() << "Changing language to" << langcode;
 
     QTranslator *trans = new QTranslator();
-    if (trans->load(":/i18n/rpi-imager_"+langcode+".qm"))
+    if (trans->load(":/i18n/unraid-usb-creator_"+langcode+".qm"))
     {
         replaceTranslator(trans);
         _currentLang = newLanguageName;
