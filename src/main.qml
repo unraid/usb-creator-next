@@ -726,9 +726,9 @@ ApplicationWindow {
             Layout.column: 2
             Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
             spacing: 0
-	
+
             Text {
-                color: UnColors.orange
+                color: Style.unraidAccentColor
                 text: qsTr("Select Language")
                 font.pixelSize: 12
                 font.family: robotoBold.name

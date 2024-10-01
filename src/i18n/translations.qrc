@@ -2,5 +2,8 @@
     <qresource prefix="/i18n">
         <file>unraid-usb-creator_en.qm</file>
         <file>unraid-usb-creator_es.qm</file>
+        <file>unraid-usb-creator_de.qm</file>
+        <file>unraid-usb-creator_fr.qm</file>
+        <file>unraid-usb-creator_zh.qm</file>
     </qresource>
 </RCC>
