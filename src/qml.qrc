@@ -37,6 +37,7 @@
         <file>qmlcomponents/regex_validator_qt6.qml</file>
         <file>icons/unraid.icns</file>
         <file>unraid/icons/help_orange.svg</file>
+        <file>unraid/icons/lang.svg</file>
         <file>unraid/icons/help_dark_gray.svg</file>
         <file>unraid/icons/info_orange.svg</file>
         <file>unraid/icons/info_dark_gray.svg</file>
