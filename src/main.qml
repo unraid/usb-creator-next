@@ -750,9 +750,9 @@ ApplicationWindow {
                 sourceSize.width: 25
                 sourceSize.height: 25
                 anchors.right: parent.right
-                anchors.rightMargin: 12
+                anchors.rightMargin: 10
                 anchors.bottom: parent.bottom
-                anchors.bottomMargin: 42
+                anchors.bottomMargin: 41
                 fillMode: Image.PreserveAspectFit
             }
         }
