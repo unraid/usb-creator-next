@@ -132,7 +132,7 @@ if(${QT}WinExtras_FOUND)
     set(EXTRALIBS ${EXTRALIBS} ${QT}::WinExtras)
 endif()
 
-set(TRANSLATIONS i18n/unraid-usb-creator_en.ts i18n/unraid-usb-creator_es.ts)
+set(TRANSLATIONS i18n/unraid-usb-creator_en.ts i18n/unraid-usb-creator_es.ts i18n/unraid-usb-creator_de.ts i18n/unraid-usb-creator_fr.ts i18n/unraid-usb-creator_zh.ts)
 #qt5_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TRANSLATIONS})
 if (Qt5_FOUND)
     qt5_add_translation(QM_FILES ${TRANSLATIONS})
