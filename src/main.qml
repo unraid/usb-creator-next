@@ -564,21 +564,34 @@ ApplicationWindow {
             Layout.column: 2
             Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
             spacing: 0
-
+	
             Text {
                 color: UnColors.orange
                 text: qsTr("Select Language")
                 font.pixelSize: 12
                 font.family: robotoBold.name
                 font.bold: true
+                anchors.right: langIcon.left
+                anchors.rightMargin: 5
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 43
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: langbarRect.visible = !langbarRect.visible
+                }
+            }
+            Image {
+                id: langIcon
+                source: "unraid/icons/lang.svg"
+                Layout.preferredHeight: 18
+                Layout.preferredWidth: 18
+                sourceSize.width: 25
+                sourceSize.height: 25
                 anchors.right: parent.right
                 anchors.rightMargin: 12
                 anchors.bottom: parent.bottom
-                anchors.bottomMargin: 25
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked: langbarRect.visible = true
-                }
+                anchors.bottomMargin: 42
+                fillMode: Image.PreserveAspectFit
             }
         }
     }
