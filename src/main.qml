@@ -388,7 +388,7 @@ ApplicationWindow {
                     id: langbarRect
                     Layout.columnSpan: 3
                     Layout.alignment: Qt.AlignHCenter | Qt.AlignBottom
-                    Layout.bottomMargin: 5
+                    Layout.bottomMargin: 15
                     visible: imageWriter.isEmbeddedMode()
                     implicitWidth: langbar.width
                     implicitHeight: langbar.height
@@ -556,6 +556,42 @@ ApplicationWindow {
                     anchors.fill: parent
                     onClicked: infopopup.openPopup()
                 }
+            }
+        }
+        ColumnLayout {
+            id: columnLayout4
+            Layout.row: 1
+            Layout.column: 2
+            Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
+            spacing: 0
+	
+            Text {
+                color: UnColors.orange
+                text: qsTr("Select Language")
+                font.pixelSize: 12
+                font.family: robotoBold.name
+                font.bold: true
+                anchors.right: langIcon.left
+                anchors.rightMargin: 5
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 43
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: langbarRect.visible = !langbarRect.visible
+                }
+            }
+            Image {
+                id: langIcon
+                source: "unraid/icons/lang.svg"
+                Layout.preferredHeight: 18
+                Layout.preferredWidth: 18
+                sourceSize.width: 25
+                sourceSize.height: 25
+                anchors.right: parent.right
+                anchors.rightMargin: 10
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 41
+                fillMode: Image.PreserveAspectFit
             }
         }
     }
