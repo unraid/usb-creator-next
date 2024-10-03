@@ -431,12 +431,12 @@
     <message>
         <location filename="usb-creator-next/src/UnraidOptionsPopup.qml" line="137"/>
         <source>DHCP</source>
-        <translation type="unfinished"></translation>
+        <translation>DHCP</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/UnraidOptionsPopup.qml" line="144"/>
         <source>Static IP</source>
-        <translation type="unfinished"></translation>
+        <translation>IP estática</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/UnraidOptionsPopup.qml" line="230"/>
