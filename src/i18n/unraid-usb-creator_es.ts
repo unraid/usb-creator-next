@@ -474,7 +474,7 @@
     <message>
         <location filename="usb-creator-next/src/UseSavedSettingsPopup.qml" line="142"/>
         <source>NO</source>
-        <translation type="unfinished"></translation>
+        <translation>NO</translation>
     </message>
 </context>
 <context>
@@ -482,7 +482,7 @@
     <message>
         <location filename="usb-creator-next/src/main.qml" line="25"/>
         <source>Unraid USB Creator v%1</source>
-        <translation type="unfinished"></translation>
+        <translation>Creador USB Unraid v%1</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/main.qml" line="92"/>
@@ -503,7 +503,7 @@
     <message>
         <location filename="usb-creator-next/src/main.qml" line="185"/>
         <source>Select this button to choose your target device</source>
-        <translation type="unfinished"></translation>
+        <translation>Seleccione este botón para elegir su dispositivo de destino</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/main.qml" line="201"/>
@@ -549,7 +549,7 @@
         <location filename="usb-creator-next/src/main.qml" line="311"/>
         <location filename="usb-creator-next/src/main.qml" line="1448"/>
         <source>Cancelling...</source>
-        <translation type="unfinished"></translation>
+        <translation>Cancelado...</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/main.qml" line="323"/>
@@ -581,7 +581,7 @@
     <message>
         <location filename="usb-creator-next/src/main.qml" line="375"/>
         <source>Network not ready yet</source>
-        <translation type="unfinished"></translation>
+        <translation>La red no está lista todavía</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/main.qml" line="384"/>
@@ -646,7 +646,7 @@
     <message>
         <location filename="usb-creator-next/src/main.qml" line="1187"/>
         <source>No storage devices found</source>
-        <translation type="unfinished"></translation>
+        <translation>No se encontraron dispositivos de almacenamiento</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/main.qml" line="1223"/>
@@ -662,17 +662,17 @@
     <message>
         <location filename="usb-creator-next/src/main.qml" line="1362"/>
         <source>About</source>
-        <translation type="unfinished"></translation>
+        <translation>Más información</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/main.qml" line="1364"/>
         <source>License, Credits, and History: </source>
-        <translation type="unfinished"></translation>
+        <translation>Licencia, Créditos e Historia:</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/main.qml" line="1364"/>
         <source>Help / Feedback: </source>
-        <translation type="unfinished"></translation>
+        <translation>Ayuda / Comentarios</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/main.qml" line="1372"/>
@@ -743,17 +743,17 @@
     <message>
         <location filename="usb-creator-next/src/main.qml" line="1510"/>
         <source>&lt;b&gt;%1&lt;/b&gt; has been erased.&lt;br&gt;&lt;br&gt;Your drive has been ejected, you can now safely remove it.</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;b&gt;%1&lt;/b&gt; ha sido borrado.&lt;br&gt;&lt;br&gt;Su unidad ha sido expulsada, ahora puede extraerla de forma segura.</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/main.qml" line="1517"/>
         <source>&lt;b&gt;%1&lt;/b&gt; has been written to &lt;b&gt;%2&lt;/b&gt;.</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;b&gt;%1&lt;/b&gt; se ha escrito en &lt;b&gt;%2&lt;/b&gt;.</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/main.qml" line="1519"/>
         <source>&lt;br&gt;&lt;br&gt;If you would like to enable legacy boot (bios), helpful for old hardware, please run the &apos;make_bootable_(mac/linux/windows)&apos; script from this computer, located in the main folder of the UNRAID flash drive.</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;br&gt;&lt;br&gt;Si desea habilitar el Legacy Boot (bios), útil para hardware antiguo, ejecute el script &apos;make_bootable_(mac/linux/windows)&apos; desde esta computadora, ubicado en la carpeta principal de la unidad flash UNRAID.</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/main.qml" line="1675"/>
@@ -769,12 +769,12 @@
         <location filename="usb-creator-next/src/main.qml" line="1935"/>
         <location filename="usb-creator-next/src/main.qml" line="1956"/>
         <source>Selected device cannot be used to create an Unraid USB due to its invalid GUID.</source>
-        <translation type="unfinished"></translation>
+        <translation>El dispositivo seleccionado no se puede utilizar para crear un USB Unraid debido a su GUID no válido.</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/main.qml" line="1951"/>
         <source>SD card is write protected.&lt;br&gt;Push the lock switch on the left side of the card upwards, and try again.</source>
-        <translation type="unfinished"></translation>
+        <translation>La tarjeta SD está protegida contra escritura. Empuje el interruptor de bloqueo en el lado izquierdo de la tarjeta hacia arriba y vuelva a intentarlo.</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/imagewriter.cpp" line="618"/>
@@ -789,7 +789,7 @@
     <message>
         <location filename="usb-creator-next/src/imagewriter.cpp" line="625"/>
         <source>Select an Unraid .zip file from your computer</source>
-        <translation type="unfinished"></translation>
+        <translation>Seleccione un archivo .zip de Unraid de su computadora</translation>
     </message>
 </context>
 </TS>
