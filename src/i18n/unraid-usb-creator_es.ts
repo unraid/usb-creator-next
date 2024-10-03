@@ -187,7 +187,7 @@
     <message>
         <location filename="usb-creator-next/src/driveformatthread.cpp" line="159"/>
         <source>Elevated privileges needed to properly format drive.</source>
-        <translation type="unfinished"></translation>
+        <translation>Se necesitan privilegios elevados para formatear correctamente la unidad.</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/driveformatthread.cpp" line="184"/>
@@ -240,12 +240,12 @@
     <message>
         <location filename="usb-creator-next/src/imagewriter.cpp" line="983"/>
         <source>Error synchronizing time. Trying again in 3 seconds</source>
-        <translation type="unfinished"></translation>
+        <translation>Error al sincronizar la hora. Intentaré nuevamente en 3 segundos</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/imagewriter.cpp" line="995"/>
         <source>STP is enabled on your Ethernet switch. Getting IP will take long time.</source>
-        <translation type="unfinished"></translation>
+        <translation>STP está habilitado en su switch Ethernet. Obtener IP llevará mucho tiempo.</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/imagewriter.cpp" line="1206"/>
