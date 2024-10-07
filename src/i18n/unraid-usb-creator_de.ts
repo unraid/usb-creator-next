@@ -12,90 +12,91 @@
     <message>
         <location filename="usb-creator-next/src/downloadextractthread.cpp" line="261"/>
         <source>Error mounting FAT32 partition</source>
-        <translation type="unfinished"></translation>
+        <translation>Fehler beim Einhängen der FAT32-Partition</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/downloadextractthread.cpp" line="281"/>
         <source>Operating system did not mount FAT32 partition</source>
-        <translation type="unfinished"></translation>
+        <translation>Betriebssystem hat die FAT32-Partition nicht eingehängt</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/downloadextractthread.cpp" line="304"/>
         <source>Error changing to directory &apos;%1&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>Fehler beim Wechseln in das Verzeichnis &apos;%1&apos;</translation>
     </message>
 </context>
+
 <context>
     <name>DownloadThread</name>
     <message>
         <location filename="usb-creator-next/src/downloadthread.cpp" line="118"/>
         <source>unmounting drive</source>
-        <translation type="unfinished"></translation>
+        <translation>Laufwerk wird ausgehängt</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/downloadthread.cpp" line="138"/>
         <source>opening drive</source>
-        <translation type="unfinished"></translation>
+        <translation>Laufwerk wird geöffnet</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/downloadthread.cpp" line="166"/>
         <source>Error running diskpart: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Fehler beim Ausführen von diskpart: %1</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/downloadthread.cpp" line="187"/>
         <source>Error removing existing partitions</source>
-        <translation type="unfinished"></translation>
+        <translation>Fehler beim Entfernen bestehender Partitionen</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/downloadthread.cpp" line="213"/>
         <source>Authentication cancelled</source>
-        <translation type="unfinished"></translation>
+        <translation>Authentifizierung abgebrochen</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/downloadthread.cpp" line="216"/>
         <source>Error running authopen to gain access to disk device &apos;%1&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>Fehler beim Ausführen von authopen, um Zugriff auf das Festplattengerät &apos;%1&apos; zu erhalten</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/downloadthread.cpp" line="217"/>
         <source>Please verify if &apos;Unraid USB Creator&apos; is allowed access to &apos;removable volumes&apos; in privacy settings (under &apos;files and folders&apos; or alternatively give it &apos;full disk access&apos;).</source>
-        <translation type="unfinished"></translation>
+        <translation>Bitte überprüfen Sie, ob &apos;Unraid USB Creator&apos; in den Datenschutzeinstellungen auf &apos;Wechseldatenträger&apos; zugreifen darf (unter &apos;Dateien und Ordner&apos; oder alternativ geben Sie ihm &apos;vollen Festplattenzugriff&apos;).</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/downloadthread.cpp" line="239"/>
         <source>Cannot open storage device &apos;%1&apos;.</source>
-        <translation type="unfinished"></translation>
+        <translation>Kann das Speichergerät &apos;%1&apos; nicht öffnen.</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/downloadthread.cpp" line="281"/>
         <source>discarding existing data on drive</source>
-        <translation type="unfinished"></translation>
+        <translation>Vorhandene Daten auf dem Laufwerk werden verworfen</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/downloadthread.cpp" line="301"/>
         <source>zeroing out first and last MB of drive</source>
-        <translation type="unfinished"></translation>
+        <translation>Erste und letzte MB des Laufwerks werden gelöscht</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/downloadthread.cpp" line="307"/>
         <source>Write error while zero&apos;ing out MBR</source>
-        <translation type="unfinished"></translation>
+        <translation>Schreibfehler beim Löschen des MBR</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/downloadthread.cpp" line="319"/>
         <source>Write error while trying to zero out last part of card.&lt;br&gt;Card could be advertising wrong capacity (possible counterfeit).</source>
-        <translation type="unfinished"></translation>
+        <translation>Schreibfehler beim Löschen des letzten Teils der Karte.&lt;br&gt;Die Karte könnte eine falsche Kapazität anzeigen (möglicherweise gefälscht).</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/downloadthread.cpp" line="408"/>
         <source>starting download</source>
-        <translation type="unfinished"></translation>
+        <translation>Download wird gestartet</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/downloadthread.cpp" line="468"/>
         <source>Error downloading: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Fehler beim Herunterladen: %1</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/downloadthread.cpp" line="665"/>
