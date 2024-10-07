@@ -297,164 +297,164 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/OptionsPopup.qml" line="68"/>
-        <source>General</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/OptionsPopup.qml" line="76"/>
-        <source>Services</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/OptionsPopup.qml" line="79"/>
-        <source>Options</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/OptionsPopup.qml" line="95"/>
-        <source>Set hostname:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/OptionsPopup.qml" line="119"/>
-        <source>Set username and password</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/OptionsPopup.qml" line="141"/>
-        <source>Username:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/OptionsPopup.qml" line="160"/>
-        <location filename="usb-creator-next/src/OptionsPopup.qml" line="231"/>
-        <source>Password:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/OptionsPopup.qml" line="197"/>
-        <source>Configure wireless LAN</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/OptionsPopup.qml" line="216"/>
-        <source>SSID:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/OptionsPopup.qml" line="251"/>
-        <source>Show password</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/OptionsPopup.qml" line="257"/>
-        <source>Hidden SSID</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/OptionsPopup.qml" line="263"/>
-        <source>Wireless LAN country:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/OptionsPopup.qml" line="275"/>
-        <source>Set locale settings</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/OptionsPopup.qml" line="285"/>
-        <source>Time zone:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/OptionsPopup.qml" line="296"/>
-        <source>Keyboard layout:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/OptionsPopup.qml" line="314"/>
-        <source>Enable SSH</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/OptionsPopup.qml" line="333"/>
-        <source>Use password authentication</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/OptionsPopup.qml" line="343"/>
-        <source>Allow public-key authentication only</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/OptionsPopup.qml" line="361"/>
-        <source>Set authorized_keys for &apos;%1&apos;:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/OptionsPopup.qml" line="374"/>
-        <source>RUN SSH-KEYGEN</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/OptionsPopup.qml" line="392"/>
-        <source>Play sound when finished</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/OptionsPopup.qml" line="396"/>
-        <source>Eject media when finished</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/OptionsPopup.qml" line="416"/>
-        <source>SAVE</source>
-        <translation type="unfinished"></translation>
-    </message>
+    <location filename="usb-creator-next/src/OptionsPopup.qml" line="68"/>
+    <source>General</source>
+    <translation>Allgemein</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/OptionsPopup.qml" line="76"/>
+    <source>Services</source>
+    <translation>Dienste</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/OptionsPopup.qml" line="79"/>
+    <source>Options</source>
+    <translation>Optionen</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/OptionsPopup.qml" line="95"/>
+    <source>Set hostname:</source>
+    <translation>Hostname festlegen:</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/OptionsPopup.qml" line="119"/>
+    <source>Set username and password</source>
+    <translation>Benutzername und Passwort festlegen</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/OptionsPopup.qml" line="141"/>
+    <source>Username:</source>
+    <translation>Benutzername:</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/OptionsPopup.qml" line="160"/>
+    <location filename="usb-creator-next/src/OptionsPopup.qml" line="231"/>
+    <source>Password:</source>
+    <translation>Passwort:</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/OptionsPopup.qml" line="197"/>
+    <source>Configure wireless LAN</source>
+    <translation>Drahtloses LAN konfigurieren</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/OptionsPopup.qml" line="216"/>
+    <source>SSID:</source>
+    <translation>SSID:</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/OptionsPopup.qml" line="251"/>
+    <source>Show password</source>
+    <translation>Passwort anzeigen</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/OptionsPopup.qml" line="257"/>
+    <source>Hidden SSID</source>
+    <translation>Versteckte SSID</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/OptionsPopup.qml" line="263"/>
+    <source>Wireless LAN country:</source>
+    <translation>Drahtloses LAN Land:</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/OptionsPopup.qml" line="275"/>
+    <source>Set locale settings</source>
+    <translation>Regionale Einstellungen festlegen</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/OptionsPopup.qml" line="285"/>
+    <source>Time zone:</source>
+    <translation>Zeitzone:</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/OptionsPopup.qml" line="296"/>
+    <source>Keyboard layout:</source>
+    <translation>Tastaturlayout:</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/OptionsPopup.qml" line="314"/>
+    <source>Enable SSH</source>
+    <translation>SSH aktivieren</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/OptionsPopup.qml" line="333"/>
+    <source>Use password authentication</source>
+    <translation>Passwortauthentifizierung verwenden</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/OptionsPopup.qml" line="343"/>
+    <source>Allow public-key authentication only</source>
+    <translation>Nur die Authentifizierung mit öffentlichem Schlüssel zulassen</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/OptionsPopup.qml" line="361"/>
+    <source>Set authorized_keys for '%1':</source>
+    <translation>authorized_keys für '%1' festlegen:</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/OptionsPopup.qml" line="374"/>
+    <source>RUN SSH-KEYGEN</source>
+    <translation>SSH-KEYGEN AUSFÜHREN</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/OptionsPopup.qml" line="392"/>
+    <source>Play sound when finished</source>
+    <translation>Ton abspielen, wenn abgeschlossen</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/OptionsPopup.qml" line="396"/>
+    <source>Eject media when finished</source>
+    <translation>Medien beim Abschluss auswerfen</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/OptionsPopup.qml" line="416"/>
+    <source>SAVE</source>
+    <translation>SPAREN</translation>
+</message>
 </context>
 <context>
     <name>QObject</name>
     <message>
         <location filename="usb-creator-next/src/linux/linuxdrivelist.cpp" line="123"/>
         <source>Internal SD card reader</source>
-        <translation type="unfinished"></translation>
-    </message>
+        <translation>Interner SD-Kartenleser</translation>
+</message>
 </context>
 <context>
     <name>UnraidOptionsPopup</name>
     <message>
         <location filename="usb-creator-next/src/UnraidOptionsPopup.qml" line="84"/>
         <source>Settings</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
+        <translation>Einstellungen</translation>
+</message>
+<message>
         <location filename="usb-creator-next/src/UnraidOptionsPopup.qml" line="137"/>
         <source>DHCP</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
+        <translation>DHCP</translation>
+</message>
+<message>
         <location filename="usb-creator-next/src/UnraidOptionsPopup.qml" line="144"/>
         <source>Static IP</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
+        <translation>Statische IP</translation>
+</message>
+<message>
         <location filename="usb-creator-next/src/UnraidOptionsPopup.qml" line="230"/>
         <source>CONTINUE</source>
-        <translation type="unfinished"></translation>
-    </message>
+        <translation>FORTSETZEN</translation>
+</message>
 </context>
 <context>
     <name>UseSavedSettingsPopup</name>
     <message>
         <location filename="usb-creator-next/src/UseSavedSettingsPopup.qml" line="83"/>
         <source>Use OS customization?</source>
-        <translation type="unfinished"></translation>
+        <translation>OS-Anpassung verwenden?</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/UseSavedSettingsPopup.qml" line="99"/>
         <source>Would you like to apply OS customization settings?</source>
-        <translation type="unfinished"></translation>
+        <translation>Möchten Sie die Einstellungen zur OS-Anpassung anwenden?</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/UseSavedSettingsPopup.qml" line="110"/>
