@@ -98,57 +98,57 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="665"/>
-        <source>Access denied error while writing file to disk.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="670"/>
-        <source>Controlled Folder Access seems to be enabled. Please add both unraid-usb-creator.exe and fat32format.exe to the list of allowed apps and try again.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="677"/>
-        <source>Error writing file to disk</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="699"/>
-        <source>Download corrupt. Hash does not match</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="711"/>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="763"/>
-        <source>Error writing to storage (while flushing)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="718"/>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="770"/>
-        <source>Error writing to storage (while fsync)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="753"/>
-        <source>Error writing first block (partition table)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="828"/>
-        <source>Error reading from storage.&lt;br&gt;SD card may be broken.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="847"/>
-        <source>Verifying write failed. Contents of SD card is different from what was written to it.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="901"/>
-        <source>Customizing image</source>
-        <translation type="unfinished"></translation>
-    </message>
+    <location filename="usb-creator-next/src/downloadthread.cpp" line="665"/>
+    <source>Access denied error while writing file to disk.</source>
+    <translation>Zugriffsverweigerungsfehler beim Schreiben der Datei auf die Festplatte.</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/downloadthread.cpp" line="670"/>
+    <source>Controlled Folder Access seems to be enabled. Please add both unraid-usb-creator.exe and fat32format.exe to the list of allowed apps and try again.</source>
+    <translation>Der kontrollierte Ordnerzugriff scheint aktiviert zu sein. Bitte fügen Sie sowohl unraid-usb-creator.exe als auch fat32format.exe zur Liste der erlaubten Apps hinzu und versuchen Sie es erneut.</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/downloadthread.cpp" line="677"/>
+    <source>Error writing file to disk</source>
+    <translation>Fehler beim Schreiben der Datei auf die Festplatte</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/downloadthread.cpp" line="699"/>
+    <source>Download corrupt. Hash does not match</source>
+    <translation>Download beschädigt. Hash stimmt nicht überein</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/downloadthread.cpp" line="711"/>
+    <location filename="usb-creator-next/src/downloadthread.cpp" line="763"/>
+    <source>Error writing to storage (while flushing)</source>
+    <translation>Fehler beim Schreiben auf den Speicher (beim Flush)</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/downloadthread.cpp" line="718"/>
+    <location filename="usb-creator-next/src/downloadthread.cpp" line="770"/>
+    <source>Error writing to storage (while fsync)</source>
+    <translation>Fehler beim Schreiben auf den Speicher (beim fsync)</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/downloadthread.cpp" line="753"/>
+    <source>Error writing first block (partition table)</source>
+    <translation>Fehler beim Schreiben des ersten Blocks (Partitionstabelle)</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/downloadthread.cpp" line="828"/>
+    <source>Error reading from storage.&lt;br&gt;SD card may be broken.</source>
+    <translation>Fehler beim Lesen vom Speicher.&lt;br&gt;SD-Karte könnte defekt sein.</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/downloadthread.cpp" line="847"/>
+    <source>Verifying write failed. Contents of SD card is different from what was written to it.</source>
+    <translation>Überprüfung des Schreibvorgangs fehlgeschlagen. Inhalt der SD-Karte stimmt nicht mit dem überein, was darauf geschrieben wurde.</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/downloadthread.cpp" line="901"/>
+    <source>Customizing image</source>
+    <translation>Bild anpassen</translation>
+</message>
 </context>
 <context>
     <name>DriveFormatThread</name>
@@ -157,62 +157,62 @@
         <location filename="usb-creator-next/src/driveformatthread.cpp" line="129"/>
         <location filename="usb-creator-next/src/driveformatthread.cpp" line="195"/>
         <source>Error partitioning: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Fehler beim Partitionieren: %1</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/driveformatthread.cpp" line="88"/>
         <source>Error starting fat32format</source>
-        <translation type="unfinished"></translation>
+        <translation>Fehler beim Starten von fat32format</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/driveformatthread.cpp" line="98"/>
         <source>Error running fat32format: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Fehler beim Ausführen von fat32format: %1</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/driveformatthread.cpp" line="108"/>
         <source>Error determining new drive letter</source>
-        <translation type="unfinished"></translation>
+        <translation>Fehler beim Bestimmen des neuen Laufwerkbuchstabens</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/driveformatthread.cpp" line="113"/>
         <source>Invalid device: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Ungültiges Gerät: %1</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/driveformatthread.cpp" line="152"/>
         <source>Error formatting (through udisks2)</source>
-        <translation type="unfinished"></translation>
+        <translation>Fehler beim Formatieren (über udisks2)</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/driveformatthread.cpp" line="159"/>
         <source>Elevated privileges needed to properly format drive.</source>
-        <translation type="unfinished"></translation>
+        <translation>Erhöhte Berechtigungen erforderlich, um das Laufwerk ordnungsgemäß zu formatieren.</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/driveformatthread.cpp" line="184"/>
         <source>Error starting sfdisk</source>
-        <translation type="unfinished"></translation>
+        <translation>Fehler beim Starten von sfdisk</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/driveformatthread.cpp" line="209"/>
         <source>Partitioning did not create expected FAT partition %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Partitionierung hat die erwartete FAT-Partition %1 nicht erstellt</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/driveformatthread.cpp" line="222"/>
         <source>Error starting mkfs.fat</source>
-        <translation type="unfinished"></translation>
+        <translation>Fehler beim Starten von mkfs.fat</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/driveformatthread.cpp" line="232"/>
         <source>Error running mkfs.fat: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Fehler beim Ausführen von mkfs.fat: %1</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/driveformatthread.cpp" line="239"/>
         <source>Formatting not implemented for this platform</source>
-        <translation type="unfinished"></translation>
+        <translation>Formatierung für diese Plattform nicht implementiert</translation>
     </message>
 </context>
 <context>
@@ -220,37 +220,37 @@
     <message>
         <location filename="usb-creator-next/src/imagewriter.cpp" line="269"/>
         <source>Storage capacity is not large enough.&lt;br&gt;Needs to be at least %1 GB.</source>
-        <translation type="unfinished"></translation>
+        <translation>Speicherkapazität reicht nicht aus.&lt;br&gt;Muss mindestens %1 GB betragen.</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/imagewriter.cpp" line="275"/>
         <source>Input file is not a valid disk image.&lt;br&gt;File size %1 bytes is not a multiple of 512 bytes.</source>
-        <translation type="unfinished"></translation>
+        <translation>Eingabedatei ist kein gültiges Disk-Image.&lt;br&gt;Dateigröße %1 Bytes ist kein Vielfaches von 512 Bytes.</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/imagewriter.cpp" line="675"/>
         <source>Downloading and writing image</source>
-        <translation type="unfinished"></translation>
+        <translation>Herunterladen und Schreiben des Images</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/imagewriter.cpp" line="808"/>
         <source>Select image</source>
-        <translation type="unfinished"></translation>
+        <translation>Bild auswählen</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/imagewriter.cpp" line="983"/>
         <source>Error synchronizing time. Trying again in 3 seconds</source>
-        <translation type="unfinished"></translation>
+        <translation>Fehler beim Synchronisieren der Zeit. Erneuter Versuch in 3 Sekunden</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/imagewriter.cpp" line="995"/>
         <source>STP is enabled on your Ethernet switch. Getting IP will take long time.</source>
-        <translation type="unfinished"></translation>
+        <translation>STP ist auf Ihrem Ethernet-Switch aktiviert. Das Abrufen der IP wird lange dauern.</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/imagewriter.cpp" line="1206"/>
         <source>Would you like to prefill the wifi password from the system keychain?</source>
-        <translation type="unfinished"></translation>
+        <translation>Möchten Sie das WLAN-Passwort aus dem System-Schlüsselbund vorab ausfüllen?</translation>
     </message>
 </context>
 <context>
@@ -258,12 +258,12 @@
     <message>
         <location filename="usb-creator-next/src/localfileextractthread.cpp" line="34"/>
         <source>opening image file</source>
-        <translation type="unfinished"></translation>
+        <translation>Bilddatei wird geöffnet</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/localfileextractthread.cpp" line="39"/>
         <source>Error opening image file</source>
-        <translation type="unfinished"></translation>
+        <translation>Fehler beim Öffnen der Bilddatei</translation>
     </message>
 </context>
 <context>
@@ -271,22 +271,22 @@
     <message>
         <location filename="usb-creator-next/src/MsgPopup.qml" line="107"/>
         <source>NO</source>
-        <translation type="unfinished"></translation>
+        <translation>NEIN</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/MsgPopup.qml" line="116"/>
         <source>YES</source>
-        <translation type="unfinished"></translation>
+        <translation>JA</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/MsgPopup.qml" line="125"/>
         <source>CONTINUE</source>
-        <translation type="unfinished"></translation>
+        <translation>FORTSETZEN</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/MsgPopup.qml" line="133"/>
         <source>QUIT</source>
-        <translation type="unfinished"></translation>
+        <translation>BEENDEN</translation>
     </message>
 </context>
 <context>
@@ -294,7 +294,7 @@
     <message>
         <location filename="usb-creator-next/src/OptionsPopup.qml" line="20"/>
         <source>OS Customization</source>
-        <translation type="unfinished"></translation>
+        <translation>Betriebssystem-Anpassung</translation>
     </message>
     <message>
         <location filename="usb-creator-next/src/OptionsPopup.qml" line="68"/>
