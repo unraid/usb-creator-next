@@ -4,151 +4,150 @@
 <context>
     <name>DownloadExtractThread</name>
     <message>
-        <location filename="usb-creator-next/src/downloadextractthread.cpp" line="196"/>
-        <location filename="usb-creator-next/src/downloadextractthread.cpp" line="464"/>
-        <source>Error extracting archive: %1</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/downloadextractthread.cpp" line="261"/>
-        <source>Error mounting FAT32 partition</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/downloadextractthread.cpp" line="281"/>
-        <source>Operating system did not mount FAT32 partition</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/downloadextractthread.cpp" line="304"/>
-        <source>Error changing to directory &apos;%1&apos;</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
+    <location filename="usb-creator-next/src/downloadextractthread.cpp" line="196"/>
+    <location filename="usb-creator-next/src/downloadextractthread.cpp" line="464"/>
+    <source>Error extracting archive: %1</source>
+    <translation>Erreur lors de l'extraction de l'archive : %1</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/downloadextractthread.cpp" line="261"/>
+    <source>Error mounting FAT32 partition</source>
+    <translation>Erreur lors du montage de la partition FAT32</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/downloadextractthread.cpp" line="281"/>
+    <source>Operating system did not mount FAT32 partition</source>
+    <translation>Le système d'exploitation n'a pas monté la partition FAT32</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/downloadextractthread.cpp" line="304"/>
+    <source>Error changing to directory &apos;%1&apos;</source>
+    <translation>Erreur lors du changement de répertoire vers &apos;%1&apos;</translation>
+</message>
 <context>
     <name>DownloadThread</name>
-    <message>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="118"/>
-        <source>unmounting drive</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="138"/>
-        <source>opening drive</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="166"/>
-        <source>Error running diskpart: %1</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="187"/>
-        <source>Error removing existing partitions</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="213"/>
-        <source>Authentication cancelled</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="216"/>
-        <source>Error running authopen to gain access to disk device &apos;%1&apos;</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="217"/>
-        <source>Please verify if &apos;Unraid USB Creator&apos; is allowed access to &apos;removable volumes&apos; in privacy settings (under &apos;files and folders&apos; or alternatively give it &apos;full disk access&apos;).</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="239"/>
-        <source>Cannot open storage device &apos;%1&apos;.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="281"/>
-        <source>discarding existing data on drive</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="301"/>
-        <source>zeroing out first and last MB of drive</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="307"/>
-        <source>Write error while zero&apos;ing out MBR</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="319"/>
-        <source>Write error while trying to zero out last part of card.&lt;br&gt;Card could be advertising wrong capacity (possible counterfeit).</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="408"/>
-        <source>starting download</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="468"/>
-        <source>Error downloading: %1</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="665"/>
-        <source>Access denied error while writing file to disk.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="670"/>
-        <source>Controlled Folder Access seems to be enabled. Please add both unraid-usb-creator.exe and fat32format.exe to the list of allowed apps and try again.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="677"/>
-        <source>Error writing file to disk</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="699"/>
-        <source>Download corrupt. Hash does not match</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="711"/>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="763"/>
-        <source>Error writing to storage (while flushing)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="718"/>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="770"/>
-        <source>Error writing to storage (while fsync)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="753"/>
-        <source>Error writing first block (partition table)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="828"/>
-        <source>Error reading from storage.&lt;br&gt;SD card may be broken.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="847"/>
-        <source>Verifying write failed. Contents of SD card is different from what was written to it.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="901"/>
-        <source>Customizing image</source>
-        <translation type="unfinished"></translation>
-    </message>
+<message>
+    <location filename="usb-creator-next/src/downloadthread.cpp" line="118"/>
+    <source>unmounting drive</source>
+    <translation>déconnexion du disque</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/downloadthread.cpp" line="138"/>
+    <source>opening drive</source>
+    <translation>ouverture du disque</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/downloadthread.cpp" line="166"/>
+    <source>Error running diskpart: %1</source>
+    <translation>Erreur lors de l'exécution de diskpart : %1</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/downloadthread.cpp" line="187"/>
+    <source>Error removing existing partitions</source>
+    <translation>Erreur lors de la suppression des partitions existantes</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/downloadthread.cpp" line="213"/>
+    <source>Authentication cancelled</source>
+    <translation>Authentification annulée</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/downloadthread.cpp" line="216"/>
+    <source>Error running authopen to gain access to disk device &apos;%1&apos;</source>
+    <translation>Erreur lors de l'exécution d'authopen pour accéder au périphérique disque &apos;%1&apos;</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/downloadthread.cpp" line="217"/>
+    <source>Please verify if &apos;Unraid USB Creator&apos; is allowed access to &apos;removable volumes&apos; in privacy settings (under &apos;files and folders&apos; or alternatively give it &apos;full disk access&apos;).</source>
+    <translation>Veuillez vérifier si &apos;Unraid USB Creator&apos; a accès aux &apos;volumes amovibles&apos; dans les paramètres de confidentialité (sous &apos;fichiers et dossiers&apos; ou donner un &apos;accès complet au disque&apos;).</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/downloadthread.cpp" line="239"/>
+    <source>Cannot open storage device &apos;%1&apos;.</source>
+    <translation>Impossible d'ouvrir le périphérique de stockage &apos;%1&apos;.</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/downloadthread.cpp" line="281"/>
+    <source>discarding existing data on drive</source>
+    <translation>suppression des données existantes sur le disque</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/downloadthread.cpp" line="301"/>
+    <source>zeroing out first and last MB of drive</source>
+    <translation>remise à zéro du premier et du dernier Mo du disque</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/downloadthread.cpp" line="307"/>
+    <source>Write error while zero&apos;ing out MBR</source>
+    <translation>Erreur d'écriture lors de la remise à zéro du MBR</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/downloadthread.cpp" line="319"/>
+    <source>Write error while trying to zero out last part of card.&lt;br&gt;Card could be advertising wrong capacity (possible counterfeit).</source>
+    <translation>Erreur d'écriture lors de la remise à zéro de la dernière partie de la carte.&lt;br&gt;La carte pourrait indiquer une capacité incorrecte (possiblement contrefaite).</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/downloadthread.cpp" line="408"/>
+    <source>starting download</source>
+    <translation>début du téléchargement</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/downloadthread.cpp" line="468"/>
+    <source>Error downloading: %1</source>
+    <translation>Erreur lors du téléchargement : %1</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/downloadthread.cpp" line="665"/>
+    <source>Access denied error while writing file to disk.</source>
+    <translation>Erreur d'accès refusé lors de l'écriture du fichier sur le disque.</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/downloadthread.cpp" line="670"/>
+    <source>Controlled Folder Access seems to be enabled. Please add both unraid-usb-creator.exe and fat32format.exe to the list of allowed apps and try again.</source>
+    <translation>L'accès contrôlé aux dossiers semble être activé. Veuillez ajouter unraid-usb-creator.exe et fat32format.exe à la liste des applications autorisées et réessayer.</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/downloadthread.cpp" line="677"/>
+    <source>Error writing file to disk</source>
+    <translation>Erreur lors de l'écriture du fichier sur le disque</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/downloadthread.cpp" line="699"/>
+    <source>Download corrupt. Hash does not match</source>
+    <translation>Téléchargement corrompu. Le hash ne correspond pas</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/downloadthread.cpp" line="711"/>
+    <location filename="usb-creator-next/src/downloadthread.cpp" line="763"/>
+    <source>Error writing to storage (while flushing)</source>
+    <translation>Erreur lors de l'écriture sur le support (lors du vidage)</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/downloadthread.cpp" line="718"/>
+    <location filename="usb-creator-next/src/downloadthread.cpp" line="770"/>
+    <source>Error writing to storage (while fsync)</source>
+    <translation>Erreur lors de l'écriture sur le support (lors de la synchronisation fsync)</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/downloadthread.cpp" line="753"/>
+    <source>Error writing first block (partition table)</source>
+    <translation>Erreur lors de l'écriture du premier bloc (table de partition)</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/downloadthread.cpp" line="828"/>
+    <source>Error reading from storage.&lt;br&gt;SD card may be broken.</source>
+    <translation>Erreur de lecture sur le support.&lt;br&gt;La carte SD peut être endommagée.</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/downloadthread.cpp" line="847"/>
+    <source>Verifying write failed. Contents of SD card is different from what was written to it.</source>
+    <translation>Échec de la vérification de l'écriture. Le contenu de la carte SD est différent de ce qui a été écrit.</translation>
+</message>
+<message>
+    <location filename="usb-creator-next/src/downloadthread.cpp" line="901"/>
+    <source>Customizing image</source>
+    <translation>Personnalisation de l'image</translation>
+</message>
 </context>
 <context>
     <name>DriveFormatThread</name>
