@@ -34,6 +34,7 @@
 #include <QVersionNumber>
 #include <QtNetwork>
 #include <QDesktopServices>
+#include <QUrl>
 #ifndef QT_NO_WIDGETS
 #include <QFileDialog>
 #include <QApplication>
