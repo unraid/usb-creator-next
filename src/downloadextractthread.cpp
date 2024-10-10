@@ -254,9 +254,9 @@ void DownloadExtractThread::extractMultiFileRun()
             fatpartition += "p1";
         else
             fatpartition += "1";
-        args << "-t" << "vfat" << fatpartition << folder;
+        args << "mount" << "-t" << "vfat" << fatpartition << folder;
 
-        if (QProcess::execute("mount", args) != 0)
+        if (QProcess::execute("pkexec", args) != 0)
         {
             emit error(tr("Error mounting FAT32 partition"));
             return;

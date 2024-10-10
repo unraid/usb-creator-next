@@ -4,6 +4,7 @@
  */
 
 import QtQuick 2.9
+import QtQuick.Window 2.2
 import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.0
 import QtQuick.Controls.Material 2.2
@@ -25,6 +26,7 @@ Popup {
     property bool quitButton: false
     property bool yesButton: false
     property bool noButton: false
+    property bool installButton: false
     signal yes()
     signal no()
     
@@ -136,6 +138,15 @@ Popup {
                 }
                 font.family: roboto.name
                 visible: msgpopup.quitButton
+            }
+            
+            ImButton {
+                text: qsTr("QUICK INSTALL GUIDE")
+                onClicked: {
+                    imageWriter.openUrl("https://docs.unraid.net/unraid-os/getting-started/quick-install-guide/")
+                }
+                font.family: roboto.name
+                visible: msgpopup.installButton
             }
 
             Text { text: " " }

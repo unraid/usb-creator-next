@@ -1530,6 +1530,7 @@ ApplicationWindow {
             msgpopup.text = qsTr("<b>%1</b> has been written to <b>%2</b>.").arg(osbutton.text).arg(dstbutton.text)
             if(imageWriter.getInitFormat() === "UNRAID" && !imageWriter.windowsBuild()) {
                 msgpopup.text += qsTr("<br><br>If you would like to enable legacy boot (bios), helpful for old hardware, please run the 'make_bootable_(mac/linux/windows)' script from this computer, located in the main folder of the UNRAID flash drive.")
+                msgpopup.installButton = true
             }
         }
         if (imageWriter.isEmbeddedMode()) {
