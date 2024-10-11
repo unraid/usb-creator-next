@@ -24,6 +24,7 @@
     <source>Error changing to directory &apos;%1&apos;</source>
     <translation>切换到目录&apos;%1&apos;时出错</translation>
 </message>
+</context>
 <context>
     <name>DownloadThread</name>
     <message>
