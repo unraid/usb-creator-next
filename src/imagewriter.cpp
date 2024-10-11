@@ -11,7 +11,6 @@
 #include "driveformatthread.h"
 #include "localfileextractthread.h"
 #include "downloadstatstelemetry.h"
-#include "wlancredentials.h"
 #include <archive.h>
 #include <archive_entry.h>
 #include <lzma.h>
@@ -155,7 +154,7 @@ ImageWriter::ImageWriter(QObject *parent)
     }
     _settings.endGroup();
 
-    QDir dir(":/i18n", "rpi-imager_*.qm");
+    QDir dir(":/i18n", "unraid-usb-creator_*.qm");
     const QStringList transFiles = dir.entryList();
     QLocale currentLocale;
     QStringList localeComponents = currentLocale.name().split('_');
@@ -165,14 +164,25 @@ ImageWriter::ImageWriter(QObject *parent)
 
     for (const QString &tf : transFiles)
     {
-        QString langcode = tf.mid(11, tf.length()-14);
+        QString langcode = tf.mid(19, tf.length()-22);
         /* FIXME: we currently lack a font with support for Chinese characters in embedded mode */
         //if (isEmbeddedMode() && langcode == "zh")
         //    continue;
 
         QLocale loc(langcode);
         /* Use "English" for "en" and not "American English" */
-        QString langname = (langcode == "en" ? "English" : loc.nativeLanguageName() );
+        QString langname = loc.nativeLanguageName();
+
+        if (langcode == "en") {
+            langname = "English";
+        }
+        else if (langcode == "es") {
+            langname = "Español";
+        }
+        else if (langcode == "fr") {
+            langname = "Français";
+        }
+     
         _translations.insert(langname, langcode);
         if (langcode == currentlangcode)
         {
@@ -615,15 +625,15 @@ QByteArray ImageWriter::getFilteredOSlist() {
     }
 
     reference_os_list_array.append(QJsonObject({
-            {"name", QApplication::translate("main", "Erase")},
-            {"description", QApplication::translate("main", "Format USB Drive as FAT32")},
+            {"name", QCoreApplication::translate("main", "Erase")},
+            {"description", QCoreApplication::translate("main", "Format USB Drive as FAT32")},
             {"icon", "icons/erase.png"},
             {"url", "internal://format"},
         }));
 
     reference_os_list_array.append(QJsonObject({
-            {"name", QApplication::translate("main", "Use custom")},
-            {"description", QApplication::translate("main", "Select an Unraid .zip file from your computer")},
+            {"name", QCoreApplication::translate("main", "Use custom")},
+            {"description", QCoreApplication::translate("main", "Select an Unraid .zip file from your computer")},
             {"icon", "icons/use_custom.png"},
             {"url", ""},
         }));
@@ -1194,7 +1204,7 @@ QStringList ImageWriter::getKeymapLayoutList()
 
 QString ImageWriter::getSSID()
 {
-    return WlanCredentials::instance()->getSSID();
+    return QString();
 }
 
 QString ImageWriter::getPSK()
@@ -1209,8 +1219,7 @@ QString ImageWriter::getPSK()
         return QString();
     }
 #endif
-
-    return WlanCredentials::instance()->getPSK();
+    return QString();
 }
 
 bool ImageWriter::getBoolSetting(const QString &key)
@@ -1341,7 +1350,7 @@ void ImageWriter::changeLanguage(const QString &newLanguageName)
     qDebug() << "Changing language to" << langcode;
 
     QTranslator *trans = new QTranslator();
-    if (trans->load(":/i18n/rpi-imager_"+langcode+".qm"))
+    if (trans->load(":/i18n/unraid-usb-creator_"+langcode+".qm"))
     {
         replaceTranslator(trans);
         _currentLang = newLanguageName;
@@ -1502,4 +1511,12 @@ bool ImageWriter::getDstGuidValid()
 bool ImageWriter::openUrl(const QString& url)
 {
     return QDesktopServices::openUrl(QUrl(url, QUrl::TolerantMode));
+}
+
+bool ImageWriter::windowsBuild() {
+#ifdef Q_OS_WIN
+    return true;
+#else
+    return false;
+#endif
 }

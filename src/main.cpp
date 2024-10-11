@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  * Copyright (C) 2020 Raspberry Pi Ltd
  */
-
+#include <ios>
 #include <QFileInfo>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
@@ -151,8 +151,8 @@ int main(int argc, char *argv[])
      */
     qputenv("QML_DISABLE_DISK_CACHE", "true");
 #ifdef Q_OS_WIN
-    // prefer ANGLE (DirectX) over desktop OpenGL
-    QCoreApplication::setAttribute(Qt::AA_UseOpenGLES);
+    // QT_QUICK_BACKEND must be set to software for MXE crosscompile
+    qputenv("QT_QUICK_BACKEND", "software");
     qputenv("QT_QPA_PLATFORM", "windows:darkmode=1");
 #endif
 #ifdef QT_NO_WIDGETS
@@ -319,7 +319,7 @@ int main(int argc, char *argv[])
         QLocale::setDefault(QLocale(langcode));
 #endif
 
-        if (translator->load(QLocale(), "rpi-imager", "_", QLatin1String(":/i18n")))
+        if (translator->load(QLocale(), "unraid-usb-creator", "_", QLatin1String(":/i18n")))
             imageWriter.replaceTranslator(translator);
         else
             delete translator;

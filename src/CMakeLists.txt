@@ -2,15 +2,16 @@
 # Copyright (C) 2020 Raspberry Pi Ltd
 
 cmake_minimum_required(VERSION 3.9.4)
-OPTION (ENABLE_CHECK_VERSION "Check for version updates" OFF)
+OPTION (ENABLE_CHECK_VERSION "Check for version updates" ON)
 OPTION (ENABLE_TELEMETRY "Enable sending telemetry" OFF)
 OPTION (DRIVELIST_FILTER_SYSTEM_DRIVES "Filter System drives from displayed drives" ON)
 
 project(unraid-usb-creator LANGUAGES CXX C)
 set(IMAGER_VERSION_MAJOR 1)
-set(IMAGER_VERSION_MINOR 0)
-set(IMAGER_VERSION_STR "${IMAGER_VERSION_MAJOR}.${IMAGER_VERSION_MINOR}.0")
-set(IMAGER_VERSION_CSV "${IMAGER_VERSION_MAJOR},${IMAGER_VERSION_MINOR},0,0")
+set(IMAGER_VERSION_MINOR 1)
+set(IMAGER_VERSION_PATCH 0)
+set(IMAGER_VERSION_STR "${IMAGER_VERSION_MAJOR}.${IMAGER_VERSION_MINOR}.${IMAGER_VERSION_PATCH}")
+set(IMAGER_VERSION_CSV "${IMAGER_VERSION_MAJOR},${IMAGER_VERSION_MINOR},${IMAGER_VERSION_PATCH},0")
 add_definitions(-DIMAGER_VERSION_STR="${IMAGER_VERSION_STR}")
 add_definitions(-DIMAGER_VERSION_CSV=${IMAGER_VERSION_CSV})
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
@@ -50,7 +51,7 @@ elseif (UNIX)
     endif()
 elseif (WIN32)
     set(DEPENDENCIES acceleratedcryptographichash.cpp dependencies/mountutils/src/windows/functions.cpp dependencies/drivelist/src/windows/list.cpp
-        windows/winfile.cpp windows/winfile.h windows/winwlancredentials.h windows/winwlancredentials.cpp
+        windows/winfile.cpp windows/winfile.h #windows/winwlancredentials.h windows/winwlancredentials.cpp
         windows/unraid-usb-creator.rc wlanapi_delayed.lib)
     set(EXTRALIBS setupapi ${CMAKE_CURRENT_BINARY_DIR}/wlanapi_delayed.lib)
     add_custom_command(
@@ -131,11 +132,7 @@ if(${QT}WinExtras_FOUND)
     set(EXTRALIBS ${EXTRALIBS} ${QT}::WinExtras)
 endif()
 
-set(TRANSLATIONS i18n/rpi-imager_en.ts i18n/rpi-imager_nl.ts i18n/rpi-imager_zh.ts i18n/rpi-imager_tr.ts
-    i18n/rpi-imager_fr.ts i18n/rpi-imager_de.ts i18n/rpi-imager_sk.ts i18n/rpi-imager_it.ts
-    i18n/rpi-imager_ca.ts i18n/rpi-imager_sl.ts i18n/rpi-imager_ko.ts i18n/rpi-imager_ja.ts
-    i18n/rpi-imager_ru.ts i18n/rpi-imager_es.ts i18n/rpi-imager_uk.ts i18n/rpi-imager_zh-TW.ts
-    i18n/rpi-imager_pl.ts)
+set(TRANSLATIONS i18n/unraid-usb-creator_en.ts i18n/unraid-usb-creator_es.ts i18n/unraid-usb-creator_de.ts i18n/unraid-usb-creator_fr.ts i18n/unraid-usb-creator_zh.ts)
 #qt5_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TRANSLATIONS})
 if (Qt5_FOUND)
     qt5_add_translation(QM_FILES ${TRANSLATIONS})
@@ -181,16 +178,9 @@ if (WIN32)
 
     find_package(OpenSSL REQUIRED)
 
-    # Bundled zlib
-    add_subdirectory(dependencies/zlib-1.2.13)
-    set(ZLIB_LIBRARY zlibstatic)
-    set(ZLIB_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/zlib-1.2.13 CACHE PATH "zlib include dir")
+    find_package(ZLIB REQUIRED)
 
-    # Bundled libcurl
-    set(CMAKE_CURL_INCLUDES)
-    set(CURL_LIBRARIES cmcurl)
-    add_subdirectory(dependencies/cmcurl)
-    set(CURL_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/cmcurl/include)
+    find_package(CURL REQUIRED)
 
     # Bundled liblzma
     add_subdirectory(dependencies/cmliblzma)
@@ -200,12 +190,7 @@ if (WIN32)
     set(LIBLZMA_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/cmliblzma/liblzma/api)
     set(LIBLZMA_LIBRARY cmliblzma)
 
-    # Bundled zstd
-    set(ZSTD_BUILD_PROGRAMS OFF)
-    set(ZSTD_BUILD_SHARED OFF)
-    add_subdirectory(dependencies/zstd-1.5.4/build/cmake)
-    set(ZSTD_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/zstd-1.5.4/lib CACHE PATH "zstd include dir")
-    set(ZSTD_LIBRARY libzstd_static)
+    find_package(zstd REQUIRED)
 
     # Bundled libarchive
     set(ENABLE_TEST OFF CACHE BOOL "")
@@ -227,29 +212,12 @@ if (WIN32)
         POST_BUILD
         COMMAND ${CMAKE_STRIP} "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.exe")
 
-    # Code signing
-    find_program(SIGNTOOL "signtool.exe" PATHS
-        "c:/Program Files (x86)/Microsoft SDKs/ClickOnce/SignTool"
-        "c:/Program Files (x86)/Windows Kits/10/bin/10.0.22621.0/x64")
-    if (NOT SIGNTOOL)
-        message(FATAL_ERROR "Unable to locate signtool.exe used for code signing")
-    endif()
-    add_definitions(-DSIGNTOOL="${SIGNTOOL}")
-
-    add_custom_command(TARGET ${PROJECT_NAME}
-        POST_BUILD
-        COMMAND "${SIGNTOOL}" sign /tr http://timestamp.digicert.com /td sha256 /fd sha256 /a "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.exe")
-
-    add_custom_command(TARGET ${PROJECT_NAME}
-        POST_BUILD
-        COMMAND "${SIGNTOOL}" sign /tr http://timestamp.digicert.com /td sha256 /fd sha256 /a "${CMAKE_BINARY_DIR}/dependencies/fat32format/fat32format.exe")
-
     # Windeploy
-    find_program(WINDEPLOYQT "windeployqt.exe" PATHS "${${QT}_DIR}/../../../bin")
-    if (NOT WINDEPLOYQT)
-        message(FATAL_ERROR "Unable to locate windeployqt.exe")
+    find_program(MXEDEPLOYQT "mxedeployqt")
+    if (NOT MXEDEPLOYQT)
+        message(FATAL_ERROR "Unable to locate mxedeployqt")
     endif()
-
+	
     file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/deploy")
 
     add_custom_command(TARGET ${PROJECT_NAME}
@@ -259,20 +227,13 @@ if (WIN32)
             "${CMAKE_SOURCE_DIR}/../license.txt" "${CMAKE_SOURCE_DIR}/windows/unraid-usb-creator-cli.cmd"
             "${CMAKE_BINARY_DIR}/deploy")
 
-    add_custom_command(TARGET ${PROJECT_NAME}
-        POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy
-            "${${QT}_DIR}/../../../bin/libssl-1_1.dll" "${${QT}_DIR}/../../../bin/libcrypto-1_1.dll"
-            "${CMAKE_BINARY_DIR}/deploy")
-
     configure_file(
         "${CMAKE_CURRENT_SOURCE_DIR}/windows/unraid-usb-creator.nsi.in"
         "${CMAKE_CURRENT_BINARY_DIR}/unraid-usb-creator.nsi"
         @ONLY)
-
     add_custom_command(TARGET ${PROJECT_NAME}
         POST_BUILD
-        COMMAND "${WINDEPLOYQT}" --no-translations --no-webkit2 --no-opengl-sw --angle --qmldir "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_BINARY_DIR}/deploy/unraid-usb-creator.exe")
+        COMMAND "${MXEDEPLOYQT}" --qmlrootpath "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_BINARY_DIR}/deploy")
 
     # Remove excess files
     add_custom_command(TARGET ${PROJECT_NAME}
