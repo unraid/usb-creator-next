@@ -398,6 +398,7 @@
         <translation>运行SSH-KEYGEN</translation>
     </message>
 </context>
+<context>
     <message>
     <location filename="usb-creator-next/src/OptionsPopup.qml" line="392"/>
     <source>Play sound when finished</source>
