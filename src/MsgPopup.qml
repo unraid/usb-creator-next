@@ -143,7 +143,7 @@ Popup {
             ImButton {
                 text: qsTr("QUICK INSTALL GUIDE")
                 onClicked: {
-                    imageWriter.openUrl("https://docs.unraid.net/unraid-os/getting-started/quick-install-guide/")
+                    imageWriter.openUrl("https://docs.unraid.net/go/quick-install-guide")
                 }
                 font.family: roboto.name
                 visible: msgpopup.installButton
