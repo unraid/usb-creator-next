@@ -135,26 +135,45 @@ void DriveFormatThread::run()
 
 #elif defined(Q_OS_LINUX)
 
+    if (::access(_device.constData(), W_OK) != 0)
+    {
+        /* Not running as root, try to outsource formatting to udisks2 */
+
+#ifndef QT_NO_DBUS
+        UDisks2Api udisks2;
+        if (udisks2.formatDrive(_device))
+        {
+            emit success();
+        }
+        else
+        {
+#endif
+            emit error(tr("Error formatting (through udisks2)"));
+#ifndef QT_NO_DBUS
+        }
+#endif
+
+        return;
+    }
+
+
     QProcess proc;
     QByteArray partitionTable;
     QStringList args;
-    QStringList args2;
     QByteArray fatpartition = _device;
     partitionTable = "8192,,0E\n"
             "0,0\n"
             "0,0\n"
             "0,0\n";
-    args << "sfdisk" << "-uS" << "--no-reread" << _device;
+    args << "-uS" << _device;
     if (isdigit(fatpartition.at(fatpartition.length()-1)))
         fatpartition += "p1";
     else
         fatpartition += "1";
 
     unmount_disk(_device);
-    
     proc.setProcessChannelMode(proc.MergedChannels);
-  
-    proc.start("pkexec", args);
+    proc.start("sfdisk", args);
     if (!proc.waitForStarted())
     {
         emit error(tr("Error starting sfdisk"));
@@ -187,15 +206,12 @@ void DriveFormatThread::run()
     }
 
     args.clear();
-    
-    args2 << "umount" << fatpartition;
-    proc.execute("pkexec", args2);
-
+    args << fatpartition;
     if(!_label.isEmpty())
     {
-        args << "mkfs.fat" << "-n" << _label << fatpartition;
+        args << "-n" << _label;
     }
-    proc.start("pkexec", args);
+    proc.start("mkfs.fat", args);
     if (!proc.waitForStarted())
     {
         emit error(tr("Error starting mkfs.fat"));
@@ -211,7 +227,7 @@ void DriveFormatThread::run()
         emit error(tr("Error running mkfs.fat: %1").arg(QString(output)));
         return;
     }
-    
+
     emit success();
 
 #else
