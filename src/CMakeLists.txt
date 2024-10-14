@@ -315,6 +315,7 @@ else()
     install(FILES icons/unraid128.png DESTINATION share/icons/hicolor/128x128/apps)
     install(FILES linux/com.limetech.unraid-usb-creator.desktop DESTINATION share/applications)
     install(FILES "${CMAKE_CURRENT_BINARY_DIR}/unraid-usb-creator.metainfo.xml" DESTINATION share/metainfo)
+    
 endif()
 
 include_directories(${CURL_INCLUDE_DIR} ${LibArchive_INCLUDE_DIR} ${OPENSSL_INCLUDE_DIR} ${LIBLZMA_INCLUDE_DIR} ${LIBDRM_INCLUDE_DIRS})

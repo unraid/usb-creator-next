@@ -99,7 +99,7 @@ ApplicationWindow {
                 anchors.topMargin: 10
                 MouseArea {
                     anchors.fill: parent
-                    onClicked: imageWriter.openUrl("https://docs.unraid.net/unraid-os/getting-started/quick-install-guide/")
+                    onClicked: imageWriter.openUrl("https://docs.unraid.net/go/quick-install-guide")
                 }
             }
 
@@ -108,7 +108,7 @@ ApplicationWindow {
                 source: "unraid/icons/help_orange.svg"
                 MouseArea {
                     anchors.fill: parent
-                    onClicked: imageWriter.openUrl("https://docs.unraid.net/unraid-os/getting-started/quick-install-guide/")
+                    onClicked: imageWriter.openUrl("https://docs.unraid.net/go/quick-install-guide")
                 }
                 Layout.preferredHeight: 15
                 Layout.preferredWidth: 15
