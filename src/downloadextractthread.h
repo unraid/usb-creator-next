@@ -23,7 +23,7 @@ public:
      * - url: URL to download
      * - localfolder: Folder to extract archive to
      */
-    explicit DownloadExtractThread(const QByteArray &url, const QByteArray &localfilename = "", const QByteArray &expectedHash = "", QObject *parent = nullptr);
+    explicit DownloadExtractThread(const QByteArray &url, const QByteArray &localfilename = "", const QByteArray &expectedHash = "", QObject *parent = nullptr, QString langcode = "");
 
     virtual ~DownloadExtractThread();
     virtual void cancelDownload();
@@ -31,6 +31,11 @@ public:
     virtual void extractMultiFileRun();
     virtual bool isImage();
     virtual void enableMultipleFileExtraction();
+    void downloadLangInfo(QString url, QByteArray& data);
+    static size_t writeBuffer( char *ptr, size_t size, size_t nmemb, void *buffer);
+    QString parseJson();
+    QString parseXml();
+    void changeOSLanguage(QString folder);
 
 protected:
     char *_abuf[2];
@@ -45,6 +50,8 @@ protected:
     int _activeBuf;
     bool _writeThreadStarted;
     QFuture<size_t> _writeFuture;
+    QByteArray _jsonData, _xmlData, _zipData;
+    QString _givenLang;
 
     QByteArray _popQueue();
     void _pushQueue(const char *data, size_t len);

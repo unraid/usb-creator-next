@@ -15,6 +15,7 @@
 #include <archive_entry.h>
 #include <lzma.h>
 #include <random>
+#include <string>
 #include <QFileInfo>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
@@ -189,6 +190,7 @@ ImageWriter::ImageWriter(QObject *parent)
         {
             _currentLang = langname;
             _currentLangcode = currentlangcode;
+            _fullLangcode = currentLocale.name();
         }
     }
     //_currentKeyboard = "us";
@@ -300,7 +302,7 @@ void ImageWriter::startWrite()
     }
     else
     {
-        _thread = new DownloadExtractThread(urlstr, _dst.toLatin1(), _expectedHash, this);
+        _thread = new DownloadExtractThread(urlstr, _dst.toLatin1(), _expectedHash, this, _fullLangcode);
         if (_repo.toString() == OSLIST_URL)
         {
             DownloadStatsTelemetry *tele = new DownloadStatsTelemetry(urlstr, _parentCategory.toLatin1(), _osName.toLatin1(), _embeddedMode, _currentLangcode, this);
@@ -1350,6 +1352,32 @@ void ImageWriter::changeLanguage(const QString &newLanguageName)
     QString langcode = _translations[newLanguageName];
     qDebug() << "Changing language to" << langcode;
 
+    _fullLangcode = langcode + "_";
+
+    if (langcode == "en") {
+        _fullLangcode.append("US");
+    }
+    else if (langcode == "pt") {
+        if (newLanguageName.contains("Brasil")) {
+            _fullLangcode.append("BR");
+        }
+        else {
+            _fullLangcode.append("PT");
+        }
+    }
+    else if (langcode == "sv") {
+        _fullLangcode.append("SE");
+    }
+    else if (langcode == "uk") {
+        _fullLangcode.append("UA");
+    }
+    else if (langcode == "zh") {
+        _fullLangcode.append("CN");
+    }
+    else {
+        _fullLangcode.append(langcode.toUpper());
+    }
+
     QTranslator *trans = new QTranslator();
     if (trans->load(":/i18n/unraid-usb-creator_"+langcode+".qm"))
     {
@@ -1520,4 +1548,8 @@ bool ImageWriter::windowsBuild() {
 #else
     return false;
 #endif
+}
+
+QString ImageWriter::getLangcode() {
+    return _fullLangcode;
 }

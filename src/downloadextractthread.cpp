@@ -4,6 +4,7 @@
  */
 
 #include "downloadextractthread.h"
+#include "imagewriter.h"
 #include "config.h"
 #include "dependencies/drivelist/src/drivelist.hpp"
 #include "dependencies/mountutils/src/mountutils.hpp"
@@ -19,6 +20,7 @@
 #include <QProcess>
 #include <QTemporaryDir>
 #include <QDebug>
+#include <QXmlStreamReader>
 
 using namespace std;
 
@@ -43,13 +45,14 @@ protected:
     DownloadExtractThread *_de;
 };
 
-DownloadExtractThread::DownloadExtractThread(const QByteArray &url, const QByteArray &localfilename, const QByteArray &expectedHash, QObject *parent)
+DownloadExtractThread::DownloadExtractThread(const QByteArray &url, const QByteArray &localfilename, const QByteArray &expectedHash, QObject *parent, QString langcode)
     : DownloadThread(url, localfilename, expectedHash, parent), _abufsize(IMAGEWRITER_BLOCKSIZE), _ethreadStarted(false),
       _isImage(true), _inputHash(OSLIST_HASH_ALGORITHM), _activeBuf(0), _writeThreadStarted(false)
 {
     _extractThread = new _extractThreadClass(this);
     _abuf[0] = (char *) qMallocAligned(_abufsize, 4096);
     _abuf[1] = (char *) qMallocAligned(_abufsize, 4096);
+    _givenLang = langcode;
 }
 
 DownloadExtractThread::~DownloadExtractThread()
@@ -254,9 +257,9 @@ void DownloadExtractThread::extractMultiFileRun()
             fatpartition += "p1";
         else
             fatpartition += "1";
-        args << "mount" << "-t" << "vfat" << fatpartition << folder;
+        args << "-t" << "vfat" << fatpartition << folder;
 
-        if (QProcess::execute("pkexec", args) != 0)
+        if (QProcess::execute("mount", args) != 0)
         {
             emit error(tr("Error mounting FAT32 partition"));
             return;
@@ -353,8 +356,11 @@ void DownloadExtractThread::extractMultiFileRun()
             _cachefile.close();
             emit cacheFileUpdated(computedHash);
         }
-
+        
         if(_initFormat == "UNRAID") {
+            
+            changeOSLanguage(folder);
+
             if(_allNetworkSettingsPresent() && _imgWriterSettings["static"].toBool())
             {
                 QFile fileNetwork(folder + "/config/network.cfg");
@@ -551,5 +557,123 @@ void DownloadExtractThread::_pushQueue(const char *data, size_t len)
     {
         lock.unlock();
         _cv.notify_one();
+    }
+}
+
+void DownloadExtractThread::downloadLangInfo(QString url, QByteArray& data) {
+    CURL* curl;
+    CURLcode res;
+    std::string readBuffer;
+
+    curl = curl_easy_init();
+    if(curl) {
+        curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1);
+        curl_easy_setopt(curl, CURLOPT_URL, url.toUtf8().constData());
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, DownloadExtractThread::writeBuffer);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &data);
+        res = curl_easy_perform(curl);
+        curl_easy_cleanup(curl);
+    }
+
+    if (res != 0) {
+        qDebug() << "Issue curling: " << res;
+    }
+}
+
+size_t DownloadExtractThread::writeBuffer(char *ptr, size_t size, size_t nmemb, void *userdata) {
+    QByteArray* buffer = static_cast<QByteArray*>(userdata);
+    if (buffer) {
+        buffer->append(ptr, size * nmemb);
+    }
+    return size * nmemb;
+}
+
+QString DownloadExtractThread::parseJson() {
+    QJsonParseError parseError;
+    QJsonDocument jsonDoc = QJsonDocument::fromJson(_jsonData, &parseError);
+
+    if (parseError.error != QJsonParseError::NoError) {
+        qDebug() << "PARSE ERROR: " << parseError.errorString();
+    }
+
+    QJsonObject jsonObj = jsonDoc.object();
+
+    QJsonValue langVal = jsonObj.value(_givenLang);
+    QJsonObject langObj = langVal.toObject();
+
+    QJsonValue url = langObj.value("URL");
+    return url.toString();
+}
+
+QString DownloadExtractThread::parseXml() {
+    QXmlStreamReader xml(_xmlData);
+    int count = 0;
+    QString found;
+
+    while (!xml.atEnd() && !xml.hasError()) {
+        QXmlStreamReader::TokenType token = xml.readNext();
+        if (token == QXmlStreamReader::StartElement) {
+            if (xml.name() == "LanguageURL") {
+                xml.readNext();
+                if (xml.atEnd()) {
+                    break;
+                }
+
+                if (xml.isCharacters() && (xml.text() != "\n")) {
+                    found.append(xml.text().toString());
+                }
+            }
+        }
+    }
+
+    return found;
+}
+
+void DownloadExtractThread::changeOSLanguage(QString folder) {
+    if (_givenLang != "en_US") {
+        QString originURL = "https://assets.ca.unraid.net/feed/languageSelection.json";
+
+        downloadLangInfo(originURL, _jsonData);
+        QString xmlURL = parseJson();
+
+        downloadLangInfo(xmlURL, _xmlData);
+        QString zipURL = parseXml();
+
+        downloadLangInfo(zipURL, _zipData);
+
+        qDebug() << "Zip data: " << _zipData;
+
+        QString pluginPath = folder + "/config/plugins";
+        QDir pluginFolder(pluginPath);
+
+        if (pluginFolder.exists()) {
+            QString langPath = pluginPath + "/lang-" + _givenLang + ".xml";
+            QFile langFile(langPath);
+
+            if (!langFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+                qDebug() << "Unable to open file for writing: " << langPath;
+            }
+
+            langFile.write(_xmlData);
+            langFile.flush();
+            langFile.close();
+        }
+
+        // QString zipPath = pluginPath + "/dynamix";
+        // QDir zipLocation(zipPath);
+
+        // if (zipLocation.exists()) {
+        //     QString zipName = zipPath + "/lang-" + _givenLang + ".zip";
+        //     // Download zip folder
+        //     QFile zipFile(zipName);
+
+        //     if (!zipFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        //         qDebug() << "Unable to open file for writing: " << zipName;
+        //     }
+
+        //     //zipFile.write(_zipData);
+        //     zipFile.flush();
+        //     zipFile.close();
+        // }
     }
 }
