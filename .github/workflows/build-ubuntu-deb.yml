@@ -22,3 +22,9 @@ jobs:
 
     - name: Build
       run: debuild -uc -us
+      
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: WindowsInstaller
+        path: ../unraid-usb-creator-*.deb
