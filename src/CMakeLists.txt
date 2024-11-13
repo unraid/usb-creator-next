@@ -720,6 +720,7 @@ set(IMAGER_QML_FILES
     qmlcomponents/ImPopup.qml
     qmlcomponents/ImRadioButton.qml
     qmlcomponents/IpTextField.qml
+    qmlcomponents/OctetTextField.qml
     MainPopupBase.qml
     HwPopup.qml
     OSPopup.qml

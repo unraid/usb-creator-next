@@ -11,13 +11,6 @@ import RpiImager
 
 Button {
 
-    // This is the current version. I replaced it with Unraid Button - Ajit
-    // font.family: Style.fontFamily
-    //     font.capitalization: Font.AllUppercase
-    //     Material.background: activeFocus ? Style.buttonFocusedBackgroundColor : Style.buttonBackgroundColor
-    //     Material.foreground: Style.buttonForegroundColor
-    //    Material.roundedScale: Material.ExtraSmallScale
-
     font.family: Style.fontFamily
     font.bold: true
     background: Rectangle {

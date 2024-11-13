@@ -1,13 +1,13 @@
 import QtQuick 6.0
-import QtQuick.Controls 6.0
 import QtQuick.Layouts 6.0
-import QtQuick.Controls.Material 6.0
 import "."
 
 RowLayout {
     property alias label: ipEditLabel.text
     property string fullAddress: fieldIpAddress1.text + "." + fieldIpAddress2.text + "." + fieldIpAddress3.text + "." + fieldIpAddress4.text
-    property bool acceptableInput: (fieldIpAddress1.acceptableInput && fieldIpAddress2.acceptableInput && fieldIpAddress3.acceptableInput && fieldIpAddress4.acceptableInput) || !parent.enabled
+    property bool acceptableInput: (fieldIpAddress1.acceptableInput && fieldIpAddress2.acceptableInput && fieldIpAddress3.acceptableInput && fieldIpAddress4.acceptableInput) || !enabled
+    property bool enabled: true
+    property bool showLabel: true
 
     TextMetrics {
         id: textMetrics
@@ -17,67 +17,42 @@ RowLayout {
 
     Text {
         id: ipEditLabel
-        color: !parent.acceptableInput ? "red" : "white"
+        visible: false
+        color: !parent.acceptableInput ? "red" : Style.unraidTextColor
         opacity: parent.enabled ? 1.0 : 0.3
     }
-    TextField {
+
+    OctetTextField {
         id: fieldIpAddress1
-        width: textMetrics.width + leftPadding + rightPadding
-        Layout.preferredWidth: textMetrics.width + leftPadding + rightPadding
-        horizontalAlignment: TextInput.AlignHCenter
-        selectByMouse: true
-        validator: IntValidator {
-            bottom: 0
-            top: 255
-        }
+        enabled: parent.enabled
     }
     Text {
         text: "."
-        color: "white"
+        color: Style.unraidTextColor
         opacity: parent.enabled ? 1.0 : 0.3
     }
-    TextField {
+
+    OctetTextField {
         id: fieldIpAddress2
-        width: textMetrics.width + leftPadding + rightPadding
-        Layout.preferredWidth: textMetrics.width + leftPadding + rightPadding
-        horizontalAlignment: TextInput.AlignHCenter
-        selectByMouse: true
-        validator: IntValidator {
-            bottom: 0
-            top: 255
-        }
+        enabled: parent.enabled
     }
     Text {
         text: "."
-        color: "white"
+        color: Style.unraidTextColor
         opacity: parent.enabled ? 1.0 : 0.3
     }
-    TextField {
+    OctetTextField {
         id: fieldIpAddress3
-        width: textMetrics.width + leftPadding + rightPadding
-        Layout.preferredWidth: textMetrics.width + leftPadding + rightPadding
-        horizontalAlignment: TextInput.AlignHCenter
-        selectByMouse: true
-        validator: IntValidator {
-            bottom: 0
-            top: 255
-        }
+        enabled: parent.enabled
     }
     Text {
         text: "."
-        color: "white"
+        color: Style.unraidTextColor
         opacity: parent.enabled ? 1.0 : 0.3
     }
-    TextField {
+    OctetTextField {
         id: fieldIpAddress4
-        width: textMetrics.width + leftPadding + rightPadding
-        Layout.preferredWidth: textMetrics.width + leftPadding + rightPadding
-        horizontalAlignment: TextInput.AlignHCenter
-        selectByMouse: true
-        validator: IntValidator {
-            bottom: 0
-            top: 255
-        }
+        enabled: parent.enabled
     }
 
     function forceActiveFocus() {

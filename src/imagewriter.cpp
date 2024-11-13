@@ -214,17 +214,19 @@ ImageWriter::ImageWriter(QObject *parent)
         /* Use "English" for "en" and not "American English" */
         QString langname = loc.nativeLanguageName();
 
-        if (langcode == "en") {
+        if (langcode == "en")
+        {
             langname = "English";
         }
         else if (langcode == "es")
         {
             langname = "Español";
         }
-        else if (langcode == "fr") {
+        else if (langcode == "fr")
+        {
             langname = "Français";
         }
-     
+
         _translations.insert(langname, langcode);
         if (langcode == currentlangcode)
         {
@@ -384,6 +386,11 @@ void ImageWriter::startWrite()
         emit error(tr("Storage capacity is not large enough.<br>Needs to be at least %1 GB.").arg(QString::number(_extrLen / 1000000000.0, 'f', 1)));
         return;
     }
+
+    qDebug() << "Starting write with source:" << _src.toString() << ", destination:" << _dst
+             << ", download length:" << _downloadLen << ", extract length:" << _extrLen
+             << ", device length:" << _devLen << ", expected hash:" << _expectedHash
+             << ", multiple files in zip:" << _multipleFilesInZip;
 
     if (_extrLen && !_multipleFilesInZip && _extrLen % 512 != 0)
     {

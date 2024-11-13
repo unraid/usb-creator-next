@@ -24,8 +24,8 @@ class OSListModel : public QAbstractListModel
     QML_ELEMENT
     QML_UNCREATABLE("Created by C++")
 public:
-
-    enum OSListRole {
+    enum OSListRole
+    {
         NameRole = Qt::UserRole + 1,
         DescriptionRole,
         DevicesRole,
@@ -41,9 +41,11 @@ public:
         TooltipRole,
         WebsiteRole,
         ArchitectureRole,
+        ContainsMultipleFilesRole,
     };
 
-    struct OS {
+    struct OS
+    {
         QString name;
         QString description;
         QStringList devices; // not used by QML but present in JSON
@@ -57,6 +59,7 @@ public:
         QString website;
         QString extractSha256;
         QString architecture; // Architecture this OS expects (armel, armhf, armv8)
+        bool containsMultipleFiles = false;
 
         quint64 imageDownloadSize = 0;
         quint64 extractSize = 0;

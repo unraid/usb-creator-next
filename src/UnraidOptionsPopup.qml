@@ -2,7 +2,6 @@
  * SPDX-License-Identifier: Apache-2.0
  * Copyright (C) 2020 Raspberry Pi Ltd
  */
-
 import QtQuick 6.0
 import QtQuick.Controls 6.0
 import QtQuick.Layouts 6.0
@@ -25,13 +24,6 @@ Popup {
     required property ImageWriter imageWriter
     property bool initialized: false
     property bool hasSavedSettings: false
-    property string config
-    property string cmdline
-    property string firstrun
-    property string cloudinit
-    property string cloudinitrun
-    property string cloudinitwrite
-    property string cloudinitnetwork
     property bool validInputs: false
 
     signal saveSettingsSignal(var settings)
@@ -59,7 +51,7 @@ Popup {
     }
 
     Text {
-        color: "white"
+        color: Style.unraidTextColor
         text: "X"
         anchors.right: parent.right
         anchors.top: parent.top
@@ -78,10 +70,10 @@ Popup {
     }
 
     ColumnLayout {
-        spacing: 10
         width: parent.width
+        spacing: 10
         Text {
-            color: "white"
+            color: Style.unraidTextColor
             text: qsTr("Settings")
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
@@ -90,51 +82,45 @@ Popup {
             font.family: Style.fontFamily
             font.bold: true
         }
-        GroupBox {
 
+        GroupBox {
             Layout.fillWidth: true
-            Layout.fillHeight: true
             Layout.leftMargin: 25
             Layout.rightMargin: 25
             Layout.topMargin: 10
-            ColumnLayout {
-                // General tab
-                spacing: -10
 
-                RowLayout {
-                    Text {
-                        text: "Server Name:"
-                        color: !fieldServername.acceptableInput ? "red" : "white"
+            GridLayout {
+                id: formGrid
+                columns: 2
+                columnSpacing: 16
+                rowSpacing: 15
+                Layout.topMargin: 5
+
+                // Server Name
+                Text {
+                    text: "Server Name:"
+                    color: !fieldServername.acceptableInput ? "red" : Style.unraidTextColor
+                    Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
+                }
+                TextField {
+                    id: fieldServername
+                    text: "Tower"
+                    horizontalAlignment: TextInput.AlignLeft
+                    selectByMouse: true
+                    maximumLength: 15
+                    validator: RegularExpressionValidator {
+                        regularExpression: /^[A-Za-z0-9]([A-Za-z0-9\-\.]{0,13}[A-Za-z0-9])?$/
                     }
-                    Loader {
-                        // try to account for RegExpValidator renaming in Qt6
-                        source: "qmlcomponents/regex_validator_qt5.qml"
-                        property bool valid: item !== null
-                        id: regexValidatorQt5
-                    }
-                    Loader {
-                        // try to account for RegExpValidator renaming in Qt6
-                        source: "qmlcomponents/regex_validator_qt6.qml"
-                        property bool valid: item !== null
-                        id: regexValidatorQt6
-                    }
-                    TextField {
-                        id: fieldServername
-                        text: "Tower"
-                        horizontalAlignment: TextInput.AlignHCenter
-                        selectByMouse: true
-                        maximumLength: 15
-                        validator: RegularExpressionValidator {
-                            regularExpression: /^[A-Za-z0-9]([A-Za-z0-9\-\.]{0,13}[A-Za-z0-9])?$/
-                        }
-                    }
+                    Layout.fillWidth: true
                 }
 
+                // Network Mode
+                Text {
+                    text: "Network Mode:"
+                    color: Style.unraidTextColor
+                    Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
+                }
                 RowLayout {
-                    Text {
-                        text: "Network Mode:"
-                        color: "white"
-                    }
                     ImRadioButton {
                         id: radioDhcp
                         text: qsTr("DHCP")
@@ -148,84 +134,110 @@ Popup {
                     }
                 }
 
-                RowLayout {
+                // IP Address
+                Text {
+                    text: "IP Address:"
+                    color: !ipAddressField.acceptableInput ? "red" : Style.unraidTextColor
+                    opacity: radioStaticIp.checked ? 1.0 : 0.3
+                    Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
+                }
+                IpTextField {
+                    id: ipAddressField
+                    showLabel: false
                     enabled: radioStaticIp.checked
-                    IpTextField {
-                        id: ipAddressField
-                        label: "IP Address:"
-                    }
-                    Text {
-                        text: "Netmask:"
-                        color: "white"
-                        opacity: parent.enabled ? 1.0 : 0.3
-                    }
-                    ComboBox {
-                        id: fieldNetmask
-                        font.family: Style.fontFamily
-                        model: ["255.255.0.0", "255.255.128.0", "255.255.192.0", "255.255.224.0", "255.255.240.0", "255.255.248.0", "255.255.252.0", "255.255.254.0", "255.255.255.0", "255.255.255.128", "255.255.255.192", "255.255.255.224", "255.255.255.240", "255.255.255.248", "255.255.255.252"]
-                        Layout.preferredWidth: 200
-                        currentIndex: -1
-                        Component.onCompleted: {
-                            currentIndex = find("255.255.255.0");
+                    Layout.fillWidth: true
+                }
+
+                // Netmask
+                Text {
+                    text: "Netmask:"
+                    color: Style.unraidTextColor
+                    opacity: radioStaticIp.checked ? 1.0 : 0.3
+                    Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
+                    Layout.topMargin: 5
+                }
+                ComboBox {
+                    id: fieldNetmask
+                    enabled: radioStaticIp.checked
+                    font.family: Style.fontFamily
+                    model: ["255.255.0.0", "255.255.128.0", "255.255.192.0", "255.255.224.0", "255.255.240.0", "255.255.248.0", "255.255.252.0", "255.255.254.0", "255.255.255.0", "255.255.255.128", "255.255.255.192", "255.255.255.224", "255.255.255.240", "255.255.255.248", "255.255.255.252"]
+                    Layout.preferredWidth: 200
+                    currentIndex: -1
+                    Component.onCompleted: currentIndex = find("255.255.255.0")
+                    Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
+                    Layout.fillWidth: true
+                    Layout.topMargin: 5
+
+                    popup: Popup {
+                        y: fieldNetmask.height
+                        width: fieldNetmask.width
+                        implicitHeight: contentItem.implicitHeight
+
+                        padding: 1
+                        Material.theme: Material.Dark
+                        Material.accent: Style.unraidAccentColor
+
+                        contentItem: ListView {
+                            clip: true
+                            implicitHeight: contentHeight
+                            model: fieldNetmask.delegateModel
+                            currentIndex: fieldNetmask.highlightedIndex
+
+                            ScrollIndicator.vertical: ScrollIndicator {}
                         }
-                        Layout.topMargin: 10
-                        Layout.bottomMargin: 10
-                        popup: Popup {
-                            y: fieldNetmask.height - 1
-                            width: fieldNetmask.width
-                            implicitHeight: contentItem.implicitHeight
-                            padding: 1
-                            Material.theme: Material.Dark
-                            Material.accent: Style.unraidAccentColor
 
-                            contentItem: ListView {
-                                clip: true
-                                implicitHeight: contentHeight
-                                model: fieldNetmask.delegateModel
-                                currentIndex: fieldNetmask.highlightedIndex
-
-                                ScrollIndicator.vertical: ScrollIndicator {}
-                            }
-
-                            background: Rectangle {
-                                color: Style.unraidPrimaryBgColor
-                                radius: 2
-                            }
+                        background: Rectangle {
+                            color: Style.unraidPrimaryBgColor
+                            radius: 2
                         }
                     }
                 }
-                RowLayout {
+
+                // Gateway
+                Text {
+                    text: "Gateway:"
+                    color: !gatewayField.acceptableInput ? "red" : Style.unraidTextColor
+                    opacity: radioStaticIp.checked ? 1.0 : 0.3
+                    Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
+                }
+                IpTextField {
+                    id: gatewayField
+                    showLabel: false
                     enabled: radioStaticIp.checked
-                    IpTextField {
-                        id: gatewayField
-                        label: "Gateway:"
-                    }
-                    IpTextField {
-                        id: dnsField
-                        label: "DNS Server:"
-                    }
+                    Layout.fillWidth: true
+                }
+
+                // DNS Server
+                Text {
+                    text: "DNS Server:"
+                    color: !dnsField.acceptableInput ? "red" : Style.unraidTextColor
+                    opacity: radioStaticIp.checked ? 1.0 : 0.3
+                    Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
+                }
+                IpTextField {
+                    id: dnsField
+                    showLabel: false
+                    enabled: radioStaticIp.checked
+                    Layout.fillWidth: true
+                    Layout.bottomMargin: 10
                 }
             }
         }
+
         RowLayout {
             Layout.alignment: Qt.AlignCenter | Qt.AlignBottom
-            Layout.bottomMargin: 10
-            spacing: 20
+            spacing: 10
 
             ImButton {
                 text: qsTr("CONTINUE")
                 onClicked: {
-                    checkInputs();
-                    if (validInputs) {
-                        applySettings();
+                    popup.checkInputs();
+                    if (popup.validInputs) {
+                        popup.applySettings();
                         popup.close();
-                        continueSignal();
+                        popup.continueSignal();
                     }
                 }
-            }
-
-            Text {
-                text: " "
             }
         }
     }

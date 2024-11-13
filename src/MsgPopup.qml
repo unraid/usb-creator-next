@@ -22,6 +22,8 @@ ImPopup {
     property bool quitButton: false
     property bool yesButton: false
     property bool noButton: false
+    property bool installGuideButton: false
+    signal installGuide
 
     height: msgpopupbody.implicitHeight + 150
 
@@ -121,6 +123,19 @@ ImPopup {
             }
             font.family: Style.fontFamily
             visible: root.quitButton
+        }
+
+        ImButton {
+            text: qsTr("QUICK INSTALL GUIDE")
+            onClicked: {
+                root.installGuide();
+            }
+            font.family: Style.fontFamily
+            visible: root.installGuideButton
+        }
+
+        Text {
+            text: " "
         }
     }
 

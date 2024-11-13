@@ -73,7 +73,16 @@ MainPopupBase {
             anchors.fill: parent
             horizontalAlignment: Qt.AlignHCenter
             verticalAlignment: Qt.AlignVCenter
-            visible: parent.count == 0
+            visible: {
+                var visibleCount = 0;
+                for (var i = 0; i < dstlist.count; i++) {
+                    var item = dstlist.itemAtIndex(i);
+                    if (item && item.visible) {
+                        visibleCount++;
+                    }
+                }
+                return visibleCount === 0;
+            }
             color: Style.unraidTextColor
             text: qsTr("No storage devices found")
             font.bold: true
@@ -193,12 +202,12 @@ MainPopupBase {
 
             Rectangle {
                 id: dstbgrect
+                property bool mouseOver: false
                 anchors.top: parent ? parent.top : undefined
                 anchors.left: parent ? parent.left : undefined
                 anchors.right: parent ? parent.right : undefined
                 height: 60
                 color: mouseOver ? Style.unraidAccentColor : Style.unraidPrimaryBgColor
-                property bool mouseOver: false
                 border.color: Style.unraidSecondaryBgColor
 
                 RowLayout {
@@ -280,16 +289,13 @@ MainPopupBase {
 
                 onEntered: {
                     dstbgrect.mouseOver = true;
-                    console.log(`Mouse entered on device: ${dstitem.device}, Selectable: ${!dstitem.unselectable}, Enabled: ${enabled}`);
                 }
 
                 onExited: {
-                    console.log(`Mouse exited from device: ${dstitem.device}`);
                     dstbgrect.mouseOver = false;
                 }
 
                 onClicked: {
-                    console.log(`Clicked on device: ${dstitem.device}`);
                     root.selectDstItem(dstitem.modelData);
                 }
             }
@@ -302,9 +308,6 @@ MainPopupBase {
             return;
         }
 
-        console.log(`Unraid Device : ${imageWriter.getInitFormat()} selected device: ${d.device}`);
-        console.log(`guid: ${d.guid} guidValid: ${d.guidValid}`);
-
         // Unraid-specific
         if (imageWriter.getInitFormat() === "UNRAID" && !d.guidValid) {
             onError(qsTr("Selected device cannot be used to create an Unraid USB due to its invalid GUID."));
@@ -312,7 +315,7 @@ MainPopupBase {
             return;
         }
 
-        imageWriter.setDst(d.device);
+        imageWriter.setDst(d.device, d.guidValid);
         window.selectedStorageName = d.description;
         if (imageWriter.readyToWrite()) {
             writebutton.enabled = true;

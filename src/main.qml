@@ -54,7 +54,7 @@ ApplicationWindow {
 
     // Helper function to get the next focusable element
     function getNextFocusableElement(startElement) {
-        var order = [hwbutton, osbutton, dstbutton, writebutton, cancelwritebutton, cancelverifybutton, skipcachebutton, languageCombo, keyboardCombo];
+        var order = [osbutton, dstbutton, writebutton, cancelwritebutton, cancelverifybutton, skipcachebutton, languageCombo, keyboardCombo];
         var focusableItems = order.filter(function (item) {
             if (!item)
                 return false;
@@ -81,7 +81,7 @@ ApplicationWindow {
 
     // Helper function to get the previous focusable element
     function getPreviousFocusableElement(startElement) {
-        var order = [hwbutton, osbutton, dstbutton, writebutton, cancelwritebutton, cancelverifybutton, skipcachebutton, languageCombo, keyboardCombo];
+        var order = [osbutton, dstbutton, writebutton, cancelwritebutton, cancelverifybutton, skipcachebutton, languageCombo, keyboardCombo];
         var focusableItems = order.filter(function (item) {
             if (!item)
                 return false;
@@ -177,7 +177,7 @@ ApplicationWindow {
                 anchors.topMargin: 10
                 MouseArea {
                     anchors.fill: parent
-                    onClicked: imageWriter.openUrl("https://docs.unraid.net/unraid-os/getting-started/quick-install-guide/")
+                    onClicked: imageWriter.openUrl("https://docs.unraid.net/go/quick-install-guide")
                 }
             }
 
@@ -186,7 +186,7 @@ ApplicationWindow {
                 source: "unraid/icons/help_orange.svg"
                 MouseArea {
                     anchors.fill: parent
-                    onClicked: imageWriter.openUrl("https://docs.unraid.net/unraid-os/getting-started/quick-install-guide/")
+                    onClicked: imageWriter.openUrl("https://docs.unraid.net/go/quick-install-guide")
                 }
                 Layout.preferredHeight: 15
                 Layout.preferredWidth: 15
@@ -356,8 +356,6 @@ ApplicationWindow {
                         visible: false
                         activeFocusOnTab: false
                         focus: false
-                        // Will have to change this color to match Unraid theme -- Ajit
-                        Material.background: Style.progressBarBackgroundColor
                     }
                 }
 
@@ -464,9 +462,11 @@ ApplicationWindow {
                             }
                             focusAnchor.forceActiveFocus();
 
+                            // use Unraid's options popup
                             if (imageWriter.imageSupportsCustomization()) {
                                 optionspopup.openPopup();
                             } else {
+                                // use RpiImager's confirm write popup
                                 confirmwritepopup.askForConfirmation();
                             }
                         }
@@ -522,8 +522,6 @@ ApplicationWindow {
                     implicitWidth: langbar.width
                     implicitHeight: langbar.height
 
-                    // Accepted Unraid version, not current -- Ajit
-                    // Also, make sure there's a language selector button somewhere at the bottom. Maybe that comes in a later commit?
                     color: Style.unraidSecondaryBgColor
                     Material.theme: Material.Dark
                     Material.background: Style.unraidPrimaryBgColor
@@ -542,7 +540,7 @@ ApplicationWindow {
                             Layout.leftMargin: 30
                             Layout.topMargin: 10
                             Layout.bottomMargin: 10
-                            color: "white"
+                            color: Style.unraidTextColor
                         }
                         ComboBox {
                             id: languageCombo
@@ -561,8 +559,6 @@ ApplicationWindow {
                             Layout.topMargin: 10
                             Layout.bottomMargin: 10
 
-                            // Accepted Both changes -- Ajit
-                            // This was from current -- Ajit
                             Keys.onPressed: event => {
                                 if (event.key === Qt.Key_Backtab || (event.key === Qt.Key_Tab && event.modifiers & Qt.ShiftModifier)) {
                                     window.getPreviousFocusableElement(languageCombo).forceActiveFocus();
@@ -572,7 +568,6 @@ ApplicationWindow {
                                     event.accepted = true;
                                 }
                             }
-                            // This was from Unraid changes -- Ajit
                             popup: Popup {
                                 y: languageCombo.height - 1
                                 width: languageCombo.width
@@ -595,8 +590,6 @@ ApplicationWindow {
                                     radius: 2
                                 }
                             }
-                            // End of Unraid changes -- Ajit
-
                         }
                         Text {
                             font.pixelSize: 12
@@ -604,7 +597,7 @@ ApplicationWindow {
                             text: qsTr("Keyboard: ")
                             Layout.topMargin: 10
                             Layout.bottomMargin: 10
-                            color: "white"
+                            color: Style.unraidTextColor
                         }
                         ComboBox {
                             id: keyboardCombo
@@ -623,8 +616,7 @@ ApplicationWindow {
                             Layout.topMargin: 10
                             Layout.bottomMargin: 10
                             Layout.rightMargin: 30
-                            // Accepted Both changes -- Ajit
-                            // This was from current -- Ajit
+
                             Keys.onPressed: event => {
                                 if (event.key === Qt.Key_Backtab || (event.key === Qt.Key_Tab && event.modifiers & Qt.ShiftModifier)) {
                                     window.getPreviousFocusableElement(keyboardCombo).forceActiveFocus();
@@ -634,7 +626,6 @@ ApplicationWindow {
                                     event.accepted = true;
                                 }
                             }
-                            // This was from Unraid changes, but changed from languageselector to keyboardCombo -- Ajit
                             popup: Popup {
                                 y: keyboardCombo.height - 1
                                 width: keyboardCombo.width
@@ -657,7 +648,6 @@ ApplicationWindow {
                                     radius: 2
                                 }
                             }
-                            // End of Unraid changes -- Ajit
                         }
                     }
                 }
@@ -688,25 +678,23 @@ ApplicationWindow {
             }
         }
 
-        Row {
-            anchors.left: parent.left
-            anchors.leftMargin: 15
-            anchors.bottom: parent.bottom
-            anchors.bottomMargin: 10
-            spacing: 5
-
+        RowLayout {
             Image {
                 id: infoImage
                 source: "unraid/icons/info_orange.svg"
                 MouseArea {
                     anchors.fill: parent
-                    onClicked: infopopup.openPopup()
+                    onClicked: infopopup.open()
                 }
                 Layout.preferredHeight: 15
                 Layout.preferredWidth: 15
                 sourceSize.width: 15
                 sourceSize.height: 15
                 fillMode: Image.PreserveAspectFit
+                anchors.left: parent.left
+                anchors.leftMargin: 10
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 10
             }
             Text {
                 color: Style.unraidAccentColor
@@ -714,6 +702,10 @@ ApplicationWindow {
                 font.pixelSize: 12
                 font.family: Style.fontFamilyBold
                 font.bold: true
+                anchors.left: infoImage.right
+                anchors.leftMargin: 5
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 10
                 MouseArea {
                     anchors.fill: parent
                     onClicked: infopopup.open()
@@ -731,7 +723,7 @@ ApplicationWindow {
                 color: Style.unraidAccentColor
                 text: qsTr("Select Language")
                 font.pixelSize: 12
-                font.family: robotoBold.name
+                font.family: Style.fontFamilyBold
                 font.bold: true
                 anchors.right: langIcon.left
                 anchors.rightMargin: 5
@@ -785,10 +777,8 @@ ApplicationWindow {
         onOpened: {
             forceActiveFocus();
         }
-        onClosed: {
-            window.imageWriter.setDst("");
-            window.selectedStorageName = "";
-            window.resetWriteButton();
+        onInstallGuide: {
+            imageWriter.openUrl("https://docs.unraid.net/go/quick-install-guide");
         }
     }
 
@@ -822,7 +812,7 @@ ApplicationWindow {
         yesButton: true
         noButton: true
         title: qsTr("Warning")
-        modal: true
+        // modal: true
         onYes: {
             langbarRect.visible = false;
             writebutton.visible = false;
@@ -837,7 +827,6 @@ ApplicationWindow {
             progressBar.Material.accent = Style.unraidAccentColor;
             osbutton.enabled = false;
             dstbutton.enabled = false;
-            hwbutton.enabled = false;
             window.imageWriter.setVerifyEnabled(true);
             window.imageWriter.startWrite();
         }
@@ -874,12 +863,12 @@ ApplicationWindow {
             // set saved Unraid customization settings (separate from image customization)
             window.imageWriter.setSavedCustomizationSettings(settings);
 
-            // default these to off for now
+            // default these to off
             window.imageWriter.setSetting("beep", false);
             window.imageWriter.setSetting("eject", false);
-            window.imageWriter.setSetting("telemetry", false); // chkTelemtry.checked)
+            window.imageWriter.setSetting("telemetry", false);
 
-            // not using rpi-imager's
+            // set rpi-imager's settings to empty strings
             window.imageWriter.setImageCustomization("", "", "", "", "");
             usesavedsettingspopup.hasSavedSettings = true;
         }
@@ -889,6 +878,7 @@ ApplicationWindow {
         }
     }
 
+    // rpi's options popup is not used in Unraid, but kept here for reference
     // OptionsPopup {
     //     id: optionspopup
     //     minimumWidth: 450
@@ -950,7 +940,7 @@ ApplicationWindow {
             }
 
             // Ensure progress bar is set to write color
-            progressBar.Material.accent = "#ffffff";
+            progressBar.Material.accent = Style.unraidAccentColor;
             progressText.text = qsTr("Writing... %1%").arg(Math.floor(newPos * 100));
             progressBar.indeterminate = false;
             progressBar.value = newPos;
@@ -978,7 +968,6 @@ ApplicationWindow {
             } else {
                 progressText.text = qsTr("Verifying... %1%").arg(Math.floor(newPos * 100));
             }
-            progressBar.Material.accent = Style.unraidAccentColor;
             progressBar.value = newPos;
         }
     }
@@ -996,7 +985,6 @@ ApplicationWindow {
         progressBar.visible = false;
         osbutton.enabled = true;
         dstbutton.enabled = true;
-        hwbutton.enabled = true;
         writebutton.visible = true;
         writebutton.enabled = imageWriter.readyToWrite();
         cancelwritebutton.visible = false;
@@ -1022,8 +1010,11 @@ ApplicationWindow {
             Qt.quit();
         } else {
             msgpopup.text = qsTr("<b>%1</b> has been written to <b>%2</b>.").arg(osbutton.text).arg(dstbutton.text);
-            if (imageWriter.getInitFormat() === "UNRAID" && !imageWriter.windowsBuild()) {
-                msgpopup.text += qsTr("<br><br>If you would like to enable legacy boot (bios), helpful for old hardware, please run the 'make_bootable_(mac/linux/windows)' script from this computer, located in the main folder of the UNRAID flash drive.");
+            if (imageWriter.getInitFormat() === "UNRAID") {
+                if (!imageWriter.windowsBuild()) {
+                    msgpopup.text += qsTr("<br><br>If you would like to enable legacy boot (bios), helpful for old hardware, please run the 'make_bootable_(mac/linux/windows)' script from this computer, located in the main folder of the UNRAID flash drive.");
+                }
+                msgpopup.installGuideButton = true;
             }
         }
         if (imageWriter.isEmbeddedMode()) {
@@ -1032,10 +1023,8 @@ ApplicationWindow {
         }
 
         msgpopup.open();
-
-        //added for unraid -- Ajit
         imageWriter.setDst("", false);
-        dstbutton.text = qsTr("CHOOSE STORAGE");
+        window.selectedStorageName = "";
         resetWriteButton();
     }
 

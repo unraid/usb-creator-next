@@ -380,11 +380,16 @@ MainPopupBase {
                 }
             }
         } else {
+            console.log("Selected OS: " + d.name + ", URL: " + d.url);
+            console.log("Image download size: " + d.image_download_size);
+            console.log("Extract size: " + d.extract_size);
+            console.log("Extract SHA256: " + d.extract_sha256);
+            console.log("Contains multiple files: " + d.contains_multiple_files);
+            console.log("Init format: " + d.init_format);
             root.imageWriter.setSrc(d.url, d.image_download_size, d.extract_size, typeof (d.extract_sha256) != "undefined" ? d.extract_sha256 : "", typeof (d.contains_multiple_files) != "undefined" ? d.contains_multiple_files : false, root.categorySelected, d.name, typeof (d.init_format) != "undefined" ? d.init_format : "");
-
             // Check if we're switching to Unraid and validate current device
             if (imageWriter.getInitFormat() === "UNRAID" && imageWriter.getDstDevice() !== "" && !imageWriter.getDstGuidValid()) {
-                // Invalid device for Unraid - clear selection and show error
+                // Invalid device for Unraid - clear selection and show errord.url, d.image_download_size, d.extract_size, typeof(d.extract_sha256) != "undefined" ? d.extract_sha256 : "", typeof(d.contains_multiple_files) != "undefined" ? d.contains_multiple_files : false, ospopup.categorySelected, d.name, typeof(d.init_format) != "undefined" ? d.init_format : ""
                 onError(qsTr("Selected device cannot be used to create an Unraid USB due to its invalid GUID."));
                 writebutton.enabled = false;
                 imageWriter.setDst("", false);
