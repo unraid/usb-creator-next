@@ -25,8 +25,10 @@ Popup {
     property bool quitButton: false
     property bool yesButton: false
     property bool noButton: false
+    property bool installGuideButton: false
     signal yes()
     signal no()
+    signal installGuide()
     
     background: Rectangle {
         color: UnColors.darkGray
@@ -136,6 +138,15 @@ Popup {
                 }
                 font.family: roboto.name
                 visible: msgpopup.quitButton
+            }
+
+            ImButton {
+                text: qsTr("QUICK INSTALL GUIDE")
+                onClicked: {
+                    msgpopup.installGuide()
+                }
+                font.family: roboto.name
+                visible: msgpopup.installGuideButton
             }
 
             Text { text: " " }
