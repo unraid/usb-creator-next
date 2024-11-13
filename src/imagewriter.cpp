@@ -1593,13 +1593,13 @@ QString ImageWriter::_parseUnraidLangXml(const QByteArray& xmlFilePath)
     while (!xml.atEnd() && !xml.hasError()) {
         QXmlStreamReader::TokenType token = xml.readNext();
         if (token == QXmlStreamReader::StartElement) {
-            if (xml.name() == "LanguageURL") {
+            if (QString::compare(xml.name(), "LanguageURL") == 0) {
                 xml.readNext();
                 if (xml.atEnd()) {
                     break;
                 }
 
-                if (xml.isCharacters() && (xml.text() != "\n")) {
+                if (xml.isCharacters() && (QString::compare(xml.text(), "\n") != 0)) {
                     found.append(xml.text().toString());
                 }
             }
@@ -1627,9 +1627,12 @@ QByteArray ImageWriter::_readFileContents(const QByteArray& filePath)
 
 void ImageWriter::onUnraidFormatComplete()
 {
-    QTemporaryFile tmp;
-    tmp.open(); // need this to actually generate a unique file path
-    _unraidLangJsonTmpPath = tmp.fileName().toUtf8();
+    QString uuid = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    QString download_dir = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
+    _unraidLangJsonTmpPath = (download_dir + "/unraid-usb-creator-" + uuid + ".tmp").toUtf8();
+    QFile langFile(_unraidLangJsonTmpPath);
+    langFile.open(QIODevice::ReadWrite);
+
     setSetting("imagecustomization/UNRAID_LANG_JSON", _unraidLangJsonTmpPath);
     DownloadThread * dl_thread = new DownloadThread(_unraidLangJsonUrl, _unraidLangJsonTmpPath, "", this);
     connect(dl_thread, SIGNAL(error(QString)), SLOT(onError(QString)));
@@ -1640,9 +1643,13 @@ void ImageWriter::onUnraidFormatComplete()
 void ImageWriter::onUnraidJsonDownloadComplete()
 {
     QByteArray xmlUrl = _parseUnraidLangJson(_unraidLangJsonTmpPath, _unraidLangcode);
-    QTemporaryFile tmp;
-    tmp.open(); // need this to actually generate a unique file path
-    _unraidLangXmlTmpPath = tmp.fileName().toUtf8();
+
+    QString uuid = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    QString download_dir = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
+    _unraidLangXmlTmpPath = (download_dir + "/unraid-usb-creator-" + uuid + ".tmp").toUtf8();
+    QFile langFile(_unraidLangXmlTmpPath);
+    langFile.open(QIODevice::ReadWrite);
+
     setSetting("imagecustomization/UNRAID_LANG_XML", _unraidLangXmlTmpPath);
     DownloadThread * dl_thread = new DownloadThread(xmlUrl, _unraidLangXmlTmpPath, "", this);
     connect(dl_thread, SIGNAL(error(QString)), SLOT(onError(QString)));
@@ -1662,9 +1669,13 @@ void ImageWriter::onUnraidXmlDownloadComplete()
     }
     else
     {
-        QTemporaryFile tmp;
-        tmp.open(); // need this to actually generate a unique file path
-        _unraidLangZipTmpPath = tmp.fileName().toUtf8();
+        QString uuid = QUuid::createUuid().toString(QUuid::WithoutBraces);
+        QString download_dir = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
+        _unraidLangZipTmpPath = (download_dir + "/unraid-usb-creator-" + uuid + ".tmp").toUtf8();
+        QFile langFile(_unraidLangZipTmpPath);
+        langFile.open(QIODevice::ReadWrite);
+
+
         setSetting("imagecustomization/UNRAID_LANG_ZIP", _unraidLangZipTmpPath);
         // this has to be called again so getSavedCustomizationSettings returns the updated qvariantmap
         _thread->setImageCustomization(_config, _cmdline, _firstrun, _cloudinit, _cloudinitNetwork, _initFormat, getSavedCustomizationSettings());
