@@ -22,4 +22,4 @@ jobs:
           sudo apt install -y --no-install-recommends build-essential devscripts debhelper cmake git libarchive-dev libcurl4-gnutls-dev libgnutls28-dev
 
     - name: Build
-      run: debuild -uc -us
+      run: debuild -uc -us -d
