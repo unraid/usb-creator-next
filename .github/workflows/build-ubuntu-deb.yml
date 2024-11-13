@@ -16,9 +16,9 @@ jobs:
     - name: Install dependencies
       run: |
           sudo apt update
-          sudo apt install -y --no-install-recommends build-essential devscripts debhelper cmake git libarchive-dev libcurl4-gnutls-dev 
-          sudo apt install -y --no-install-recommends qt6-base-dev qt6-base-dev-tools qt6-declarative-dev libqt6svg6-dev qt6-tools-dev libgnutls28-dev qt6-l10n-tools qt6-tools-dev-tools
-          sudo apt install -y --no-install-recommends qml6-module-qtquick qml6-module-qtquick-controls qml6-module-qtquick-layouts qml6-module-qtquick-templates qml6-module-qtquick-window
+          sudo apt install -y --no-install-recommends build-essential devscripts debhelper cmake git libarchive-dev libcurl4-gnutls-dev
+               qtbase5-dev qtbase5-dev-tools qtdeclarative5-dev libqt5svg5-dev qttools5-dev libgnutls28-dev
+               qml-module-qtquick2 qml-module-qtquick-controls2 qml-module-qtquick-layouts qml-module-qtquick-templates2 qml-module-qtquick-window2 qml-module-qtgraphicaleffects
 
     - name: Build
       run: debuild -uc -us
