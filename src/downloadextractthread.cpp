@@ -398,6 +398,48 @@ void DownloadExtractThread::extractMultiFileRun()
                 }
             }
 
+            if(_imgWriterSettings.contains("UNRAID_LANG_JSON")) {
+                // remove this tmp file now that we're definitely done with it
+                QFile langJson(_imgWriterSettings["UNRAID_LANG_JSON"].toByteArray());
+                langJson.remove();
+            }
+
+            if(_imgWriterSettings.contains("UNRAID_LANG_CODE"))
+            {
+                QString unraidLangCode(_imgWriterSettings["UNRAID_LANG_CODE"].toString());
+                if(_imgWriterSettings.contains("UNRAID_LANG_XML")) {
+                    QFile langXml(_imgWriterSettings["UNRAID_LANG_XML"].toByteArray());
+                    QFile::rename(langXml.fileName(), folder + "/config/plugins/lang-" + unraidLangCode + ".xml");
+                }
+
+                if(_imgWriterSettings.contains("UNRAID_LANG_ZIP")) {
+                    QFile langZip(_imgWriterSettings["UNRAID_LANG_ZIP"].toByteArray());
+                    QFile::rename(langZip.fileName(), folder + "/config/plugins/dynamix/lang-" + unraidLangCode + ".zip");
+                }
+                QFile dynamixCfg(folder + "/config/plugins/dynamix/dynamix.cfg");
+                if (dynamixCfg.exists())
+                {
+                    dynamixCfg.open(QIODevice::ReadOnly);
+                    QString dataText = dynamixCfg.readAll();
+                    dynamixCfg.close();
+
+                    QString oldData(dataText);
+                    dataText.replace("locale=\"\"", "locale=\"" + unraidLangCode + "\"", Qt::CaseInsensitive);
+                    if(oldData == dataText)
+                    {
+                        // if this string wasn't found for replacement, just add it
+                        dataText += "locale=\"" + unraidLangCode + "\"";
+                    }
+
+                    if (dynamixCfg.open(QFile::WriteOnly | QFile::Truncate))
+                    {
+                        QTextStream out(&dynamixCfg);
+                        out << dataText;
+                    }
+                    dynamixCfg.close();
+                }
+            }
+
             // restore make bootable scripts and/or syslinux, if necessary
             QDir dirTarget(folder);
             if (dirTarget.mkdir("syslinux"))
