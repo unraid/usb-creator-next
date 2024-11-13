@@ -23,8 +23,11 @@ jobs:
     - name: Build
       run: debuild -uc -us
       
+    - name: Workaround actions/upload-artifact#176
+      run: echo "artifacts_path=$(realpath ..)" >> $GITHUB_ENV
+
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
         name: Deb
-        path: ${{github.workspace}}/../unraid-usb-creator-*.deb
+        path: ${{ env.artifacts_path }}/unraid-usb-creator-*.deb
