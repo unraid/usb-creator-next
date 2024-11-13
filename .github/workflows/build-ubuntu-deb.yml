@@ -30,4 +30,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: Deb
-        path: ${{ env.artifacts_path }}/unraid-usb-creator-*.deb
+        path: ${{ env.artifacts_path }}/*.deb
