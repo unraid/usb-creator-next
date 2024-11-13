@@ -26,5 +26,5 @@ jobs:
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: WindowsInstaller
-        path: ../unraid-usb-creator-*.deb
+        name: Deb
+        path: ${{github.workspace}}/../unraid-usb-creator-*.deb
