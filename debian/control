@@ -3,7 +3,7 @@ Section: admin
 Priority: optional
 Maintainer: Floris Bos <bos@je-eigen-domein.nl>
 Build-Depends: debhelper (>= 10), cmake, libarchive-dev, liblzma-dev, libcurl4-gnutls-dev | libcurl4-openssl-dev,
- qt6-base-dev, qt6-base-dev-tools, qt6-declarative-dev, libqt6svg6-dev, qt6-tools-dev, libgnutls28-dev,
+ qt6-base-dev, qt6-base-dev-tools, qt6-declarative-dev, libqt6svg6-dev, qt6-tools-dev, libgnutls28-dev, qt6-l10n-tools,
  qml6-module-qtquick, qml6-module-qtquick-controls, qml6-module-qtquick-layouts, qml6-module-qtquick-templates, qml6-module-qtquick-window
 Standards-Version: 4.1.2
 Homepage: https://github.com/unraid/usb-creator-next
