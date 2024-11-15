@@ -58,6 +58,13 @@ protected:
 
     static ssize_t _archive_read(struct archive *a, void *client_data, const void **buff);
     static int _archive_close(struct archive *a, void *client_data);
+
+    void _writeUnraidNetworkSettings(const QString& dstDir);
+    void _writeUnraidServerSettings(const QString& dstDir);
+    void _writeUnraidLanguageSettings(const QString& dstDir);
+    void _writeUnraidSyslinuxFiles(const QString& dstDir);
+    void _runUnraidMakeBootableScript();
+    void _addLocaleToUnraidDynamixConfig(QString& dataText, const QString& unraidLangCode);
 };
 
 #endif // DOWNLOADEXTRACTTHREAD_H

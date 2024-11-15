@@ -16,6 +16,7 @@
 #include <QUrl>
 #include <QSettings>
 #include <QVariant>
+#include <QTemporaryFile>
 #include "config.h"
 #include "powersaveblocker.h"
 #include "drivelistmodel.h"
@@ -183,6 +184,9 @@ protected slots:
     void onPreparationStatusUpdate(QString msg);
     void handleNetworkRequestFinished(QNetworkReply *data);
     void onSTPdetected();
+    void onUnraidFormatComplete();
+    void onUnraidJsonDownloadComplete();
+    void onUnraidXmlDownloadComplete();
 
 private:
     // Recursively walk all the entries with subitems and, for any which
@@ -195,7 +199,7 @@ private:
 
 protected:
     QUrl _src, _repo;
-    QString _dst, _cacheFileName, _parentCategory, _osName, _currentLang, _currentLangcode, _currentKeyboard;
+    QString _dst, _cacheFileName, _parentCategory, _osName, _currentLang, _currentLangcode, _currentKeyboard, _unraidLangcode;
     QByteArray _expectedHash, _cachedFileHash, _cmdline, _config, _firstrun, _cloudinit, _cloudinitNetwork, _initFormat;
     quint64 _downloadLen, _extrLen, _devLen, _dlnow, _verifynow;
     DriveListModel _drivelist;
@@ -212,6 +216,10 @@ protected:
     QWinTaskbarButton *_taskbarButton;
 #endif
     bool _guidValid;
+    const QByteArray _unraidLangJsonUrl{"https://assets.ca.unraid.net/feed/languageSelection.json"};
+    QByteArray _unraidLangJsonTmpPath;
+    QByteArray _unraidLangXmlTmpPath;
+    QByteArray _unraidLangZipTmpPath;
 
     void _parseCompressedFile();
     void _parseXZFile();
@@ -219,6 +227,11 @@ protected:
     QString _privKeyFileName();
     QString _sshKeyDir();
     QString _sshKeyGen();
+    QString _generateUnraidLangcode(const QString& langcode, const QString& languageName);
+    QByteArray _readFileContents(const QByteArray& filePath);
+    QString _parseUnraidLangXml(const QByteArray& xmlFilePath);
+    QByteArray _parseUnraidLangJson(const QByteArray& jsonFilePath, const QString& unraidLangCode);
+    QByteArray _generateTempFilePath(bool create = true);
 };
 
 #endif // IMAGEWRITER_H
