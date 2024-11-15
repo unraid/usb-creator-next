@@ -1569,8 +1569,8 @@ QByteArray ImageWriter::_parseUnraidLangJson(const QByteArray& jsonFilePath, con
     QJsonParseError parseError;
     QJsonDocument jsonDoc = QJsonDocument::fromJson(jsonData, &parseError);
 
-    qDebug() << parseError.errorString();
-    if (parseError.error != QJsonParseError::NoError) {
+    if (parseError.error != QJsonParseError::NoError) 
+    {
         onError(parseError.errorString());
     }
 
@@ -1587,22 +1587,27 @@ QString ImageWriter::_parseUnraidLangXml(const QByteArray& xmlFilePath)
 {
     QByteArray xmlData = _readFileContents(xmlFilePath);
     QXmlStreamReader xml(xmlData);
-    int count = 0;
     QString found;
 
-    while (!xml.atEnd() && !xml.hasError()) {
+    while (!xml.atEnd() && !xml.hasError())
+    {
         QXmlStreamReader::TokenType token = xml.readNext();
-        if (token == QXmlStreamReader::StartElement) {
-            if (QString::compare(xml.name(), "LanguageURL") == 0) {
-                xml.readNext();
-                if (xml.atEnd()) {
-                    break;
-                }
-
-                if (xml.isCharacters() && (QString::compare(xml.text(), "\n") != 0)) {
-                    found.append(xml.text().toString());
-                }
-            }
+        if (token != QXmlStreamReader::StartElement) 
+        {
+            continue;
+        }
+        if (xml.name().compare("LanguageURL") != 0) 
+        {
+            continue;
+        }
+        xml.readNext();
+        if (xml.atEnd()) 
+        {
+            break;
+        }
+        if (xml.isCharacters() && (xml.text().compare("\n") != 0)) 
+        {
+            found.append(xml.text().toString());
         }
     }
 
@@ -1612,13 +1617,15 @@ QString ImageWriter::_parseUnraidLangXml(const QByteArray& xmlFilePath)
 QByteArray ImageWriter::_readFileContents(const QByteArray& filePath)
 {
     QFile fileIn(filePath);
-    if(!fileIn.open(QIODevice::ReadOnly)) {
+    if(!fileIn.open(QIODevice::ReadOnly)) 
+    {
         onError("Error opening " + filePath);
     }
     // remove excess null characters (they cause the qt json parser to fail)
     QByteArray data = fileIn.readAll().replace('\0', "");
     fileIn.close();
-    if(!fileIn.open(QIODevice::WriteOnly)) {
+    if(!fileIn.open(QIODevice::WriteOnly)) 
+    {
         onError("Error opening " + filePath);
     }
     fileIn.write(data);
@@ -1627,12 +1634,7 @@ QByteArray ImageWriter::_readFileContents(const QByteArray& filePath)
 
 void ImageWriter::onUnraidFormatComplete()
 {
-    QString uuid = QUuid::createUuid().toString(QUuid::WithoutBraces);
-    QString download_dir = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
-    _unraidLangJsonTmpPath = (download_dir + "/unraid-usb-creator-" + uuid + ".tmp").toUtf8();
-    QFile langFile(_unraidLangJsonTmpPath);
-    langFile.open(QIODevice::ReadWrite);
-
+    _unraidLangJsonTmpPath = _generateTempFilePath();
     setSetting("imagecustomization/UNRAID_LANG_JSON", _unraidLangJsonTmpPath);
     DownloadThread * dl_thread = new DownloadThread(_unraidLangJsonUrl, _unraidLangJsonTmpPath, "", this);
     connect(dl_thread, SIGNAL(error(QString)), SLOT(onError(QString)));
@@ -1643,13 +1645,7 @@ void ImageWriter::onUnraidFormatComplete()
 void ImageWriter::onUnraidJsonDownloadComplete()
 {
     QByteArray xmlUrl = _parseUnraidLangJson(_unraidLangJsonTmpPath, _unraidLangcode);
-
-    QString uuid = QUuid::createUuid().toString(QUuid::WithoutBraces);
-    QString download_dir = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
-    _unraidLangXmlTmpPath = (download_dir + "/unraid-usb-creator-" + uuid + ".tmp").toUtf8();
-    QFile langFile(_unraidLangXmlTmpPath);
-    langFile.open(QIODevice::ReadWrite);
-
+    _unraidLangXmlTmpPath = _generateTempFilePath();
     setSetting("imagecustomization/UNRAID_LANG_XML", _unraidLangXmlTmpPath);
     DownloadThread * dl_thread = new DownloadThread(xmlUrl, _unraidLangXmlTmpPath, "", this);
     connect(dl_thread, SIGNAL(error(QString)), SLOT(onError(QString)));
@@ -1669,13 +1665,7 @@ void ImageWriter::onUnraidXmlDownloadComplete()
     }
     else
     {
-        QString uuid = QUuid::createUuid().toString(QUuid::WithoutBraces);
-        QString download_dir = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
-        _unraidLangZipTmpPath = (download_dir + "/unraid-usb-creator-" + uuid + ".tmp").toUtf8();
-        QFile langFile(_unraidLangZipTmpPath);
-        langFile.open(QIODevice::ReadWrite);
-
-
+        _unraidLangZipTmpPath = _generateTempFilePath();
         setSetting("imagecustomization/UNRAID_LANG_ZIP", _unraidLangZipTmpPath);
         // this has to be called again so getSavedCustomizationSettings returns the updated qvariantmap
         _thread->setImageCustomization(_config, _cmdline, _firstrun, _cloudinit, _cloudinitNetwork, _initFormat, getSavedCustomizationSettings());
@@ -1684,5 +1674,18 @@ void ImageWriter::onUnraidXmlDownloadComplete()
         connect(dl_thread, SIGNAL(success()), _thread, SLOT(start()));
         dl_thread->start();
     }
+}
+
+QByteArray ImageWriter::_generateTempFilePath(bool create)
+{
+    QString uuid = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    QString downloadDir = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
+    QByteArray tmpFilePath = (downloadDir + "/unraid-usb-creator-" + uuid + ".tmp").toUtf8();
+    if(create)
+    {
+        QFile tmpFile(tmpFilePath);
+        tmpFile.open(QIODevice::ReadWrite);
+    }
+    return tmpFilePath;
 }
 

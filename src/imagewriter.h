@@ -231,6 +231,7 @@ protected:
     QByteArray _readFileContents(const QByteArray& filePath);
     QString _parseUnraidLangXml(const QByteArray& xmlFilePath);
     QByteArray _parseUnraidLangJson(const QByteArray& jsonFilePath, const QString& unraidLangCode);
+    QByteArray _generateTempFilePath(bool create = true);
 };
 
 #endif // IMAGEWRITER_H
