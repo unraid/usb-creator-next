@@ -1323,9 +1323,9 @@ ApplicationWindow {
                                 var txt = ""
                                 if(guid != "") {
                                     txt += "GUID: %1".arg(guid)
-                                    if(!guidValid)  txt += " <font color='red'>[UNABLE TO VALIDATE GUID]</font>"
+                                    if(!guidValid)  txt += " <font color='red'>[BLACKLISTED - Choose Another Flash Device]</font>"
                                 } else {
-                                    txt += "<font color='red'>[MISSING GUID]</font>"
+                                    txt += "<font color='red'>[MISSING GUID - Choose Another Flash Device]</font>"
                                 }
                                 return txt;
                             }
