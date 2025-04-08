@@ -1229,7 +1229,7 @@ ApplicationWindow {
 
         Item {
             width: window.width-100
-            height: 60
+            height: 76
             Accessible.name: {
                 var txt = description+" - "+(size/1000000000).toFixed(1)+" GB"
                 if (mountpoints.length > 0) {
@@ -1280,7 +1280,7 @@ ApplicationWindow {
                         spacing: 1
                         Text {
                             textFormat: Text.StyledText
-                            height: parent.parent.parent.parent.height / 3
+                            height: parent.parent.parent.parent.height / 4
                             //verticalAlignment: Text.AlignVCenter
                             font.family: roboto.name
                             font.pixelSize: 14
@@ -1295,7 +1295,7 @@ ApplicationWindow {
                         }
                         Text {
                             textFormat: Text.StyledText
-                            height: parent.parent.parent.parent.height / 3
+                            height: parent.parent.parent.parent.height / 4
                             //verticalAlignment: Text.AlignVCenter
                             font.family: roboto.name
                             font.pixelSize: 12
@@ -1315,7 +1315,7 @@ ApplicationWindow {
                         }
                         Text {
                             textFormat: Text.StyledText
-                            height: parent.parent.parent.parent.height / 3
+                            height: parent.parent.parent.parent.height / 4
                             //verticalAlignment: Text.AlignVCenter
                             font.family: roboto.name
                             font.pixelSize: 12
@@ -1323,9 +1323,24 @@ ApplicationWindow {
                                 var txt = ""
                                 if(guid != "") {
                                     txt += "GUID: %1".arg(guid)
-                                    if(!guidValid)  txt += " <font color='red'>[BLACKLISTED - Choose Another Flash Device]</font>"
+                                }
+                                return txt;
+                            }
+                            color: dstbgrect.mouseOver ? UnColors.darkGray : "white"
+                            opacity: enabled ? 1.0 : 0.3
+                        }
+                        Text {
+                            textFormat: Text.StyledText
+                            height: parent.parent.parent.parent.height / 4
+                            //verticalAlignment: Text.AlignVCenter
+                            font.family: roboto.name
+                            font.pixelSize: 12
+                            text: {
+                                var txt = ""
+                                if(guid != "") {
+                                    if(!guidValid)  txt += "<font color='red'>[BLACKLISTED GUID - Unraid license may not work with this flash device]</font>"
                                 } else {
-                                    txt += "<font color='red'>[MISSING GUID - Choose Another Flash Device]</font>"
+                                    txt += "<font color='red'>[MISSING GUID - Unraid license may not work with this flash device]</font>"
                                 }
                                 return txt;
                             }
