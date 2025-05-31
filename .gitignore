@@ -25,12 +25,15 @@ debian/tmp
 *.DS_Store
 # editor backups
 *.*swp*
+Releases 
+*.dmg
 
 # AppImage related
 *.AppImage*
 *.appimagecraft*
 AppDir-*
 appimage-*
+
 
 # Qt related
 qt-build
