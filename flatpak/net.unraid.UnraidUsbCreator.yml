@@ -1,0 +1,34 @@
+app-id: net.unraid.UnraidUsbCreator
+runtime: org.kde.Platform
+runtime-version: '5.15-22.08'
+sdk: org.kde.Sdk
+command: unraid-usb-creator
+
+finish-args:
+  - --share=ipc
+  - --socket=fallback-x11
+  - --socket=wayland
+  - --share=network
+  - --device=dri
+
+build-extensions:
+  - name: org.freedesktop.Sdk.Extension.qt5
+  - name: org.freedesktop.Sdk.Extension.qtdeclarative
+
+modules:
+  - name: UnraidUsbCreator
+    buildsystem: cmake
+    args:
+      - -S
+      - src
+      - -B
+      - build
+    config-opts:
+      - -DCMAKE_BUILD_TYPE=Release
+      # - -DCMAKE_INSTALL_PREFIX=/app
+    sources:
+      - type: dir
+        path: "../src"
+
+
+    # also have to look at the config-options/finish-args and how that works and if it'll do what we want. 
