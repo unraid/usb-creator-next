@@ -16,4 +16,5 @@ Releases
 
 # For flatpak builds
 *.flatpak-builder
+repo
 
