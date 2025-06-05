@@ -1,4 +1,5 @@
-build**
+build/**
+
 .vscode
 obj-**
 debian/rpi-imager/**
@@ -17,4 +18,5 @@ Releases
 # For flatpak builds
 *.flatpak-builder
 repo
-
+*.flatpak
+build-dir
