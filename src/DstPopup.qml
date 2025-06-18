@@ -162,13 +162,14 @@ MainPopupBase {
             readonly property bool shouldHide: isSystem && filterSystemDrives.checked
             readonly property bool unselectable: isReadOnly
 
-            enabled: guidValid
+            enabled: !unselectable
+            property bool hovered: false
 
             anchors.left: parent ? parent.left : undefined
             anchors.right: parent ? parent.right : undefined
-            Layout.topMargin: 1
-            height: shouldHide ? 0 : 61
+            height: shouldHide ? 0 : 81
             visible: !shouldHide
+
             Accessible.name: {
                 var text = [];
 
@@ -202,76 +203,126 @@ MainPopupBase {
 
             Rectangle {
                 id: dstbgrect
-                property bool mouseOver: false
+                anchors.fill: parent
                 anchors.top: parent ? parent.top : undefined
                 anchors.left: parent ? parent.left : undefined
                 anchors.right: parent ? parent.right : undefined
-                height: 60
-                color: mouseOver ? Style.unraidAccentColor : Style.unraidPrimaryBgColor
+                height: parent.height
+                color: dstitem.hovered ? Style.unraidAccentColor : Style.unraidPrimaryBgColor
                 border.color: Style.unraidSecondaryBgColor
+            }
 
-                RowLayout {
-                    anchors.fill: parent
+            HoverHandler {
+                target: dstitem
+                cursorShape: !dstitem.unselectable ? Qt.PointingHandCursor : Qt.ForbiddenCursor
+                enabled: !dstitem.unselectable
+                onHoveredChanged: {
+                    dstitem.hovered = hovered;
+                }
+            }
 
-                    Item {
-                        Layout.preferredWidth: 25
-                    }
+            MouseArea {
+                anchors.fill: parent
+                hoverEnabled: false
+                cursorShape: Qt.PointingHandCursor
+                onClicked: root.selectDstItem(dstitem.modelData)
+            }
 
-                    Image {
-                        id: dstitem_image
-                        source: dstitem.isUsb ? (dstbgrect.mouseOver ? "icons/ic_usb_40px.svg" : "icons/ic_usb_40px_orange.svg") : dstitem.isScsi ? (dstbgrect.mouseOver ? "icons/ic_storage_40px.svg" : "icons/ic_storage_40px_orange.svg") : (dstbgrect.mouseOver ? "icons/ic_sd_storage_40px.svg" : "icons/ic_sd_storage_40px_orange.svg")
-                        verticalAlignment: Image.AlignVCenter
-                        fillMode: Image.Pad
+            RowLayout {
+                anchors.fill: parent
+                Item {
+                    Layout.preferredWidth: 25
+                }
+
+                Image {
+                    id: dstitem_image
+                    source: dstitem.isUsb ? (dstitem.hovered ? "icons/ic_usb_40px.svg" : "icons/ic_usb_40px_orange.svg") : dstitem.isScsi ? (dstitem.hovered ? "icons/ic_storage_40px.svg" : "icons/ic_storage_40px_orange.svg") : (dstitem.hovered ? "icons/ic_sd_storage_40px.svg" : "icons/ic_sd_storage_40px_orange.svg")
+                    verticalAlignment: Image.AlignVCenter
+                    fillMode: Image.Pad
+                    opacity: enabled ? 1.0 : 0.3
+                }
+
+                Item {
+                    Layout.preferredWidth: 25
+                }
+
+                ColumnLayout {
+
+                    Text {
+                        textFormat: Text.StyledText
+                        verticalAlignment: Text.AlignVCenter
+                        Layout.fillWidth: true
+                        font.family: Style.fontFamily
+                        font.pointSize: 16
+                        color: dstitem.hovered ? Style.unraidPrimaryBgColor : Style.unraidTextColor
                         opacity: enabled ? 1.0 : 0.3
-                    }
-
-                    Item {
-                        Layout.preferredWidth: 25
-                    }
-
-                    ColumnLayout {
-
-                        Text {
-                            textFormat: Text.StyledText
-                            verticalAlignment: Text.AlignVCenter
-                            Layout.fillWidth: true
-                            font.family: Style.fontFamily
-                            font.pointSize: 16
-                            color: dstbgrect.mouseOver ? Style.unraidPrimaryBgColor : Style.unraidTextColor
-                            opacity: enabled ? 1.0 : 0.3
-                            text: {
-                                var sizeStr = (dstitem.size / 1000000000).toFixed(1) + " " + qsTr("GB");
-                                return dstitem.description + " - " + sizeStr;
-                            }
+                        text: {
+                            var sizeStr = (dstitem.size / 1000000000).toFixed(1) + " " + qsTr("GB");
+                            return dstitem.description + " - " + sizeStr;
                         }
+                    }
+
+                    Text {
+                        textFormat: Text.StyledText
+                        verticalAlignment: Text.AlignVCenter
+                        Layout.fillWidth: true
+                        font.family: Style.fontFamily
+                        font.pointSize: 12
+                        color: dstitem.hovered ? Style.unraidPrimaryBgColor : Style.unraidTextColor
+                        opacity: enabled ? 1.0 : 0.3
+                        text: {
+                            var txt = qsTr("Mounted as %1").arg(dstitem.mountpoints.join(", "));
+                            if (dstitem.isReadOnly) {
+                                txt += " " + qsTr("[WRITE PROTECTED]");
+                            } else if (dstitem.isSystem) {
+                                txt += " [" + qsTr("SYSTEM") + "]";
+                            }
+                            return txt;
+                        }
+                    }
+                    RowLayout {
+                        spacing: 4
+                        Layout.fillWidth: true
+                        Layout.alignment: Qt.AlignVCenter
+
                         Text {
                             textFormat: Text.StyledText
+
                             verticalAlignment: Text.AlignVCenter
-                            Layout.fillWidth: true
                             font.family: Style.fontFamily
                             font.pointSize: 12
-                            color: dstbgrect.mouseOver ? Style.unraidPrimaryBgColor : Style.unraidTextColor
+                            color: dstitem.hovered ? Style.unraidPrimaryBgColor : Style.unraidTextColor
                             opacity: enabled ? 1.0 : 0.3
                             text: {
-                                var txt = qsTr("Mounted as %1").arg(dstitem.mountpoints.join(", "));
-                                if (dstitem.isReadOnly) {
-                                    txt += " " + qsTr("[WRITE PROTECTED]");
-                                } else if (dstitem.isSystem) {
-                                    txt += " [" + qsTr("SYSTEM") + "]";
-                                }
-
+                                var txt = "";
                                 if (dstitem.guid != "") {
-                                    dstitem.guidValid ? txt += "<br>GUID: %1".arg(dstitem.guid) : txt += "<br>GUID: %1 <font color='red'>[BLACKLISTED]</font>".arg(dstitem.guid);
+                                    dstitem.guidValid ? txt += "GUID: %1".arg(dstitem.guid) : txt += "GUID: %1 <font color='red'>[BLACKLISTED]</font>".arg(dstitem.guid);
                                 } else {
-                                    txt += "<br><font color='red'>[MISSING GUID - Choose Another Flash Device]</font>";
+                                    txt += "<font color='red'>[MISSING GUID - Choose Another Flash Device]</font>";
                                 }
 
                                 return txt;
                             }
                         }
+                        ToolButton {
+                            id: toolButton
+                            icon.source: dstitem.hovered ? "unraid/icons/info_dark_gray.svg" : "unraid/icons/info_orange.svg"
+                            icon.color: "transparent"
+                            icon.width: 16
+                            icon.height: 16
+                            Layout.alignment: Qt.AlignVCenter
+                            padding: 0
+                            implicitWidth: icon.width
+                            implicitHeight: icon.height
+                            visible: dstitem.guid != "" && !dstitem.guidValid
+                            hoverEnabled: true
+                            ToolTip.visible: hovered
+                            ToolTip.text: "This USB device is blacklisted. You may not be able to use this device to get an Unraid license or trial."
+                        }
                     }
                 }
             }
+
             Rectangle {
                 id: dstborderrect
                 anchors.top: dstbgrect.bottom
@@ -281,37 +332,30 @@ MainPopupBase {
                 color: Style.unraidSecondaryBgColor
             }
 
-            MouseArea {
-                anchors.fill: parent
-                cursorShape: !dstitem.unselectable ? Qt.PointingHandCursor : Qt.ForbiddenCursor
-                hoverEnabled: true
-                enabled: !dstitem.unselectable
+            // MouseArea {
+            //     anchors.fill: parent
+            //     cursorShape: !dstitem.unselectable ? Qt.PointingHandCursor : Qt.ForbiddenCursor
+            //     hoverEnabled: true
+            //     enabled: !dstitem.unselectable
 
-                onEntered: {
-                    dstbgrect.mouseOver = true;
-                }
+            //     onEntered: {
+            //         dstbgrect.mouseOver = true;
+            //     }
 
-                onExited: {
-                    dstbgrect.mouseOver = false;
-                }
+            //     onExited: {
+            //         dstbgrect.mouseOver = false;
+            //     }
 
-                onClicked: {
-                    root.selectDstItem(dstitem.modelData);
-                }
-            }
+            //     onClicked: {
+            //         root.selectDstItem(dstitem.modelData);
+            //     }
+            // }
         }
     }
 
     function selectDstItem(d) {
         if (d.isReadOnly) {
             onError(qsTr("SD card is write protected.<br>Push the lock switch on the left side of the card upwards, and try again."));
-            return;
-        }
-
-        // Unraid-specific
-        if (imageWriter.getInitFormat() === "UNRAID" && !d.guidValid) {
-            onError(qsTr("Selected device cannot be used to create an Unraid USB due to its invalid GUID."));
-            writebutton.enabled = false;
             return;
         }
 

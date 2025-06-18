@@ -870,7 +870,7 @@ ApplicationWindow {
 
             // set rpi-imager's settings to empty strings
             window.imageWriter.setImageCustomization("", "", "", "", "");
-            usesavedsettingspopup.hasSavedSettings = true;
+            // usesavedsettingspopup.hasSavedSettings = true;
         }
 
         onContinueSignal: {
@@ -892,32 +892,33 @@ ApplicationWindow {
     //     }
     // }
 
-    UseSavedSettingsPopup {
-        id: usesavedsettingspopup
-        imageWriter: window.imageWriter
+    // --- again, not using rpi-imager's version. Kept for reference ---
+    // UseSavedSettingsPopup {
+    //     id: usesavedsettingspopup
+    //     imageWriter: window.imageWriter
 
-        onYes: {
-            optionspopup.initialize();
-            optionspopup.applySettings();
-            confirmwritepopup.askForConfirmation();
-        }
-        onNo: {
-            window.imageWriter.setImageCustomization("", "", "", "", "");
-            confirmwritepopup.askForConfirmation();
-        }
-        onNoClearSettings: {
-            hasSavedSettings = false;
-            optionspopup.clearCustomizationFields();
-            window.imageWriter.clearSavedCustomizationSettings();
-            confirmwritepopup.askForConfirmation();
-        }
-        onEditSettings: {
-            optionspopup.show();
-        }
-        onCloseSettings: {
-            optionspopup.close();
-        }
-    }
+    //     onYes: {
+    //         optionspopup.initialize();
+    //         optionspopup.applySettings();
+    //         confirmwritepopup.askForConfirmation();
+    //     }
+    //     onNo: {
+    //         window.imageWriter.setImageCustomization("", "", "", "", "");
+    //         confirmwritepopup.askForConfirmation();
+    //     }
+    //     onNoClearSettings: {
+    //         hasSavedSettings = false;
+    //         optionspopup.clearCustomizationFields();
+    //         window.imageWriter.clearSavedCustomizationSettings();
+    //         confirmwritepopup.askForConfirmation();
+    //     }
+    //     onEditSettings: {
+    //         optionspopup.show();
+    //     }
+    //     onCloseSettings: {
+    //         optionspopup.close();
+    //     }
+    // }
 
     /* Slots for signals imagewrite emits */
     function onDownloadProgress(now, total) {

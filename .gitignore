@@ -1,3 +1,4 @@
+build/**
 /build**
 src/build/*
 src/build/**
@@ -8,6 +9,7 @@ obj-**
 # IDE Configurations
 .vscode
 .zed
+.qtcreator**
 
 # Debian packaging
 debian/rpi-imager/**
@@ -41,3 +43,4 @@ qt-src
 build
 build-aarch64
 build-x86_64
+
