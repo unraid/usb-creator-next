@@ -1350,7 +1350,7 @@ ApplicationWindow {
                                 opacity: enabled ? 1.0 : 0.3
                                 text: {
                                     if (guid != "") {
-                                        return guidValid ? "GUID: %1".arg(guid).arg(guid)
+                                        return guidValid ? "GUID: %1".arg(guid)
                                                          : "GUID: %1 <font color='red'>[BLACKLISTED]</font>".arg(guid)
                                     } else {
                                         return "<font color='red'>[MISSING GUID - Choose Another Flash Device]</font>"
@@ -1372,7 +1372,7 @@ ApplicationWindow {
                                 visible: guid != "" && !guidValid
                                 hoverEnabled: true
                                 ToolTip.visible: hovered
-                                ToolTip.text: "This USB device is blacklisted. You can use it to install Unraid on an internal drive, but you cannot use it to run Unraid."
+                                ToolTip.text: "This USB device is blacklisted. You may not be able to use this device to get an Unraid license or trial."
                               }
 
                         }
@@ -1981,12 +1981,6 @@ ApplicationWindow {
             }
         } else {
             imageWriter.setSrc(d.url, d.image_download_size, d.extract_size, typeof(d.extract_sha256) != "undefined" ? d.extract_sha256 : "", typeof(d.contains_multiple_files) != "undefined" ? d.contains_multiple_files : false, ospopup.categorySelected, d.name, typeof(d.init_format) != "undefined" ? d.init_format : "")
-            if(imageWriter.getInitFormat() === "UNRAID" && imageWriter.getDstDevice() !== "" && !imageWriter.getDstGuidValid()) {
-                onError(qsTr("Selected device cannot be used to create an Unraid USB due to its invalid GUID."))
-                writebutton.enabled = false
-                imageWriter.setDst("", false)
-                dstbutton.text = qsTr("CHOOSE STORAGE")
-            }
             osbutton.text = d.name
             ospopup.close()
             osswipeview.decrementCurrentIndex()
@@ -1999,12 +1993,6 @@ ApplicationWindow {
     function selectDstItem(d) {
         if (d.isReadOnly) {
             onError(qsTr("SD card is write protected.<br>Push the lock switch on the left side of the card upwards, and try again."))
-            return
-        }
-
-        if(imageWriter.getInitFormat() === "UNRAID" && !d.guidValid) {
-            onError(qsTr("Selected device cannot be used to create an Unraid USB due to its invalid GUID."))
-            writebutton.enabled = false
             return
         }
 
