@@ -267,17 +267,6 @@ elseif(APPLE)
     set(ENABLE_TAR OFF CACHE BOOL "")
     set(ENABLE_CPIO OFF CACHE BOOL "")
     set(ENABLE_CAT OFF CACHE BOOL "")
-
-
-    # Prevents build failure in Debug builds (see LIBARCHIVE_FIX_001 in docs)
-    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-      # disable that warning (and make it non-fatal)
-      add_compile_options(
-        -Wno-single-bit-bitfield-constant-conversion
-        -Wno-error=single-bit-bitfield-constant-conversion
-      )
-    endif()
-
     add_subdirectory(dependencies/libarchive-3.6.2)
     # Disable shared libarchive (we only want static)
     set_target_properties(archive PROPERTIES EXCLUDE_FROM_ALL 1)
