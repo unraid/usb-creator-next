@@ -1,8 +1,9 @@
+
+
 /*
  * SPDX-License-Identifier: Apache-2.0
  * Copyright (C) 2020 Raspberry Pi Ltd
  */
-
 import QtQuick 2.9
 import QtQuick.Window 2.2
 import QtQuick.Controls 2.2
@@ -18,15 +19,23 @@ ApplicationWindow {
     height: imageWriter.isEmbeddedMode() ? -1 : 465
     minimumWidth: imageWriter.isEmbeddedMode() ? -1 : 680
     minimumHeight: imageWriter.isEmbeddedMode() ? -1 : 465
-    
-    
+
     color: UnColors.darkGray
 
     title: qsTr("Unraid USB Creator v%1").arg(imageWriter.constantVersion())
 
-    FontLoader {id: roboto;      source: "fonts/Roboto-Regular.ttf"}
-    FontLoader {id: robotoLight; source: "fonts/Roboto-Light.ttf"}
-    FontLoader {id: robotoBold;  source: "fonts/Roboto-Bold.ttf"}
+    FontLoader {
+        id: roboto
+        source: "fonts/Roboto-Regular.ttf"
+    }
+    FontLoader {
+        id: robotoLight
+        source: "fonts/Roboto-Light.ttf"
+    }
+    FontLoader {
+        id: robotoBold
+        source: "fonts/Roboto-Bold.ttf"
+    }
 
     onClosing: {
         if (progressBar.visible) {
@@ -52,7 +61,7 @@ ApplicationWindow {
             Layout.fillWidth: true
             Rectangle {
                 id: logoContainer
-                implicitHeight: (window.height - 15)/6
+                implicitHeight: (window.height - 15) / 6
 
                 Image {
                     id: image
@@ -99,7 +108,8 @@ ApplicationWindow {
                 anchors.topMargin: 10
                 MouseArea {
                     anchors.fill: parent
-                    onClicked: imageWriter.openUrl("https://docs.unraid.net/go/quick-install-guide")
+                    onClicked: imageWriter.openUrl(
+                                   "https://docs.unraid.net/go/quick-install-guide")
                 }
             }
 
@@ -108,7 +118,8 @@ ApplicationWindow {
                 source: "unraid/icons/help_orange.svg"
                 MouseArea {
                     anchors.fill: parent
-                    onClicked: imageWriter.openUrl("https://docs.unraid.net/go/quick-install-guide")
+                    onClicked: imageWriter.openUrl(
+                                   "https://docs.unraid.net/go/quick-install-guide")
                 }
                 Layout.preferredHeight: 15
                 Layout.preferredWidth: 15
@@ -121,7 +132,7 @@ ApplicationWindow {
                 fillMode: Image.PreserveAspectFit
             }
         }
-        
+
         Rectangle {
             color: UnColors.orange
             implicitWidth: window.width
@@ -131,7 +142,7 @@ ApplicationWindow {
         Rectangle {
             color: UnColors.darkGray
             implicitWidth: window.width
-            implicitHeight: (window.height - 15) * (1 - 1/6)
+            implicitHeight: (window.height - 15) * (1 - 1 / 6)
 
             GridLayout {
                 id: gridLayout
@@ -152,6 +163,7 @@ ApplicationWindow {
                     Layout.row: 0
                     Layout.column: 0
                     Layout.fillWidth: true
+                    Layout.alignment: Qt.AlignTop
 
                     Text {
                         id: text0
@@ -181,7 +193,8 @@ ApplicationWindow {
                             hwpopup.open()
                             hwlist.forceActiveFocus()
                         }
-                        Accessible.ignored: ospopup.visible || dstpopup.visible || hwpopup.visible
+                        Accessible.ignored: ospopup.visible || dstpopup.visible
+                                            || hwpopup.visible
                         Accessible.description: qsTr("Select this button to choose your target device")
                         visible: false
                         enabled: false
@@ -194,6 +207,7 @@ ApplicationWindow {
                     Layout.row: 0
                     Layout.column: 1
                     Layout.fillWidth: true
+                    Layout.alignment: Qt.AlignTop
 
                     Text {
                         id: text1
@@ -209,7 +223,8 @@ ApplicationWindow {
 
                     ImButton {
                         id: osbutton
-                        text: imageWriter.srcFileName() === "" ? qsTr("CHOOSE OS") : imageWriter.srcFileName()
+                        text: imageWriter.srcFileName(
+                                  ) === "" ? qsTr("CHOOSE OS") : imageWriter.srcFileName()
                         spacing: 0
                         padding: 0
                         bottomPadding: 0
@@ -220,9 +235,55 @@ ApplicationWindow {
                             ospopup.open()
                             osswipeview.currentItem.forceActiveFocus()
                         }
-                        Accessible.ignored: ospopup.visible || dstpopup.visible || hwpopup.visible
+                        Accessible.ignored: ospopup.visible || dstpopup.visible
+                                            || hwpopup.visible
                         Accessible.description: qsTr("Select this button to change the operating system")
                     }
+
+                    // ── new below: Language dropdown under OS chooser ────────────
+                    Text {
+                        id: langLabel
+                        text: qsTr("Unraid OS Language")
+                        color: "white"
+                        font.pixelSize: 12
+                        font.family: robotoBold.name
+                        font.bold: true
+                        Layout.preferredHeight: 17
+                        Layout.topMargin: 30
+                        Layout.fillWidth: true
+                        horizontalAlignment: Text.AlignHCenter
+                    }
+
+                    OSLanguageDropdown {
+                        id: langDropdown
+                        model: imageWriter.getTranslations()
+                        window: window
+                        Layout.fillWidth: true
+                        Layout.topMargin: 10
+                        Layout.bottomMargin: 10
+
+                        Component.onCompleted: {
+                            // Grab the raw array from C++
+                            var translations = imageWriter.getTranslations()
+                            console.log("Available languages:", translations)
+
+                            // Get the code we want to select
+                            var currentLang = imageWriter.getCurrentLanguage()
+                            console.log("ImageWriter’s currentLanguage:",
+                                        currentLang)
+
+                            // Find its index in the array
+                            var idx = translations.indexOf(currentLang)
+                            console.log("Found index:", idx)
+
+                            // If not found (<0), default to English at index 1
+                            langDropdown.currentIndex = idx >= 0 ? idx : 1
+                        }
+
+                        onLanguageChanged: imageWriter.changeLanguage(newLang)
+                    }
+
+                    // ────────────────────────────────────────────────────────────────
                 }
 
                 ColumnLayout {
@@ -231,6 +292,7 @@ ApplicationWindow {
                     Layout.row: 0
                     Layout.column: 2
                     Layout.fillWidth: true
+                    Layout.alignment: Qt.AlignTop
 
                     Text {
                         id: text2
@@ -259,7 +321,8 @@ ApplicationWindow {
                             dstpopup.open()
                             dstlist.forceActiveFocus()
                         }
-                        Accessible.ignored: ospopup.visible || dstpopup.visible || hwpopup.visible
+                        Accessible.ignored: ospopup.visible || dstpopup.visible
+                                            || hwpopup.visible
                         Accessible.description: qsTr("Select this button to change the destination storage device")
                     }
                 }
@@ -337,21 +400,21 @@ ApplicationWindow {
                         Layout.minimumHeight: 40
                         Layout.preferredWidth: 200
                         Layout.alignment: Qt.AlignRight
-                        Accessible.ignored: ospopup.visible || dstpopup.visible || hwpopup.visible
-                        Accessible.description: qsTr("Select this button to start writing the image")
+                        Accessible.ignored: ospopup.visible || dstpopup.visible
+                                            || hwpopup.visible
+                        Accessible.description: qsTr(
+                                                    "Select this button to start writing the image")
                         enabled: false
                         onClicked: {
                             if (!imageWriter.readyToWrite()) {
                                 return
                             }
 
-
                             if (imageWriter.imageSupportsCustomization()) {
                                 optionspopup.openPopup()
                             } else {
                                 confirmwritepopup.askForConfirmation()
                             }
-                            
                         }
                     }
                 }
@@ -361,8 +424,10 @@ ApplicationWindow {
                     color: "white"
                     font.pixelSize: 18
                     font.family: roboto.name
-                    visible: imageWriter.isEmbeddedMode() && imageWriter.customRepo()
-                    text: qsTr("Using custom repository: %1").arg(imageWriter.constantOsListUrl())
+                    visible: imageWriter.isEmbeddedMode()
+                             && imageWriter.customRepo()
+                    text: qsTr("Using custom repository: %1").arg(
+                              imageWriter.constantOsListUrl())
                 }
 
                 Text {
@@ -419,7 +484,8 @@ ApplicationWindow {
                             Layout.preferredWidth: 200
                             currentIndex: -1
                             Component.onCompleted: {
-                                currentIndex = find(imageWriter.getCurrentLanguage())
+                                currentIndex = find(
+                                            imageWriter.getCurrentLanguage())
                             }
                             onActivated: {
                                 imageWriter.changeLanguage(editText)
@@ -440,7 +506,7 @@ ApplicationWindow {
                                     model: languageselector.popup.visible ? languageselector.delegateModel : null
                                     currentIndex: languageselector.highlightedIndex
 
-                                    ScrollIndicator.vertical: ScrollIndicator { }
+                                    ScrollIndicator.vertical: ScrollIndicator {}
                                 }
 
                                 background: Rectangle {
@@ -464,7 +530,8 @@ ApplicationWindow {
                             model: imageWriter.getKeymapLayoutList()
                             currentIndex: -1
                             Component.onCompleted: {
-                                currentIndex = find(imageWriter.getCurrentKeyboard())
+                                currentIndex = find(
+                                            imageWriter.getCurrentKeyboard())
                             }
                             onActivated: {
                                 imageWriter.changeKeyboard(editText)
@@ -486,7 +553,7 @@ ApplicationWindow {
                                     model: languageselector.popup.visible ? languageselector.delegateModel : null
                                     currentIndex: languageselector.highlightedIndex
 
-                                    ScrollIndicator.vertical: ScrollIndicator { }
+                                    ScrollIndicator.vertical: ScrollIndicator {}
                                 }
 
                                 background: Rectangle {
@@ -497,6 +564,7 @@ ApplicationWindow {
                         }
                     }
                 }
+
 
                 /* Language/keyboard bar is normally only visible in embedded mode.
                    To test translations also show it when shift+ctrl+L is pressed. */
@@ -522,7 +590,6 @@ ApplicationWindow {
                     }
                 }
             }
-
         }
         RowLayout {
             Image {
@@ -564,7 +631,7 @@ ApplicationWindow {
             Layout.column: 2
             Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
             spacing: 0
-	
+
             Text {
                 color: UnColors.orange
                 text: qsTr("Select Language")
@@ -600,12 +667,12 @@ ApplicationWindow {
         id: hwpopup
         x: 50
         y: 25
-        width: parent.width-100
-        height: parent.height-50
+        width: parent.width - 100
+        height: parent.height - 50
         padding: 0
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
         property string hwselected: ""
-        
+
         background: Rectangle {
             color: UnColors.darkGray
             border.color: UnColors.mediumGray
@@ -679,13 +746,17 @@ ApplicationWindow {
                     }
                     currentIndex: -1
                     delegate: hwdelegate
-                    width: window.width-100
-                    height: window.height-100
+                    width: window.width - 100
+                    height: window.height - 100
                     boundsBehavior: Flickable.StopAtBounds
-                    highlight: Rectangle { color: "lightsteelblue"; radius: 5 }
+                    highlight: Rectangle {
+                        color: "lightsteelblue"
+                        radius: 5
+                    }
                     ScrollBar.vertical: ScrollBar {
                         width: 10
-                        policy: hwlist.contentHeight > hwlist.height ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
+                        policy: hwlist.contentHeight
+                                > hwlist.height ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
                     }
                     Keys.onSpacePressed: {
                         if (currentIndex != -1)
@@ -702,6 +773,7 @@ ApplicationWindow {
         }
     }
 
+
     /*
       Popup for OS selection
      */
@@ -709,12 +781,12 @@ ApplicationWindow {
         id: ospopup
         x: 50
         y: 25
-        width: parent.width-100
-        height: parent.height-50
+        width: parent.width - 100
+        height: parent.height - 50
         padding: 0
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-        property string categorySelected : ""
-        
+        property string categorySelected: ""
+
         background: Rectangle {
             color: UnColors.darkGray
             border.color: UnColors.mediumGray
@@ -784,13 +856,17 @@ ApplicationWindow {
                         model: osmodel
                         currentIndex: -1
                         delegate: osdelegate
-                        width: window.width-100
-                        height: window.height-100
+                        width: window.width - 100
+                        height: window.height - 100
                         boundsBehavior: Flickable.StopAtBounds
-                        highlight: Rectangle { color: "lightsteelblue"; radius: 5 }
+                        highlight: Rectangle {
+                            color: "lightsteelblue"
+                            radius: 5
+                        }
                         ScrollBar.vertical: ScrollBar {
                             width: 10
-                            policy: oslist.contentHeight > oslist.height ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
+                            policy: oslist.contentHeight
+                                    > oslist.height ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
                         }
                         Keys.onSpacePressed: {
                             if (currentIndex != -1)
@@ -804,7 +880,8 @@ ApplicationWindow {
                         Keys.onReturnPressed: Keys.onSpacePressed(event)
                         Keys.onRightPressed: {
                             // Navigate into sublists but don't select an OS entry
-                            if (currentIndex != -1 && isOSsublist(model.get(currentIndex)))
+                            if (currentIndex != -1 && isOSsublist(
+                                        model.get(currentIndex)))
                                 selectOSitem(model.get(currentIndex), true)
                         }
                     }
@@ -838,13 +915,17 @@ ApplicationWindow {
 
             currentIndex: -1
             delegate: osdelegate
-            width: window.width-100
-            height: window.height-100
+            width: window.width - 100
+            height: window.height - 100
             boundsBehavior: Flickable.StopAtBounds
-            highlight: Rectangle { color: "lightsteelblue"; radius: 5 }
+            highlight: Rectangle {
+                color: "lightsteelblue"
+                radius: 5
+            }
             ScrollBar.vertical: ScrollBar {
                 width: 10
-                policy: parent.contentHeight > parent.height ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
+                policy: parent.contentHeight
+                        > parent.height ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
             }
             Keys.onSpacePressed: {
                 if (currentIndex != -1)
@@ -873,7 +954,7 @@ ApplicationWindow {
 
         Component.onCompleted: {
             if (imageWriter.isOnline()) {
-                fetchOSlist();
+                fetchOSlist()
             }
         }
     }
@@ -882,9 +963,9 @@ ApplicationWindow {
         id: hwdelegate
 
         Item {
-            width: window.width-100
+            width: window.width - 100
             height: contentLayout.implicitHeight + 24
-            Accessible.name: name+".\n"+description
+            Accessible.name: name + ".\n" + description
 
             MouseArea {
                 id: hwMouseArea
@@ -906,19 +987,20 @@ ApplicationWindow {
             }
 
             Rectangle {
-               id: bgrect
-               anchors.fill: parent
-               color: mouseOver ? UnColors.orange : UnColors.darkGray
-               visible: mouseOver && parent.ListView.view.currentIndex !== index
-               property bool mouseOver: false
-               border.color: UnColors.mediumGray
+                id: bgrect
+                anchors.fill: parent
+                color: mouseOver ? UnColors.orange : UnColors.darkGray
+                visible: mouseOver
+                         && parent.ListView.view.currentIndex !== index
+                property bool mouseOver: false
+                border.color: UnColors.mediumGray
             }
             Rectangle {
-               id: borderrect
-               implicitHeight: 1
-               implicitWidth: parent.width
-               color: UnColors.mediumGray
-               y: parent.height
+                id: borderrect
+                implicitHeight: 1
+                implicitWidth: parent.width
+                color: UnColors.mediumGray
+                y: parent.height
             }
 
             RowLayout {
@@ -962,9 +1044,11 @@ ApplicationWindow {
                     }
 
                     ToolTip {
-                        visible: hwMouseArea.containsMouse && typeof(tooltip) == "string" && tooltip != ""
+                        visible: hwMouseArea.containsMouse
+                                 && typeof (tooltip) == "string"
+                                 && tooltip != ""
                         delay: 1000
-                        text: typeof(tooltip) == "string" ? tooltip : ""
+                        text: typeof (tooltip) == "string" ? tooltip : ""
                         clip: false
                     }
                 }
@@ -976,9 +1060,9 @@ ApplicationWindow {
         id: osdelegate
 
         Item {
-            width: window.width-100
+            width: window.width - 100
             height: contentLayout.implicitHeight + 24
-            Accessible.name: name+".\n"+description
+            Accessible.name: name + ".\n" + description
 
             MouseArea {
                 id: osMouseArea
@@ -1000,19 +1084,20 @@ ApplicationWindow {
             }
 
             Rectangle {
-               id: bgrect
-               anchors.fill: parent
-               color: mouseOver ? UnColors.orange : UnColors.darkGray
-               visible: mouseOver && parent.ListView.view.currentIndex !== index
-               property bool mouseOver: false
-               border.color: UnColors.mediumGray
+                id: bgrect
+                anchors.fill: parent
+                color: mouseOver ? UnColors.orange : UnColors.darkGray
+                visible: mouseOver
+                         && parent.ListView.view.currentIndex !== index
+                property bool mouseOver: false
+                border.color: UnColors.mediumGray
             }
             Rectangle {
-               id: borderrect
-               implicitHeight: 1
-               implicitWidth: parent.width
-               color: UnColors.mediumGray
-               y: parent.height
+                id: borderrect
+                implicitHeight: 1
+                implicitWidth: parent.width
+                color: UnColors.mediumGray
+                y: parent.height
             }
 
             RowLayout {
@@ -1027,7 +1112,7 @@ ApplicationWindow {
 
                 Image {
                     id: iconimage
-                    source: (icon == "https://craftassets.unraid.net/static/favicon/favicon.ico") ? (bgrect.mouseOver ? "unraid/icons/un-mark-dark-gray.svg" : "unraid/icons/un-mark-gradient.svg") : (icon == "icons/erase.png" ? (bgrect.mouseOver ? "unraid/icons/erase_dark_gray.svg" : "unraid/icons/erase_orange.svg")  : (icon == "icons/use_custom.png" ? (bgrect.mouseOver ? "unraid/icons/use_custom_dark_gray.svg" : "unraid/icons/use_custom_orange.svg") : icon))
+                    source: (icon == "https://craftassets.unraid.net/static/favicon/favicon.ico") ? (bgrect.mouseOver ? "unraid/icons/un-mark-dark-gray.svg" : "unraid/icons/un-mark-gradient.svg") : (icon == "icons/erase.png" ? (bgrect.mouseOver ? "unraid/icons/erase_dark_gray.svg" : "unraid/icons/erase_orange.svg") : (icon == "icons/use_custom.png" ? (bgrect.mouseOver ? "unraid/icons/use_custom_dark_gray.svg" : "unraid/icons/use_custom_orange.svg") : icon))
                     Layout.preferredHeight: 40
                     Layout.preferredWidth: 40
                     sourceSize.width: 40
@@ -1052,7 +1137,7 @@ ApplicationWindow {
                             source: bgrect.mouseOver ? "unraid/icons/info_dark_gray.svg" : "unraid/icons/info_orange.svg"
                             Layout.preferredHeight: 16
                             Layout.preferredWidth: 16
-                            visible: typeof(website) == "string" && website
+                            visible: typeof (website) == "string" && website
                             MouseArea {
                                 anchors.fill: parent
                                 onClicked: imageWriter.openUrl(website)
@@ -1076,7 +1161,8 @@ ApplicationWindow {
                         elide: Text.ElideRight
                         color: bgrect.mouseOver ? UnColors.darkGray : "white"
                         font.weight: Font.Light
-                        visible: typeof(release_date) == "string" && release_date
+                        visible: typeof (release_date) == "string"
+                                 && release_date
                         text: qsTr("Released: %1").arg(release_date)
                     }
                     Text {
@@ -1084,25 +1170,30 @@ ApplicationWindow {
                         elide: Text.ElideRight
                         color: bgrect.mouseOver ? UnColors.darkGray : "white"
                         font.weight: Font.Light
-                        visible: typeof(url) == "string" && url != "" && url != "internal://format"
-                        text: !url ? "" :
-                              typeof(extract_sha256) != "undefined" && imageWriter.isCached(url,extract_sha256)
-                                ? qsTr("Cached on your computer")
-                                : url.startsWith("file://")
-                                  ? qsTr("Local file")
-                                  : qsTr("Online - %1 GB download").arg((image_download_size/1073741824).toFixed(1))
+                        visible: typeof (url) == "string" && url != ""
+                                 && url != "internal://format"
+                        text: !url ? "" : typeof (extract_sha256) != "undefined"
+                                     && imageWriter.isCached(
+                                         url,
+                                         extract_sha256) ? qsTr("Cached on your computer") : url.startsWith("file://") ? qsTr("Local file") : qsTr("Online - %1 GB download").arg((image_download_size / 1073741824).toFixed(1))
                     }
 
                     ToolTip {
-                        visible: osMouseArea.containsMouse && typeof(tooltip) == "string" && tooltip != ""
+                        visible: osMouseArea.containsMouse
+                                 && typeof (tooltip) == "string"
+                                 && tooltip != ""
                         delay: 1000
-                        text: typeof(tooltip) == "string" ? tooltip : ""
+                        text: typeof (tooltip) == "string" ? tooltip : ""
                         clip: false
                     }
                 }
                 Image {
                     source: "icons/ic_chevron_right_40px_orange.svg"
-                    visible: (typeof(subitems_json) == "string" && subitems_json != "") || (typeof(subitems_url) == "string" && subitems_url != "" && subitems_url != "internal://back")
+                    visible: (typeof (subitems_json) == "string"
+                              && subitems_json != "")
+                             || (typeof (subitems_url) == "string"
+                                 && subitems_url != ""
+                                 && subitems_url != "internal://back")
                     Layout.preferredHeight: 40
                     Layout.preferredWidth: 40
                     fillMode: Image.PreserveAspectFit
@@ -1111,6 +1202,7 @@ ApplicationWindow {
         }
     }
 
+
     /*
       Popup for storage device selection
      */
@@ -1118,8 +1210,8 @@ ApplicationWindow {
         id: dstpopup
         x: 50
         y: 25
-        width: parent.width-100
-        height: parent.height-50
+        width: parent.width - 100
+        height: parent.height - 50
         padding: 0
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
         onClosed: imageWriter.stopDriveListPolling()
@@ -1187,10 +1279,13 @@ ApplicationWindow {
                     id: dstlist
                     model: driveListModel
                     delegate: dstdelegate
-                    width: window.width-100
-                    height: window.height-100
+                    width: window.width - 100
+                    height: window.height - 100
                     boundsBehavior: Flickable.StopAtBounds
-                    highlight: Rectangle { color: "lightsteelblue"; radius: 5 }
+                    highlight: Rectangle {
+                        color: "lightsteelblue"
+                        radius: 5
+                    }
 
                     Label {
                         anchors.fill: parent
@@ -1204,7 +1299,8 @@ ApplicationWindow {
 
                     ScrollBar.vertical: ScrollBar {
                         width: 10
-                        policy: dstlist.contentHeight > dstlist.height ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
+                        policy: dstlist.contentHeight
+                                > dstlist.height ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
                     }
 
                     Keys.onSpacePressed: {
@@ -1228,14 +1324,15 @@ ApplicationWindow {
         id: dstdelegate
 
         Item {
-            width: window.width-100
+            width: window.width - 100
             height: 60
             Accessible.name: {
-                var txt = description+" - "+(size/1000000000).toFixed(1)+" GB"
+                var txt = description + " - " + (size / 1000000000).toFixed(
+                            1) + " GB"
                 if (mountpoints.length > 0) {
                     txt += qsTr(" Mounted as %1").arg(mountpoints.join(", "))
                 }
-                return txt;
+                return txt
             }
             property string description: model.description
             property string device: model.device
@@ -1246,20 +1343,20 @@ ApplicationWindow {
             enabled: guidValid
 
             Rectangle {
-               id: dstbgrect
-               anchors.fill: parent
-               color: mouseOver ? UnColors.orange : UnColors.darkGray
-               visible: mouseOver && parent.ListView.view.currentIndex !== index
-               property bool mouseOver: false
-               border.color: UnColors.mediumGray
-
+                id: dstbgrect
+                anchors.fill: parent
+                color: mouseOver ? UnColors.orange : UnColors.darkGray
+                visible: mouseOver
+                         && parent.ListView.view.currentIndex !== index
+                property bool mouseOver: false
+                border.color: UnColors.mediumGray
             }
             Rectangle {
-               id: dstborderrect
-               implicitHeight: 1
-               implicitWidth: parent.width
-               color: UnColors.mediumGray
-               y: parent.height
+                id: dstborderrect
+                implicitHeight: 1
+                implicitWidth: parent.width
+                color: UnColors.mediumGray
+                y: parent.height
             }
 
             Row {
@@ -1277,7 +1374,7 @@ ApplicationWindow {
                     }
                 }
                 Column {
-                    width: parent.parent.width-64
+                    width: parent.parent.width - 64
                     ColumnLayout {
                         spacing: 1
                         Text {
@@ -1287,7 +1384,8 @@ ApplicationWindow {
                             font.family: roboto.name
                             font.pixelSize: 14
                             text: {
-                                var sizeStr = (size/1000000000).toFixed(1) + " GB";
+                                var sizeStr = (size / 1000000000).toFixed(
+                                            1) + " GB"
                                 var txt = description + " - " + sizeStr
                                 return txt
                             }
@@ -1304,7 +1402,8 @@ ApplicationWindow {
                             text: {
                                 var txt = ""
                                 if (mountpoints.length > 0) {
-                                    txt += qsTr("Mounted as %1 ").arg(mountpoints.join(", "))
+                                    txt += qsTr("Mounted as %1 ").arg(
+                                                mountpoints.join(", "))
                                 }
                                 if (isReadOnly) {
                                     txt += qsTr("[WRITE PROTECTED]")
@@ -1323,13 +1422,14 @@ ApplicationWindow {
                             font.pixelSize: 12
                             text: {
                                 var txt = ""
-                                if(guid != "") {
+                                if (guid != "") {
                                     txt += "GUID: %1".arg(guid)
-                                    if(!guidValid)  txt += " <font color='red'>[BLACKLISTED - Choose Another Flash Device]</font>"
+                                    if (!guidValid)
+                                        txt += " <font color='red'>[BLACKLISTED - Choose Another Flash Device]</font>"
                                 } else {
                                     txt += "<font color='red'>[MISSING GUID - Choose Another Flash Device]</font>"
                                 }
-                                return txt;
+                                return txt
                             }
                             color: dstbgrect.mouseOver ? UnColors.darkGray : "white"
                             opacity: enabled ? 1.0 : 0.3
@@ -1364,10 +1464,11 @@ ApplicationWindow {
             forceActiveFocus()
         }
         onInstallGuide: {
-            imageWriter.openUrl("https://docs.unraid.net/go/quick-install-guide")
+            imageWriter.openUrl(
+                        "https://docs.unraid.net/go/quick-install-guide")
         }
     }
-    
+
     MsgPopup {
         id: infopopup
         x: 50
@@ -1377,7 +1478,12 @@ ApplicationWindow {
         noButton: false
         title: qsTr("About")
         body.onLinkActivated: imageWriter.openUrl(link)
-        text: qsTr("License, Credits, and History: ") + "<a href='https://github.com/unraid/usb-creator-next'><font color='" + UnColors.orange + "'>https://github.com/unraid/usb-creator-next</font></a><br><br>" + qsTr("Help / Feedback: ") + "<a href='https://unraid.net/contact'><font color='" + UnColors.orange + "'>https://unraid.net/contact</font></a>"
+        text: qsTr("License, Credits, and History: ")
+              + "<a href='https://github.com/unraid/usb-creator-next'><font color='"
+              + UnColors.orange
+              + "'>https://github.com/unraid/usb-creator-next</font></a><br><br>" + qsTr(
+                  "Help / Feedback: ") + "<a href='https://unraid.net/contact'><font color='"
+              + UnColors.orange + "'>https://unraid.net/contact</font></a>"
     }
 
     MsgPopup {
@@ -1406,7 +1512,7 @@ ApplicationWindow {
             cancelwritebutton.enabled = true
             cancelwritebutton.visible = true
             cancelverifybutton.enabled = true
-            progressText.text = qsTr("Preparing to write...");
+            progressText.text = qsTr("Preparing to write...")
             progressText.visible = true
             progressBar.visible = true
             progressBar.indeterminate = true
@@ -1418,9 +1524,9 @@ ApplicationWindow {
             imageWriter.startWrite()
         }
 
-        function askForConfirmation()
-        {
-            text = qsTr("All existing data on '%1' will be erased.<br>Are you sure you want to continue?").arg(dstbutton.text)
+        function askForConfirmation() {
+            text = qsTr("All existing data on '%1' will be erased.<br>Are you sure you want to continue?").arg(
+                        dstbutton.text)
             openPopup()
         }
 
@@ -1453,10 +1559,10 @@ ApplicationWindow {
     }
 
     /* Slots for signals imagewrite emits */
-    function onDownloadProgress(now,total) {
+    function onDownloadProgress(now, total) {
         var newPos
         if (total) {
-            newPos = now/(total+1)
+            newPos = now / (total + 1)
         } else {
             newPos = 0
         }
@@ -1464,16 +1570,17 @@ ApplicationWindow {
             if (progressText.text === qsTr("Cancelling..."))
                 return
 
-            progressText.text = qsTr("Writing... %1%").arg(Math.floor(newPos*100))
+            progressText.text = qsTr("Writing... %1%").arg(Math.floor(
+                                                               newPos * 100))
             progressBar.indeterminate = false
             progressBar.value = newPos
         }
     }
 
-    function onVerifyProgress(now,total) {
+    function onVerifyProgress(now, total) {
         var newPos
         if (total) {
-            newPos = now/total
+            newPos = now / total
         } else {
             newPos = 0
         }
@@ -1487,7 +1594,8 @@ ApplicationWindow {
             if (progressText.text === qsTr("Finalizing..."))
                 return
 
-            progressText.text = qsTr("Verifying... %1%").arg(Math.floor(newPos*100))
+            progressText.text = qsTr("Verifying... %1%").arg(Math.floor(
+                                                                 newPos * 100))
             progressBar.Material.accent = UnColors.orange
             progressBar.value = newPos
         }
@@ -1523,17 +1631,21 @@ ApplicationWindow {
     function onSuccess() {
         msgpopup.title = qsTr("Write Successful")
         if (osbutton.text === qsTr("Erase"))
-            msgpopup.text = qsTr("<b>%1</b> has been erased.<br><br>Your drive has been ejected, you can now safely remove it.").arg(dstbutton.text)
+            msgpopup.text = qsTr(
+                        "<b>%1</b> has been erased.<br><br>Your drive has been ejected, you can now safely remove it.").arg(
+                        dstbutton.text)
         else if (imageWriter.isEmbeddedMode()) {
             //msgpopup.text = qsTr("<b>%1</b> has been written to <b>%2</b>").arg(osbutton.text).arg(dstbutton.text)
             /* Just reboot to the installed OS */
             Qt.quit()
-        }
-        else {
-            msgpopup.text = qsTr("<b>%1</b> has been written to <b>%2</b>.").arg(osbutton.text).arg(dstbutton.text)
-            if(imageWriter.getInitFormat() === "UNRAID") {
-                if(!imageWriter.windowsBuild()) {
-                    msgpopup.text += qsTr("<br><br>If you would like to enable legacy boot (bios), helpful for old hardware, please run the 'make_bootable_(mac/linux/windows)' script from this computer, located in the main folder of the UNRAID flash drive.")
+        } else {
+            msgpopup.text = qsTr(
+                        "<b>%1</b> has been written to <b>%2</b>.").arg(
+                        osbutton.text).arg(dstbutton.text)
+            if (imageWriter.getInitFormat() === "UNRAID") {
+                if (!imageWriter.windowsBuild()) {
+                    msgpopup.text += qsTr(
+                                "<br><br>If you would like to enable legacy boot (bios), helpful for old hardware, please run the 'make_bootable_(mac/linux/windows)' script from this computer, located in the main folder of the UNRAID flash drive.")
                 }
                 msgpopup.installGuideButton = true
             }
@@ -1573,11 +1685,11 @@ ApplicationWindow {
 
     function shuffle(arr) {
         for (var i = 0; i < arr.length - 1; i++) {
-            var j = i + Math.floor(Math.random() * (arr.length - i));
+            var j = i + Math.floor(Math.random() * (arr.length - i))
 
-            var t = arr[j];
-            arr[j] = arr[i];
-            arr[i] = t;
+            var t = arr[j]
+            arr[j] = arr[i]
+            arr[i] = t
         }
     }
 
@@ -1594,8 +1706,7 @@ ApplicationWindow {
         }
     }
 
-    function filterItems(list, tags, matchingType)
-    {
+    function filterItems(list, tags, matchingType) {
         if (!tags || !tags.length)
             return
 
@@ -1606,62 +1717,64 @@ ApplicationWindow {
             if ("devices" in entry && entry["devices"].length) {
                 var foundTag = false
 
-                switch(matchingType) {
-                    case 0: /* exact matching */
-                    case 2: /* exact matching */
-                        for (var j in tags)
-                        {
-                            if (entry["devices"].includes(tags[j]))
-                            {
+                switch (matchingType) {
+                case 0:
+                    /* exact matching */
+                case 2:
+                    /* exact matching */
+                    for (var j in tags) {
+                        if (entry["devices"].includes(tags[j])) {
+                            foundTag = true
+                            break
+                        }
+                    }
+                    /* If there's no match, remove this item from the list. */
+                    if (!foundTag) {
+                        list.splice(i, 1)
+                        continue
+                    }
+                    break
+                case 1:
+                    /* Exlusive by prefix matching */
+                case 3:
+                    /* Inclusive by prefix matching */
+                    for (var deviceTypePrefix in tags) {
+                        for (var deviceSpec in entry["devices"]) {
+                            if (deviceSpec.startsWith(deviceTypePrefix)) {
                                 foundTag = true
                                 break
                             }
                         }
-                        /* If there's no match, remove this item from the list. */
-                        if (!foundTag)
-                        {
-                            list.splice(i, 1)
-                            continue
-                        }
-                        break
-                    case 1: /* Exlusive by prefix matching */
-                    case 3: /* Inclusive by prefix matching */
-                        for (var deviceTypePrefix in tags) {
-                            for (var deviceSpec in entry["devices"]) {
-                                if (deviceSpec.startsWith(deviceTypePrefix)) {
-                                    foundTag = true
-                                    break
-                                }
-                            }
-                            /* Terminate outer loop early if we've already
+
+
+                        /* Terminate outer loop early if we've already
                              * decided it's a match
                              */
-                            if (foundTag) {
-                                break
-                            }
+                        if (foundTag) {
+                            break
                         }
-                        /* If there's no match, remove this item from the list. */
-                        if (!foundTag)
-                        {
-                            list.splice(i, 1)
-                            continue
-                        }
-                        break
+                    }
+                    /* If there's no match, remove this item from the list. */
+                    if (!foundTag) {
+                        list.splice(i, 1)
+                        continue
+                    }
+                    break
                 }
             } else {
                 /* No device list attached? If we're in an exclusive mode that's bad news indeed. */
                 switch (matchingType) {
-                    case 0:
-                    case 1:
-                        if (!("subitems" in entry)) {
-                            /* If you're not carrying subitems, you're not going in. */
-                            list.splice(i, 1)
-                        }
-                        break
-                    case 2:
-                    case 3:
-                        /* Inclusive filtering. We're keeping this one. */
-                        break;
+                case 0:
+                case 1:
+                    if (!("subitems" in entry)) {
+                        /* If you're not carrying subitems, you're not going in. */
+                        list.splice(i, 1)
+                    }
+                    break
+                case 2:
+                case 3:
+                    /* Inclusive filtering. We're keeping this one. */
+                    break
                 }
             }
 
@@ -1679,13 +1792,12 @@ ApplicationWindow {
     function oslistFromJson(o) {
         var oslist_parsed = false
         var lang_country = Qt.locale().name
-        if ("os_list_"+lang_country in o) {
-            oslist_parsed = o["os_list_"+lang_country]
-        }
-        else if (lang_country.includes("_")) {
+        if ("os_list_" + lang_country in o) {
+            oslist_parsed = o["os_list_" + lang_country]
+        } else if (lang_country.includes("_")) {
             var lang = lang_country.substr(0, lang_country.indexOf("_"))
-            if ("os_list_"+lang in o) {
-                oslist_parsed = o["os_list_"+lang]
+            if ("os_list_" + lang in o) {
+                oslist_parsed = o["os_list_" + lang]
             }
         }
 
@@ -1702,7 +1814,7 @@ ApplicationWindow {
 
         /* Flatten subitems to subitems_json */
         for (var i in oslist_parsed) {
-            var entry = oslist_parsed[i];
+            var entry = oslist_parsed[i]
             if ("subitems" in entry) {
                 entry["subitems_json"] = JSON.stringify(entry["subitems"])
                 delete entry["subitems"]
@@ -1712,15 +1824,14 @@ ApplicationWindow {
         return oslist_parsed
     }
 
-    function selectNamedOS(name, collection)
-    {
+    function selectNamedOS(name, collection) {
         for (var i = 0; i < collection.count; i++) {
             var os = collection.get(i)
 
-            if (typeof(os.subitems_json) == "string" && os.subitems_json != "") {
+            if (typeof (os.subitems_json) == "string"
+                    && os.subitems_json != "") {
                 selectNamedOS(name, os.subitems_json)
-            }
-            else if (typeof(os.url) !== "undefined" && name === os.name) {
+            } else if (typeof (os.url) !== "undefined" && name === os.name) {
                 selectOSitem(os, false)
                 break
             }
@@ -1728,7 +1839,7 @@ ApplicationWindow {
     }
 
     function fetchOSlist() {
-        var oslist_json = imageWriter.getFilteredOSlist();
+        var oslist_json = imageWriter.getFilteredOSlist()
         var o = JSON.parse(oslist_json)
         var oslist_parsed = oslistFromJson(o)
         if (oslist_parsed === false)
@@ -1741,26 +1852,25 @@ ApplicationWindow {
         if ("imager" in o) {
             var imager = o["imager"]
 
-            if ("devices" in imager)
-            {
+            if ("devices" in imager) {
                 deviceModel.clear()
                 var devices = imager["devices"]
-                for (var j in devices)
-                {
+                for (var j in devices) {
                     devices[j]["tags"] = JSON.stringify(devices[j]["tags"])
                     deviceModel.append(devices[j])
-                    if ("default" in devices[j] && devices[j]["default"])
-                    {
-                        hwlist.currentIndex = deviceModel.count-1
+                    if ("default" in devices[j] && devices[j]["default"]) {
+                        hwlist.currentIndex = deviceModel.count - 1
                     }
                 }
                 // default select first item in hwlist if hwlist not empty
-                if(hwlist.count > 0)
+                if (hwlist.count > 0)
                     selectHWitem(hwlist.model.get(0))
             }
 
-            if (imageWriter.getBoolSetting("check_version") && "latest_version" in imager && "url" in imager) {
-                if (!imageWriter.isEmbeddedMode() && imageWriter.isVersionNewer(imager["latest_version"])) {
+            if (imageWriter.getBoolSetting("check_version")
+                    && "latest_version" in imager && "url" in imager) {
+                if (!imageWriter.isEmbeddedMode() && imageWriter.isVersionNewer(
+                            imager["latest_version"])) {
                     updatepopup.url = imager["url"]
                     updatepopup.openPopup()
                 }
@@ -1784,22 +1894,33 @@ ApplicationWindow {
     Timer {
         /* Verify if default drive is in our list after 100 ms */
         id: setDefaultDest
-        property string drive : ""
+        property string drive: ""
         interval: 100
         onTriggered: {
-            for (var i = 0; i < driveListModel.rowCount(); i++)
-            {
+            for (var i = 0; i < driveListModel.rowCount(); i++) {
+
+
                 /* FIXME: there should be a better way to iterate drivelist than
                    fetch data by numeric role number */
-                if (driveListModel.data(driveListModel.index(i,0), 0x101) === drive) {
+                if (driveListModel.data(driveListModel.index(i, 0),
+                                        0x101) === drive) {
                     selectDstItem({
-                        device: drive,
-                        description: driveListModel.data(driveListModel.index(i,0), 0x102),
-                        size: driveListModel.data(driveListModel.index(i,0), 0x103),
-                        guid: driveListModel.data(driveListModel.index(i,0), 0x108),
-                        guidValid: driveListModel.data(driveListModel.index(i,0), 0x109),
-                        readonly: false
-                    })
+                                      "device": drive,
+                                      "description": driveListModel.data(
+                                                         driveListModel.index(
+                                                             i, 0), 0x102),
+                                      "size": driveListModel.data(
+                                                  driveListModel.index(i, 0),
+                                                  0x103),
+                                      "guid": driveListModel.data(
+                                                  driveListModel.index(i, 0),
+                                                  0x108),
+                                      "guidValid": driveListModel.data(
+                                                       driveListModel.index(i,
+                                                                            0),
+                                                       0x109),
+                                      "readonly": false
+                                  })
                     break
                 }
             }
@@ -1807,17 +1928,15 @@ ApplicationWindow {
     }
 
     function newSublist() {
-        if (osswipeview.currentIndex == (osswipeview.count-1))
-        {
+        if (osswipeview.currentIndex == (osswipeview.count - 1)) {
             var newlist = suboslist.createObject(osswipeview)
             osswipeview.addItem(newlist)
         }
 
-        var m = osswipeview.itemAt(osswipeview.currentIndex+1).model
+        var m = osswipeview.itemAt(osswipeview.currentIndex + 1).model
 
-        if (m.count>1)
-        {
-            m.remove(1, m.count-1)
+        if (m.count > 1) {
+            m.remove(1, m.count - 1)
         }
 
         return m
@@ -1829,22 +1948,23 @@ ApplicationWindow {
 
         if (hwmodel.matching_type) {
             switch (hwmodel.matching_type) {
-                case "exclusive":
-                    break;
-                case "inclusive":
-                    inclusive = true
-                    break;
+            case "exclusive":
+                break
+            case "inclusive":
+                inclusive = true
+                break
             }
         }
 
         imageWriter.setHWFilterList(hwmodel.tags, inclusive)
 
         /* Reload list */
-        var oslist_json = imageWriter.getFilteredOSlist();
+        var oslist_json = imageWriter.getFilteredOSlist()
         var o = JSON.parse(oslist_json)
         var oslist_parsed = oslistFromJson(o)
         if (oslist_parsed === false)
             return
+
 
         /* As we're filtering the OS list, we need to ensure we present a 'Recommended' OS.
             * To do this, we exploit a convention of how we build the OS list. By convention,
@@ -1881,29 +2001,26 @@ ApplicationWindow {
     /// Is the item a sub-list or sub-sub-list in the OS selection model?
     function isOSsublist(d) {
         // Top level category
-        if (typeof(d.subitems_json) == "string" && d.subitems_json !== "") {
+        if (typeof (d.subitems_json) == "string" && d.subitems_json !== "") {
             return true
         }
 
         // Sub-category
-        if (typeof(d.subitems_url) == "string" && d.subitems_url !== ""
-            && d.subitems_url !== "internal://back")
-        {
+        if (typeof (d.subitems_url) == "string" && d.subitems_url !== ""
+                && d.subitems_url !== "internal://back") {
             return true
         }
 
         return false
     }
 
-    function selectOSitem(d, selectFirstSubitem)
-    {
-        if (typeof(d.subitems_json) == "string" && d.subitems_json !== "") {
+    function selectOSitem(d, selectFirstSubitem) {
+        if (typeof (d.subitems_json) == "string" && d.subitems_json !== "") {
             var m = newSublist()
             var subitems = JSON.parse(d.subitems_json)
 
-            for (var i in subitems)
-            {
-                var entry = subitems[i];
+            for (var i in subitems) {
+                var entry = subitems[i]
                 if ("subitems" in entry) {
                     /* Flatten sub-subitems entry */
                     entry["subitems_json"] = JSON.stringify(entry["subitems"])
@@ -1912,27 +2029,26 @@ ApplicationWindow {
                 m.append(entry)
             }
 
-            osswipeview.itemAt(osswipeview.currentIndex+1).currentIndex = (selectFirstSubitem === true) ? 0 : -1
+            osswipeview.itemAt(osswipeview.currentIndex + 1).currentIndex
+                    = (selectFirstSubitem === true) ? 0 : -1
             osswipeview.incrementCurrentIndex()
             ospopup.categorySelected = d.name
-        } else if (typeof(d.subitems_url) == "string" && d.subitems_url !== "") {
-            if (d.subitems_url === "internal://back")
-            {
+        } else if (typeof (d.subitems_url) == "string"
+                   && d.subitems_url !== "") {
+            if (d.subitems_url === "internal://back") {
                 osswipeview.decrementCurrentIndex()
                 ospopup.categorySelected = ""
-            }
-            else
-            {
-                console.log("Failure: Backend should have pre-flattened the JSON!");
+            } else {
+                console.log("Failure: Backend should have pre-flattened the JSON!")
 
-                osswipeview.itemAt(osswipeview.currentIndex+1).currentIndex = (selectFirstSubitem === true) ? 0 : -1
+                osswipeview.itemAt(osswipeview.currentIndex + 1).currentIndex
+                        = (selectFirstSubitem === true) ? 0 : -1
                 osswipeview.incrementCurrentIndex()
             }
         } else if (d.url === "") {
             if (!imageWriter.isEmbeddedMode()) {
                 imageWriter.openFileDialog()
-            }
-            else {
+            } else {
                 if (imageWriter.mountUsbSourceMedia()) {
                     var m = newSublist()
 
@@ -1940,17 +2056,25 @@ ApplicationWindow {
                     for (var i in usboslist) {
                         m.append(usboslist[i])
                     }
-                    osswipeview.itemAt(osswipeview.currentIndex+1).currentIndex = (selectFirstSubitem === true) ? 0 : -1
+                    osswipeview.itemAt(
+                                osswipeview.currentIndex + 1).currentIndex
+                            = (selectFirstSubitem === true) ? 0 : -1
                     osswipeview.incrementCurrentIndex()
-                }
-                else
-                {
+                } else {
                     onError(qsTr("Connect an USB stick containing images first.<br>The images must be located in the root folder of the USB stick."))
                 }
             }
         } else {
-            imageWriter.setSrc(d.url, d.image_download_size, d.extract_size, typeof(d.extract_sha256) != "undefined" ? d.extract_sha256 : "", typeof(d.contains_multiple_files) != "undefined" ? d.contains_multiple_files : false, ospopup.categorySelected, d.name, typeof(d.init_format) != "undefined" ? d.init_format : "")
-            if(imageWriter.getInitFormat() === "UNRAID" && imageWriter.getDstDevice() !== "" && !imageWriter.getDstGuidValid()) {
+            imageWriter.setSrc(
+                        d.url, d.image_download_size, d.extract_size,
+                        typeof (d.extract_sha256) != "undefined" ? d.extract_sha256 : "",
+                        typeof (d.contains_multiple_files)
+                        != "undefined" ? d.contains_multiple_files : false,
+                        ospopup.categorySelected, d.name,
+                        typeof (d.init_format) != "undefined" ? d.init_format : "")
+            if (imageWriter.getInitFormat() === "UNRAID"
+                    && imageWriter.getDstDevice() !== ""
+                    && !imageWriter.getDstGuidValid()) {
                 onError(qsTr("Selected device cannot be used to create an Unraid USB due to its invalid GUID."))
                 writebutton.enabled = false
                 imageWriter.setDst("", false)
@@ -1971,7 +2095,7 @@ ApplicationWindow {
             return
         }
 
-        if(imageWriter.getInitFormat() === "UNRAID" && !d.guidValid) {
+        if (imageWriter.getInitFormat() === "UNRAID" && !d.guidValid) {
             onError(qsTr("Selected device cannot be used to create an Unraid USB due to its invalid GUID."))
             writebutton.enabled = false
             return
