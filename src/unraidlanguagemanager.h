@@ -31,7 +31,6 @@ signals:
     void zipUrlFetched();
     void languageZipInstalled();
     void error(const QString &errorMessage);
-
     void done();
 
 private slots:

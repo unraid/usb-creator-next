@@ -156,7 +156,7 @@ public:
     Q_INVOKABLE QStringList getUnraidOSLanguages();
     Q_INVOKABLE QString getSelectedUnraidOSLanguageName();
     Q_INVOKABLE void setUnraidOSLanguage(const QString &languageName);
-    // Q_INVOKABLE void installUnraidOSLanguage();
+    Q_INVOKABLE void installUnraidOSLanguage();
     // Q_INVOKABLE bool isUnraidOSLanguageAvailable();
 
 signals:
@@ -173,7 +173,11 @@ signals:
     void preparationStatusUpdate(QVariant msg);
     void osListPrepared();
     void networkInfo(QVariant msg);
+
+    // Unraid OS Language Management
     void unraidLanguagesUpdated();
+    void unraidLanguageInstallationComplete();
+    void unraidOSLanguageStatusUpdate(QVariant msg);
 
     // Unraid OS Language Management
     // void unraidLanguageInstallationProgress(QVariant msg);
@@ -197,7 +201,11 @@ protected slots:
     void onPreparationStatusUpdate(QString msg);
     void handleNetworkRequestFinished(QNetworkReply *data);
     void onSTPdetected();
+
+    // Unraid OS Language Management
     void unraidLanguagesDownloaded();
+    void onUnraidLanguageDone();
+    void onUnraidOSLanguageProgressUpdate(QString msg);
 
     // Unraid OS Language Management
     // void onUnraidLanguageProgressUpdated(QString message);
@@ -215,7 +223,9 @@ private:
 
     // Unraid OS Language Management
     UnraidLanguageManager _unraidLanguageManager;
-    QString _selectedUnraidOSLanguage;
+
+    QStringList getPartitionsForDisk(const QString &diskDevice);
+    QString getMountPointForDisk(const QString &diskDevice);
 
 protected:
     QUrl _src, _repo;

@@ -258,6 +258,7 @@ ApplicationWindow {
                         id: osLanguageDropdown
                         model: imageWriter.getUnraidOSLanguages()
                         window: window
+                        opacity: enabled ? 1.0 : 0.3
                         Layout.fillWidth: true
                         Layout.topMargin: 10
                         Layout.bottomMargin: 10
@@ -1507,6 +1508,7 @@ ApplicationWindow {
             osbutton.enabled = false
             dstbutton.enabled = false
             hwbutton.enabled = false
+            osLanguageDropdown.enabled = false
             imageWriter.setVerifyEnabled(true)
             imageWriter.startWrite()
         }
@@ -1545,7 +1547,7 @@ ApplicationWindow {
         }
     }
 
-    /* Slots for signals imagewrite emits */
+    /* --- Slots for signals ImageWrite emits --- */
     function onDownloadProgress(now, total) {
         var newPos
         if (total) {
@@ -1592,6 +1594,10 @@ ApplicationWindow {
         progressText.text = qsTr("Preparing to write... (%1)").arg(msg)
     }
 
+    function onUnraidOSLanguageStatusUpdate(msg) {
+        progressText.text = qsTr(msg)
+    }
+
     function onOsListPrepared() {
         fetchOSlist()
     }
@@ -1602,6 +1608,7 @@ ApplicationWindow {
         osbutton.enabled = true
         dstbutton.enabled = true
         hwbutton.enabled = true
+        osLanguageDropdown.enabled = true
         writebutton.visible = true
         writebutton.enabled = imageWriter.readyToWrite()
         cancelwritebutton.visible = false

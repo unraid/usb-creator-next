@@ -75,7 +75,6 @@ ImageWriter::ImageWriter(QObject *parent)
     , _networkManager(this)
     , _guidValid(false)
     , _unraidLanguageManager(this)
-    , _selectedUnraidOSLanguage("English")
 {
     connect(&_polltimer, SIGNAL(timeout()), SLOT(pollProgress()));
 
@@ -210,12 +209,22 @@ ImageWriter::ImageWriter(QObject *parent)
     // Centralised network manager, for fetching OS lists
     connect(&_networkManager, SIGNAL(finished(QNetworkReply *)), this, SLOT(handleNetworkRequestFinished(QNetworkReply *)));
 
+    // --- Unraid Language OS-Related Signals ---
+
     // In the UnraidLanguageManager, when you receieve the languagesFetched signal,
     //run ImageWriter::unraidLanguagesUpdated (emit unraidLanguagesUpdated signal, which is connected to QML)
     connect(&_unraidLanguageManager,
             &UnraidLanguageManager::languagesFetched,
             this,
             &ImageWriter::unraidLanguagesDownloaded);
+
+    // This basically connects the signals that UnraidLanguageManager emits to ImageWriter
+    connect(&_unraidLanguageManager,
+            SIGNAL(progressUpdated(QString)),
+            this,
+            SLOT(onUnraidOSLanguageProgressUpdate(QString)));
+    connect(&_unraidLanguageManager, SIGNAL(error(QString)), this, SLOT(onError(QString)));
+    connect(&_unraidLanguageManager, SIGNAL(done()), this, SLOT(onUnraidLanguageDone()));
 }
 
 ImageWriter::~ImageWriter()
@@ -287,6 +296,74 @@ void ImageWriter::unraidLanguagesDownloaded()
     qDebug() << "ImageWriter::unraidLanguagesUpdated called, emitting signal";
     emit unraidLanguagesUpdated();
     qDebug() << "ImageWriter::unraidLanguagesUpdated signal emitted";
+}
+
+void ImageWriter::onUnraidLanguageDone()
+{
+    emit success();
+}
+
+QStringList ImageWriter::getPartitionsForDisk(const QString &diskDevice)
+{
+    QStringList partitions;
+#ifdef Q_OS_LINUX
+    // diskDevice: "/dev/sdb"
+    QDir sysBlockDir("/sys/block/" + QFileInfo(diskDevice).fileName());
+    QStringList entries = sysBlockDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+    for (const QString &entry : entries) {
+        if (entry.startsWith(QFileInfo(diskDevice).fileName())) {
+            partitions << "/dev/" + entry;
+        }
+    }
+#elif defined(Q_OS_MAC)
+    // diskDevice: "/dev/disk6"
+    QDir devDir("/dev");
+    QString base = QFileInfo(diskDevice).fileName(); // "disk6"
+    QStringList entries = devDir.entryList(QStringList() << base + "s*", QDir::System);
+    for (const QString &entry : entries) {
+        partitions << "/dev/" + entry;
+    }
+#endif
+    return partitions;
+}
+
+QString ImageWriter::getMountPointForDisk(const QString &diskDevice)
+{
+    QStringList partitions = getPartitionsForDisk(diskDevice);
+    foreach (const QStorageInfo &storage, QStorageInfo::mountedVolumes()) {
+        foreach (const QString &partition, partitions) {
+            if (storage.device() == partition.toUtf8()) {
+                return storage.rootPath();
+            }
+        }
+    }
+    return QString();
+}
+
+void ImageWriter::installUnraidOSLanguage()
+{
+    if (_unraidLanguageManager.getCurrentLanguageCode() == "en_US") {
+        // English is default, no installation needed
+        return;
+    }
+
+    if (_dst.isEmpty()) {
+        emit onError(tr("No destination device set"));
+        return;
+    }
+
+    QString mntPoint = getMountPointForDisk(_dst);
+
+    QByteArray urlstr = _src.toString(_src.FullyEncoded).toLatin1();
+    QString lowercaseurl = urlstr.toLower();
+    qDebug() << "_src to.string(): " << _src.toString(_src.FullyEncoded);
+    qDebug() << "Lowercaseurl: " << lowercaseurl;
+    qDebug() << "_dst: " << _dst;
+    qDebug() << "mntPoint: " << mntPoint;
+
+    // Start language installation
+    _unraidLanguageManager.installUnraidOSLanguage(_unraidLanguageManager.getCurrentLanguageCode(),
+                                                   mntPoint);
 }
 
 void ImageWriter::setEngine(QQmlApplicationEngine *engine)
@@ -859,6 +936,17 @@ void ImageWriter::setVerifyEnabled(bool verify)
 void ImageWriter::onSuccess()
 {
     stopProgressPolling();
+    qDebug() << "Successfully wrote unraid image. Updating default language, if needed.";
+
+    // If this is an Unraid OS installation, install the selected language
+    if (_initFormat == "UNRAID" && !(_unraidLanguageManager.getCurrentLanguageCode() == "en_US")) {
+        // Install language before showing success message
+        qDebug() << "INSTALLING UNRAID OS LANGUAGE";
+        installUnraidOSLanguage();
+        // Signal at beginning of file connects done signal in UnraidLanguageManager to onUnraidLanguageDone slot, which emits sucess signal)
+        return;
+    }
+
     emit success();
 
 #ifndef QT_NO_WIDGETS
@@ -889,6 +977,11 @@ void ImageWriter::onFinalizing()
 void ImageWriter::onPreparationStatusUpdate(QString msg)
 {
     emit preparationStatusUpdate(msg);
+}
+
+void ImageWriter::onUnraidOSLanguageProgressUpdate(QString msg)
+{
+    emit unraidOSLanguageStatusUpdate(msg);
 }
 
 void ImageWriter::openFileDialog()
