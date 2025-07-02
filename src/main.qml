@@ -255,32 +255,19 @@ ApplicationWindow {
                     }
 
                     OSLanguageDropdown {
-                        id: langDropdown
-                        model: imageWriter.getTranslations()
+                        id: osLanguageDropdown
+                        model: imageWriter.getUnraidOSLanguages()
                         window: window
                         Layout.fillWidth: true
                         Layout.topMargin: 10
                         Layout.bottomMargin: 10
 
                         Component.onCompleted: {
-                            // Grab the raw array from C++
-                            var translations = imageWriter.getTranslations()
-                            console.log("Available languages:", translations)
-
-                            // Get the code we want to select
-                            var currentLang = imageWriter.getCurrentLanguage()
-                            console.log("ImageWriter’s currentLanguage:",
-                                        currentLang)
-
-                            // Find its index in the array
-                            var idx = translations.indexOf(currentLang)
-                            console.log("Found index:", idx)
-
-                            // If not found (<0), default to English at index 1
-                            langDropdown.currentIndex = idx >= 0 ? idx : 1
+                            updateLanguageSelection()
                         }
 
-                        onLanguageChanged: imageWriter.changeLanguage(newLang)
+                        onLanguageChanged: imageWriter.setUnraidOSLanguage(
+                                               newLang)
                     }
 
                     // ────────────────────────────────────────────────────────────────
@@ -2106,6 +2093,31 @@ ApplicationWindow {
         dstbutton.text = d.description
         if (imageWriter.readyToWrite()) {
             writebutton.enabled = true
+        }
+    }
+
+    // --- For Unraid OS Language Selection ---
+    function updateLanguageSelection() {
+        var translations = osLanguageDropdown.model
+        console.log("Available languages:", translations)
+
+        var currentLang = imageWriter.getSelectedUnraidOSLanguageName()
+        console.log("ImageWriter's currentLanguage:", currentLang)
+
+        var idx = translations.indexOf(currentLang)
+        console.log("Found index:", idx)
+
+        osLanguageDropdown.currentIndex = idx >= 0 ? idx : 0
+    }
+
+    // This connects imageWriter throws a signal when languages are downloaded
+    // This tells main.qml that when you recieve that signal (unraidLanguagesUpdated), ruj this
+    Connections {
+        target: imageWriter
+        onUnraidLanguagesUpdated: {
+            console.log("Languages updated, refreshing dropdown")
+            osLanguageDropdown.model = imageWriter.getUnraidOSLanguages()
+            updateLanguageSelection()
         }
     }
 }

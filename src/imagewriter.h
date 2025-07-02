@@ -12,13 +12,14 @@
 #include <QJsonDocument>
 #include <QNetworkAccessManager>
 #include <QObject>
+#include <QSettings>
 #include <QTimer>
 #include <QUrl>
-#include <QSettings>
 #include <QVariant>
 #include "config.h"
-#include "powersaveblocker.h"
 #include "drivelistmodel.h"
+#include "powersaveblocker.h"
+#include "unraidlanguagemanager.h"
 
 class QQmlApplicationEngine;
 class DownloadThread;
@@ -151,6 +152,13 @@ public:
     Q_INVOKABLE bool openUrl(const QString& url);
     Q_INVOKABLE bool windowsBuild();
 
+    // Unraid OS Language Management
+    Q_INVOKABLE QStringList getUnraidOSLanguages();
+    Q_INVOKABLE QString getSelectedUnraidOSLanguageName();
+    Q_INVOKABLE void setUnraidOSLanguage(const QString &languageName);
+    // Q_INVOKABLE void installUnraidOSLanguage();
+    // Q_INVOKABLE bool isUnraidOSLanguageAvailable();
+
 signals:
     /* We are emiting signals with QVariant as parameters because QML likes it that way */
 
@@ -165,6 +173,12 @@ signals:
     void preparationStatusUpdate(QVariant msg);
     void osListPrepared();
     void networkInfo(QVariant msg);
+    void unraidLanguagesUpdated();
+
+    // Unraid OS Language Management
+    // void unraidLanguageInstallationProgress(QVariant msg);
+    // void unraidLanguageInstallationComplete();
+    // void unraidLanguageInstallationError(QVariant msg);
 
 protected slots:
 
@@ -183,6 +197,12 @@ protected slots:
     void onPreparationStatusUpdate(QString msg);
     void handleNetworkRequestFinished(QNetworkReply *data);
     void onSTPdetected();
+    void unraidLanguagesDownloaded();
+
+    // Unraid OS Language Management
+    // void onUnraidLanguageProgressUpdated(QString message);
+    // void onUnraidLanguageError(QString errorMessage);
+    // void onUnraidLanguageDone();
 
 private:
     // Recursively walk all the entries with subitems and, for any which
@@ -192,6 +212,10 @@ private:
     QJsonDocument _completeOsList;
     QJsonArray _deviceFilter;
     bool _deviceFilterIsInclusive;
+
+    // Unraid OS Language Management
+    UnraidLanguageManager _unraidLanguageManager;
+    QString _selectedUnraidOSLanguage;
 
 protected:
     QUrl _src, _repo;

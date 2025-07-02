@@ -18,6 +18,8 @@ public:
     void downloadUnraidLanguagesJson();
     QMap<QString, QString> getAvailableLanguages() const;
     QString getLanguageName(const QString &languageCode) const;
+    QString getCurrentLanguageCode();
+    void setCurrentLanguageCode(const QString &languageCode);
 
     // Language installation
     void installUnraidOSLanguage(const QString &languageCode, const QString &destinationPath);

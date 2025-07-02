@@ -60,12 +60,27 @@ namespace {
 } // namespace anonymous
 
 ImageWriter::ImageWriter(QObject *parent)
-    : QObject(parent), _repo(QUrl(QString(OSLIST_URL))), _dlnow(0), _verifynow(0),
-      _engine(nullptr), _thread(nullptr), _verifyEnabled(false), _cachingEnabled(false),
-      _embeddedMode(false), _online(false), _customCacheFile(false), _trans(nullptr),
-      _networkManager(this), _guidValid(false)
+    : QObject(parent)
+    , _repo(QUrl(QString(OSLIST_URL)))
+    , _dlnow(0)
+    , _verifynow(0)
+    , _engine(nullptr)
+    , _thread(nullptr)
+    , _verifyEnabled(false)
+    , _cachingEnabled(false)
+    , _embeddedMode(false)
+    , _online(false)
+    , _customCacheFile(false)
+    , _trans(nullptr)
+    , _networkManager(this)
+    , _guidValid(false)
+    , _unraidLanguageManager(this)
+    , _selectedUnraidOSLanguage("English")
 {
     connect(&_polltimer, SIGNAL(timeout()), SLOT(pollProgress()));
+
+    //Default language for unraid os is english 🇺🇸🦅
+    _unraidLanguageManager.setCurrentLanguageCode("en_US");
 
     QString platform;
     if (qobject_cast<QGuiApplication*>(QCoreApplication::instance()) )
@@ -194,6 +209,13 @@ ImageWriter::ImageWriter(QObject *parent)
 
     // Centralised network manager, for fetching OS lists
     connect(&_networkManager, SIGNAL(finished(QNetworkReply *)), this, SLOT(handleNetworkRequestFinished(QNetworkReply *)));
+
+    // In the UnraidLanguageManager, when you receieve the languagesFetched signal,
+    //run ImageWriter::unraidLanguagesUpdated (emit unraidLanguagesUpdated signal, which is connected to QML)
+    connect(&_unraidLanguageManager,
+            &UnraidLanguageManager::languagesFetched,
+            this,
+            &ImageWriter::unraidLanguagesDownloaded);
 }
 
 ImageWriter::~ImageWriter()
@@ -203,6 +225,68 @@ ImageWriter::~ImageWriter()
         QCoreApplication::removeTranslator(_trans);
         delete _trans;
     }
+}
+
+QStringList ImageWriter::getUnraidOSLanguages()
+{
+    qDebug() << "Went into ImageWriter::getUnraidOSLanguages.";
+
+    if (!isOnline()) {
+        // If offline, only return English
+        qDebug() << "User is offline. Defaulting to only english install.";
+        return QStringList() << "English";
+    }
+
+    // Try to get languages from cache first
+    QMap<QString, QString> languages = _unraidLanguageManager.getAvailableLanguages();
+
+    if (languages.isEmpty()) {
+        qDebug() << "Language cache is empty, calling "
+                    "UnraidLanguageManager::downloadUnraidLoanguagesJson";
+
+        // If no cached languages, try to download them
+        _unraidLanguageManager.downloadUnraidLanguagesJson();
+
+        // For now, return English as fallback
+        // Lazy Loading it... The UI will need be updated when languages are downloaded
+        return QStringList() << "English";
+    }
+
+    // Convert QMap to QStringList (language names)
+    QStringList languageNames = languages.values();
+    languageNames.sort();
+
+    return languageNames;
+}
+
+QString ImageWriter::getSelectedUnraidOSLanguageName()
+{
+    qDebug() << "Tried to get Current Language from ImageWriter.";
+    QString currentLangCode = _unraidLanguageManager.getCurrentLanguageCode();
+
+    return _unraidLanguageManager.getLanguageName(currentLangCode);
+}
+
+void ImageWriter::setUnraidOSLanguage(const QString &languageName)
+{
+    QMap<QString, QString> availableLanguages = _unraidLanguageManager.getAvailableLanguages();
+
+    if (!availableLanguages.empty()) {
+        qDebug() << "Setting Language to: " << availableLanguages.key(languageName, QString());
+        _unraidLanguageManager.setCurrentLanguageCode(
+            availableLanguages.key(languageName, QString()));
+    } else {
+        //default to english
+        qDebug() << "Setting Language to: English";
+        _unraidLanguageManager.setCurrentLanguageCode("en_US");
+    }
+}
+
+void ImageWriter::unraidLanguagesDownloaded()
+{
+    qDebug() << "ImageWriter::unraidLanguagesUpdated called, emitting signal";
+    emit unraidLanguagesUpdated();
+    qDebug() << "ImageWriter::unraidLanguagesUpdated signal emitted";
 }
 
 void ImageWriter::setEngine(QQmlApplicationEngine *engine)
@@ -752,6 +836,7 @@ void ImageWriter::pollProgress()
     {
         _verifynow = newVerifyNow;
         quint64 verifyTotal = _thread->verifyTotal();
+
 #ifdef Q_OS_WIN
         if (_taskbarButton)
         {
@@ -1520,3 +1605,4 @@ bool ImageWriter::windowsBuild() {
     return false;
 #endif
 }
+

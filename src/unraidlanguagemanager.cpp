@@ -21,11 +21,6 @@ UnraidLanguageManager::UnraidLanguageManager(QObject *parent)
 
 void UnraidLanguageManager::downloadUnraidLanguagesJson()
 {
-    //get the URL
-    //send HTTP Request
-    //Get results
-    // If good, store/overwrite JSON file to temp location where App is running
-    // If not good, send error
 
     emit progressUpdated("Downloading JSON file containing supported language information...");
 
@@ -42,9 +37,21 @@ QMap<QString, QString> UnraidLanguageManager::getAvailableLanguages() const
     return m_availableLanguages;
 }
 
-QString UnraidLanguageManager::getLanguageName(const QString &languageCode) const
+void UnraidLanguageManager::setCurrentLanguageCode(const QString &languageCode)
+{
+    if (m_currentLanguageCode != languageCode) {
+        m_currentLanguageCode = languageCode;
+    }
+}
+
+QString UnraidLanguageManager::getCurrentLanguageCode()
 {
     return m_currentLanguageCode;
+}
+
+QString UnraidLanguageManager::getLanguageName(const QString &languageCode) const
+{
+    return m_availableLanguages.value(languageCode);
 }
 
 void UnraidLanguageManager::installUnraidOSLanguage(const QString &languageCode,
@@ -76,7 +83,6 @@ void UnraidLanguageManager::installUnraidOSLanguage(const QString &languageCode,
 
 // --- private slots ---
 
-// gets data from http request, writes locally, parses json language map, emits languagesFetched signal
 void UnraidLanguageManager::onLanguagesJsonDownloaded(QNetworkReply *reply)
 {
     if (reply->error() != QNetworkReply::NoError) {
@@ -86,11 +92,12 @@ void UnraidLanguageManager::onLanguagesJsonDownloaded(QNetworkReply *reply)
         qDebug() << "[HTTP]" << status;
 
         QByteArray jsonData = reply->readAll();
+        qDebug() << "Downloaded JSON data size:" << jsonData.size();
 
         m_jsonPath = QCoreApplication::applicationDirPath() + "/unraid-os-languages.json";
         QFile f(m_jsonPath);
         if (!f.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
-            emit error(QString("Couldn’t write JSON to %1").arg(f.fileName()));
+            emit error(QString("Couldn't write JSON to %1").arg(f.fileName()));
         } else {
             f.write(jsonData);
             f.close();
@@ -102,10 +109,15 @@ void UnraidLanguageManager::onLanguagesJsonDownloaded(QNetworkReply *reply)
 
         emit progressUpdated("Parsing JSON file containing supported language information...");
         m_availableLanguages = parseLanguageMap(m_jsonPath);
+        qDebug() << "Parsed languages count:" << m_availableLanguages.size();
+        qDebug() << "Available languages:" << m_availableLanguages.values();
+        
         emit progressUpdated(
             "Parsing JSON file containing supported language information...[done]");
 
+        qDebug() << "About to emit languagesFetched signal";
         emit languagesFetched();
+        qDebug() << "Emitted languagesFetched signal";
     }
 
     reply->deleteLater();
@@ -129,7 +141,7 @@ void UnraidLanguageManager::onLanguageXmlDownloaded(QNetworkReply *reply)
         QFile f(m_xmlPath);
         if (!f.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
             emit error(
-                QString("Couldn’t write required language's XML template to %1").arg(f.fileName()));
+                QString("Couldn't write required language's XML template to %1").arg(f.fileName()));
         } else {
             f.write(xmlData);
             f.close();
@@ -158,7 +170,7 @@ void UnraidLanguageManager::onLanguageZipDownloaded(QNetworkReply *reply)
         QFile f(m_zipPath);
         if (!f.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
             emit error(
-                QString("Couldn’t write required language's zip file to %1").arg(f.fileName()));
+                QString("Couldn't write required language's zip file to %1").arg(f.fileName()));
         } else {
             f.write(zipData);
             f.close();
@@ -185,7 +197,7 @@ void UnraidLanguageManager::continueLanguageInstall(const QString &langCode, con
     });
 
     QMetaObject::Connection installConn;
-    connect(this, &UnraidLanguageManager::languageZipInstalled, this, [=]() {
+    installConn = connect(this, &UnraidLanguageManager::languageZipInstalled, this, [=]() {
         emit progressUpdated("Patching Unraid OS language config file...");
         patchDynamixConfig(langCode);
         emit progressUpdated("Patching Unraid OS language config file...[done]");
@@ -200,13 +212,20 @@ void UnraidLanguageManager::continueLanguageInstall(const QString &langCode, con
 
 QMap<QString, QString> UnraidLanguageManager::parseLanguageMap(const QString &jsonPath)
 {
+    qDebug() << "Parsing language map from:" << jsonPath;
+    
     QFile f(jsonPath);
     if (!f.open(QIODevice::ReadOnly)) {
+        qDebug() << "Could not open file:" << f.errorString();
         emit error(QString("Could not open %1: %2").arg(jsonPath, f.errorString()));
         return {};
     }
+    
     QByteArray raw = f.readAll();
+    qDebug() << "Read" << raw.size() << "bytes from file";
+    
     if (f.error() != QFileDevice::NoError) {
+        qDebug() << "Error reading file:" << f.errorString();
         emit error(QString("Error reading %1: %2").arg(jsonPath, f.errorString()));
         return {};
     }
@@ -215,9 +234,12 @@ QMap<QString, QString> UnraidLanguageManager::parseLanguageMap(const QString &js
     QJsonParseError err;
     auto doc = QJsonDocument::fromJson(raw, &err);
     if (err.error != QJsonParseError::NoError || !doc.isObject()) {
+        qDebug() << "JSON parse error:" << err.errorString();
         emit error(QString("JSON parse error in %1: %2").arg(jsonPath, err.errorString()));
         return {};
     }
+
+    qDebug() << "JSON parsed successfully, object keys:" << doc.object().keys();
 
     QMap<QString, QString> map;
 
@@ -226,9 +248,12 @@ QMap<QString, QString> UnraidLanguageManager::parseLanguageMap(const QString &js
         QString rawDesc = entry.value("Desc").toString().trimmed();
         int idx = rawDesc.indexOf('(');
         QString cleanName = (idx > 0) ? rawDesc.left(idx).trimmed() : rawDesc;
-
+        
+        qDebug() << "Language code:" << code << "->" << cleanName;
         map.insert(code, cleanName);
     }
+    
+    qDebug() << "Final map size:" << map.size();
     return map;
 }
 
