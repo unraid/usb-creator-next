@@ -14,8 +14,18 @@
 
 UnraidLanguageManager::UnraidLanguageManager(QObject *parent)
     : QObject(parent)
-    , m_networkManager()
-{}
+    , m_networkManager(), m_installPending(false)
+{
+
+    connect(this, &UnraidLanguageManager::languagesFetched,
+            this, &UnraidLanguageManager::onLanguagesJsonFetched);
+
+    connect(this, &UnraidLanguageManager::xmlFetched,
+            this, &UnraidLanguageManager::onLanguageXmlReady);
+
+    connect(this, &UnraidLanguageManager::languageZipInstalled,
+            this, &UnraidLanguageManager::onLanguageZipReady);
+}
 
 // --- public methods ---
 
@@ -62,26 +72,43 @@ void UnraidLanguageManager::installUnraidOSLanguage(const QString &languageCode,
 
     emit progressUpdated("Searching for language json...");
 
-    qDebug() << "m_availableLanguage is empty:" << m_availableLanguages.empty();
-
     if (m_availableLanguages.empty()) {
         emit progressUpdated("Couldn't find language json, installing...");
-
-        // can change back to Qt::SingleShotConnection after rebasing to QT 6
-        QMetaObject::Connection conn;
-        conn = connect(this, &UnraidLanguageManager::languagesFetched, this, [=]() {
-            continueLanguageInstall(languageCode, destinationPath);
-            disconnect(conn);
-        });
+        m_installPending = true;
         downloadUnraidLanguagesJson();
         return;
     }
 
     emit progressUpdated("Starting language installation...");
+    qDebug() <<"UnraidLanguageManager::installUnraidOSLanguage: Found json lang files, going to continueLanguageInstall.";
     continueLanguageInstall(languageCode, destinationPath);
 }
 
 // --- private slots ---
+
+void UnraidLanguageManager::onLanguagesJsonFetched() {
+    if (!m_installPending) return;
+    m_installPending = false;
+    continueLanguageInstall(m_currentLanguageCode, m_usbPath);
+    qDebug() <<"Resetting m_installPending: " <<m_installPending << " to true ";
+    m_installPending = true;
+}
+
+void UnraidLanguageManager::onLanguageXmlReady() {
+    emit progressUpdated("Parsing XML template file for requested language...");
+    QString zipUrl = parseLanguageUrlFromXml(m_xmlPath);
+    emit progressUpdated("Parsing XML template file for requested language...[done]");
+    downloadLanguageZip(zipUrl);
+}
+
+void UnraidLanguageManager::onLanguageZipReady() {
+    emit progressUpdated("Patching Unraid OS language config file...");
+    patchDynamixConfig(m_currentLanguageCode);
+    emit progressUpdated("Patching Unraid OS language config file...[done]");
+    emit progressUpdated("Unraid OS language installation complete.");
+    emit done();
+}
+
 
 void UnraidLanguageManager::onLanguagesJsonDownloaded(QNetworkReply *reply)
 {
@@ -109,15 +136,10 @@ void UnraidLanguageManager::onLanguagesJsonDownloaded(QNetworkReply *reply)
 
         emit progressUpdated("Parsing JSON file containing supported language information...");
         m_availableLanguages = parseLanguageMap(m_jsonPath);
-        qDebug() << "Parsed languages count:" << m_availableLanguages.size();
-        qDebug() << "Available languages:" << m_availableLanguages.values();
         
         emit progressUpdated(
             "Parsing JSON file containing supported language information...[done]");
-
-        qDebug() << "About to emit languagesFetched signal";
         emit languagesFetched();
-        qDebug() << "Emitted languagesFetched signal";
     }
 
     reply->deleteLater();
@@ -125,7 +147,6 @@ void UnraidLanguageManager::onLanguagesJsonDownloaded(QNetworkReply *reply)
 
 void UnraidLanguageManager::onLanguageXmlDownloaded(QNetworkReply *reply)
 {
-    QString zipUrl;
 
     if (reply->error() != QNetworkReply::NoError) {
         emit error(QString("Network error fetching requested language's XML template: %1")
@@ -148,7 +169,7 @@ void UnraidLanguageManager::onLanguageXmlDownloaded(QNetworkReply *reply)
         }
         emit progressUpdated("Fetching XML template file for requested language...[done]");
         qDebug() << "Wrote requested language's XML template to:" << f.fileName();
-        emit zipUrlFetched();
+        emit xmlFetched();
     }
 
     reply->deleteLater();
@@ -176,7 +197,6 @@ void UnraidLanguageManager::onLanguageZipDownloaded(QNetworkReply *reply)
             f.close();
         }
         emit progressUpdated("Fetching requested language zip...[done]");
-        qDebug() << "Wrote requested language's zip file to:" << f.fileName();
         emit languageZipInstalled();
     }
 
@@ -186,34 +206,14 @@ void UnraidLanguageManager::onLanguageZipDownloaded(QNetworkReply *reply)
 // --- private methods ---
 void UnraidLanguageManager::continueLanguageInstall(const QString &langCode, const QString &dest)
 {
-    // can change back to Qt::SingleShotConnection after rebasing to QT 6
-    QMetaObject::Connection zipConn;
-    zipConn = connect(this, &UnraidLanguageManager::zipUrlFetched, this, [=]() {
-        emit progressUpdated("Parsing XML template file for requested language...");
-        QString zipUrl = parseLanguageUrlFromXml(m_xmlPath);
-        emit progressUpdated("Parsing XML template file for requested language...[done]");
-        downloadLanguageZip(zipUrl);
-        disconnect(zipConn);
-    });
-
-    QMetaObject::Connection installConn;
-    installConn = connect(this, &UnraidLanguageManager::languageZipInstalled, this, [=]() {
-        emit progressUpdated("Patching Unraid OS language config file...");
-        patchDynamixConfig(langCode);
-        emit progressUpdated("Patching Unraid OS language config file...[done]");
-        emit progressUpdated("Unraid OS language installation complete.");
-        disconnect(installConn);
-    });
-
+    //basically, here we are *assuming* that json lang file was downloaded
     QString xmlUrl = parseXmlUrlFromJson(m_jsonPath, langCode);
     qDebug() << "xmlUrl = " << xmlUrl;
     downloadLanguageXml(xmlUrl);
 }
 
 QMap<QString, QString> UnraidLanguageManager::parseLanguageMap(const QString &jsonPath)
-{
-    qDebug() << "Parsing language map from:" << jsonPath;
-    
+{    
     QFile f(jsonPath);
     if (!f.open(QIODevice::ReadOnly)) {
         qDebug() << "Could not open file:" << f.errorString();
@@ -221,9 +221,7 @@ QMap<QString, QString> UnraidLanguageManager::parseLanguageMap(const QString &js
         return {};
     }
     
-    QByteArray raw = f.readAll();
-    qDebug() << "Read" << raw.size() << "bytes from file";
-    
+    QByteArray raw = f.readAll();    
     if (f.error() != QFileDevice::NoError) {
         qDebug() << "Error reading file:" << f.errorString();
         emit error(QString("Error reading %1: %2").arg(jsonPath, f.errorString()));
@@ -239,8 +237,6 @@ QMap<QString, QString> UnraidLanguageManager::parseLanguageMap(const QString &js
         return {};
     }
 
-    qDebug() << "JSON parsed successfully, object keys:" << doc.object().keys();
-
     QMap<QString, QString> map;
 
     for (auto code : doc.object().keys()) {
@@ -248,12 +244,8 @@ QMap<QString, QString> UnraidLanguageManager::parseLanguageMap(const QString &js
         QString rawDesc = entry.value("Desc").toString().trimmed();
         int idx = rawDesc.indexOf('(');
         QString cleanName = (idx > 0) ? rawDesc.left(idx).trimmed() : rawDesc;
-        
-        qDebug() << "Language code:" << code << "->" << cleanName;
         map.insert(code, cleanName);
     }
-    
-    qDebug() << "Final map size:" << map.size();
     return map;
 }
 
@@ -318,7 +310,6 @@ QString UnraidLanguageManager::parseLanguageUrlFromXml(const QString &xmlPath)
             if (url.isEmpty()) {
                 emit error("Empty <LanguageURL> in XML");
             }
-            emit xmlTemplateFetched();
             qDebug() << url;
             return url;
         }
@@ -354,8 +345,6 @@ void UnraidLanguageManager::downloadLanguageZip(const QString &zipUrl)
 
 void UnraidLanguageManager::patchDynamixConfig(const QString &languageCode)
 {
-    qDebug("went into patchDynamixConfig");
-
     const QString cfgPath = m_usbPath + "/config/plugins/dynamix/dynamix.cfg";
 
     // Marker must be something that will NEVER appear in your real data
@@ -365,7 +354,7 @@ void UnraidLanguageManager::patchDynamixConfig(const QString &languageCode)
 
     if (!QFile::exists(cfgPath)) {
         qWarning() << "Config file does not exist:" << cfgPath;
-        emit done();
+        emit error(QString("Config file does not exist: %1").arg(cfgPath));
         return;
     }
 
@@ -382,21 +371,24 @@ void UnraidLanguageManager::patchDynamixConfig(const QString &languageCode)
         QSettings::Status status = settings.status();
         switch (status) {
         case QSettings::NoError:
-            qDebug() << "Successfully patched config file:" << cfgPath;
+            qDebug() << "Successfully patched dynamix config file:" << cfgPath;
             break;
         case QSettings::AccessError:
             qWarning() << "Access error writing to:" << cfgPath;
             // Try to get more specific error information
             if (!QFileInfo(cfgPath).isWritable()) {
                 qWarning() << "File is not writable (permissions issue)";
+                emit error(QString("Config file is not writable: %1").arg(cfgPath));
             }
             break;
         case QSettings::FormatError:
             qWarning() << "Format error in file:" << cfgPath;
+            emit error(QString("Format Error in file: %1").arg(cfgPath));
             break;
         default:
             qWarning() << "Unknown error occurred while writing to:" << cfgPath
                        << "Status code:" << status;
+
 
             // Additional diagnostic information
             QFileInfo fileInfo(cfgPath);
@@ -404,6 +396,7 @@ void UnraidLanguageManager::patchDynamixConfig(const QString &languageCode)
                        << "Is readable:" << fileInfo.isReadable()
                        << "Is writable:" << fileInfo.isWritable()
                        << "File size:" << fileInfo.size();
+            emit error(QString("Unknown error occurred while writing to:").arg(cfgPath));
             break;
         }
     }
@@ -413,6 +406,7 @@ void UnraidLanguageManager::patchDynamixConfig(const QString &languageCode)
         QFile file(cfgPath);
         if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
             qWarning() << "Could not reopen for post-processing:" << cfgPath;
+            emit error(QString("Could not reopen for post-processing:").arg(cfgPath));
         } else {
             QString contents = QString::fromUtf8(file.readAll());
             file.close();
@@ -423,14 +417,13 @@ void UnraidLanguageManager::patchDynamixConfig(const QString &languageCode)
             contents.replace(target, replaced);
 
             if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) {
-                qWarning() << "Could not reopen for writing swapped INI:" << cfgPath;
+                qWarning() << "Could not reopen for swapping quotes in dynamix.cfg:" << cfgPath;
+                emit error(QString("Could not reopen dynamix.cfg file: ").arg(cfgPath));
             } else {
                 file.write(contents.toUtf8());
                 file.close();
-                qDebug() << "Patched quotes in INI to actual quotation marks.";
+                qDebug() << "Patched quotes in dynamix config to actual quotation marks.";
             }
         }
     }
-
-    emit done();
 }

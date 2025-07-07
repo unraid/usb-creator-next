@@ -27,13 +27,18 @@ public:
 signals:
     void progressUpdated(const QString &message);
     void languagesFetched();
-    void xmlTemplateFetched();
-    void zipUrlFetched();
+    void xmlFetched();
     void languageZipInstalled();
     void error(const QString &errorMessage);
     void done();
 
 private slots:
+
+    void onLanguagesJsonFetched();
+    void onLanguageXmlReady();
+    void onLanguageZipReady();
+
+
     void onLanguagesJsonDownloaded(QNetworkReply *reply);
     void onLanguageXmlDownloaded(QNetworkReply *reply);
     void onLanguageZipDownloaded(QNetworkReply *reply);
@@ -59,6 +64,7 @@ private:
     QString m_jsonPath;
     QString m_xmlPath;
     QString m_zipPath;
+    bool m_installPending;
 
     // Language cache
     QMap<QString, QString> m_availableLanguages; // code -> name mapping

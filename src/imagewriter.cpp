@@ -53,6 +53,9 @@
 
 #ifdef Q_OS_LINUX
 #include "linux/stpanalyzer.h"
+#include <sys/mount.h>
+#include <cerrno>
+#include <cstring>
 #endif
 
 namespace {
@@ -238,8 +241,6 @@ ImageWriter::~ImageWriter()
 
 QStringList ImageWriter::getUnraidOSLanguages()
 {
-    qDebug() << "Went into ImageWriter::getUnraidOSLanguages.";
-
     if (!isOnline()) {
         // If offline, only return English
         qDebug() << "User is offline. Defaulting to only english install.";
@@ -270,9 +271,7 @@ QStringList ImageWriter::getUnraidOSLanguages()
 
 QString ImageWriter::getSelectedUnraidOSLanguageName()
 {
-    qDebug() << "Tried to get Current Language from ImageWriter.";
     QString currentLangCode = _unraidLanguageManager.getCurrentLanguageCode();
-
     return _unraidLanguageManager.getLanguageName(currentLangCode);
 }
 
@@ -286,30 +285,48 @@ void ImageWriter::setUnraidOSLanguage(const QString &languageName)
             availableLanguages.key(languageName, QString()));
     } else {
         //default to english
-        qDebug() << "Setting Language to: English";
         _unraidLanguageManager.setCurrentLanguageCode("en_US");
     }
 }
 
 void ImageWriter::unraidLanguagesDownloaded()
 {
-    qDebug() << "ImageWriter::unraidLanguagesUpdated called, emitting signal";
     emit unraidLanguagesUpdated();
-    qDebug() << "ImageWriter::unraidLanguagesUpdated signal emitted";
 }
 
 void ImageWriter::onUnraidLanguageDone()
 {
+#ifdef Q_OS_LINUX
+    QString mntPoint = getMountPointForDisk(_dst);
+    QString tempFolder = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
+
+    qDebug() << "Attempting to unmount temporary mountpoint: " << mntPoint;
+
+    if (mntPoint.isEmpty()) {
+        qDebug() << "Nothing to unmount.";
+    } else {
+        const QByteArray ba = mntPoint.toUtf8();
+        if (::umount(ba.constData()) != 0) {
+            qWarning() << "umount failed:" << strerror(errno);
+        } else {
+            qDebug() << "Successfully unmounted" << mntPoint;
+        }
+        // remove the empty directory
+        QDir().rmdir(mntPoint);
+    }
+
+#endif
     emit success();
 }
 
 QStringList ImageWriter::getPartitionsForDisk(const QString &diskDevice)
 {
     QStringList partitions;
+
 #ifdef Q_OS_LINUX
-    // diskDevice: "/dev/sdb"
     QDir sysBlockDir("/sys/block/" + QFileInfo(diskDevice).fileName());
     QStringList entries = sysBlockDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+
     for (const QString &entry : entries) {
         if (entry.startsWith(QFileInfo(diskDevice).fileName())) {
             partitions << "/dev/" + entry;
@@ -331,13 +348,21 @@ QString ImageWriter::getMountPointForDisk(const QString &diskDevice)
 {
     QStringList partitions = getPartitionsForDisk(diskDevice);
     foreach (const QStorageInfo &storage, QStorageInfo::mountedVolumes()) {
-        foreach (const QString &partition, partitions) {
-            if (storage.device() == partition.toUtf8()) {
-                return storage.rootPath();
+
+        if (storage.isValid() && storage.isReady()) {
+            if (!storage.isReadOnly()) {
+                foreach (const QString &partition, partitions) {
+                    if (storage.device() == partition.toUtf8() ) {
+                        return storage.rootPath();
+                    }
+                }
             }
         }
     }
-    return QString();
+
+    // code should never reach here.
+    qDebug("Could not find selected device's mountpoint.");
+    return "";
 }
 
 void ImageWriter::installUnraidOSLanguage()
@@ -356,8 +381,6 @@ void ImageWriter::installUnraidOSLanguage()
 
     QByteArray urlstr = _src.toString(_src.FullyEncoded).toLatin1();
     QString lowercaseurl = urlstr.toLower();
-    qDebug() << "_src to.string(): " << _src.toString(_src.FullyEncoded);
-    qDebug() << "Lowercaseurl: " << lowercaseurl;
     qDebug() << "_dst: " << _dst;
     qDebug() << "mntPoint: " << mntPoint;
 
@@ -460,7 +483,10 @@ void ImageWriter::startWrite()
     }
     else
     {
-        _thread = new DownloadExtractThread(urlstr, _dst.toLatin1(), _expectedHash, this);
+        bool _changedDefaultLanguage = _unraidLanguageManager.getCurrentLanguageCode() != "en_US";
+
+        qDebug() << "Changed Default Language (ImgWriter): " << _changedDefaultLanguage;
+        _thread = new DownloadExtractThread(urlstr, _dst.toLatin1(), _expectedHash, _changedDefaultLanguage, this);
         if (_repo.toString() == OSLIST_URL)
         {
             DownloadStatsTelemetry *tele = new DownloadStatsTelemetry(urlstr, _parentCategory.toLatin1(), _osName.toLatin1(), _embeddedMode, _currentLangcode, this);
@@ -981,6 +1007,7 @@ void ImageWriter::onPreparationStatusUpdate(QString msg)
 
 void ImageWriter::onUnraidOSLanguageProgressUpdate(QString msg)
 {
+    qDebug() << "IMAGEWRITER Progress Updates That Actually Went Through: " << msg;
     emit unraidOSLanguageStatusUpdate(msg);
 }
 

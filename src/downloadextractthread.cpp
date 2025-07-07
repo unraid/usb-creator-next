@@ -43,9 +43,9 @@ protected:
     DownloadExtractThread *_de;
 };
 
-DownloadExtractThread::DownloadExtractThread(const QByteArray &url, const QByteArray &localfilename, const QByteArray &expectedHash, QObject *parent)
+DownloadExtractThread::DownloadExtractThread(const QByteArray &url, const QByteArray &localfilename, const QByteArray &expectedHash,bool changedDefaultLanguage, QObject *parent)
     : DownloadThread(url, localfilename, expectedHash, parent), _abufsize(IMAGEWRITER_BLOCKSIZE), _ethreadStarted(false),
-      _isImage(true), _inputHash(OSLIST_HASH_ALGORITHM), _activeBuf(0), _writeThreadStarted(false)
+      _isImage(true), _inputHash(OSLIST_HASH_ALGORITHM), _activeBuf(0), _writeThreadStarted(false),  _changedDefaultLanguage(changedDefaultLanguage)
 {
     _extractThread = new _extractThreadClass(this);
     _abuf[0] = (char *) qMallocAligned(_abufsize, 4096);
@@ -225,9 +225,14 @@ void DownloadExtractThread::extractMultiFileRun()
     QStringList filesExtracted, dirExtracted;
     QByteArray devlower = _filename.toLower();
 
+
+    // This code is unable to find the automatically mounted partitions for a device on Linux.
+    // As such, it ALWAYS leads to creating a temporary mount (the logic for removing said temp mount later on below also doesn't work hahah).
+
     /* See if OS auto-mounted the device */
     for (int tries = 0; tries < 3; tries++)
     {
+        qDebug() << "Attempt #" << tries << " to find mountpoint folder: ";
         QThread::sleep(1);
         auto l = Drivelist::ListStorageDevices();
         for (const auto& i : l)
@@ -235,16 +240,20 @@ void DownloadExtractThread::extractMultiFileRun()
             if (QByteArray::fromStdString(i.device).toLower() == devlower && i.mountpoints.size() == 1)
             {
                 folder = QByteArray::fromStdString(i.mountpoints.front());
+                qDebug() << "Found existing mountpoint folder: " << folder;
                 break;
             }
         }
+
     }
 
 #ifdef Q_OS_LINUX
+
     bool manualmount = false;
 
     if (folder.isEmpty())
     {
+        qDebug() << "Couldn't find mountpoint folder, attempting to create a temporary mount folder";
         /* Manually mount folder */
         QTemporaryDir td;
         QStringList args;
@@ -255,6 +264,8 @@ void DownloadExtractThread::extractMultiFileRun()
         else
             fatpartition += "1";
         args << "-t" << "vfat" << fatpartition << folder;
+
+        qDebug()<<"Current temp directory: "  << folder << " Args: " << args;
 
         if (QProcess::execute("mount", args) != 0)
         {
@@ -270,10 +281,14 @@ void DownloadExtractThread::extractMultiFileRun()
        until mountpoint is available in sandbox which lags behind */
     for (int tries=0; tries<3; tries++)
     {
+        qDebug() <<"Double checking mount folder: Attempt #" <<tries <<" ensuring folder is mounted";
         if (isMountPoint(folder))
+            qDebug("mountpoint found and recognized");
             break;
         QThread::sleep(1);
     }
+
+
 #endif
 
     if (folder.isEmpty())
@@ -433,6 +448,8 @@ void DownloadExtractThread::extractMultiFileRun()
             }
 #endif
         }
+
+        qDebug() << "DownloadExtractThread::extractMultiFileRun - EMITTING SUCCESS NOW!!";
         emit success();
     }
     catch (exception &e)
@@ -470,13 +487,26 @@ void DownloadExtractThread::extractMultiFileRun()
     QDir::setCurrent(currentDir);
 
 #ifdef Q_OS_LINUX
-    if (manualmount)
+
+    //this is a temporary fix. The fix should be apart of a larger refactor of linux mountpoints.
+    // Current mountpoint logic in this method is not able to pick up auto-mountpoint on linux consistently (or at all.../media/usr/USB_Name) despite GUI picking it up.
+    // need to consolidate how we are getting mountpoints on linux throughout codebase and make it more robust and consistent than currently is.
+
+    // if user changed default language, we don't want to close this mountpoint as we want the UnraidLanguageManager to use it first.
+    //ImageWriter will then close it once UnraidLanguageManager has completed making the required patches to update the language.
+
+    //ALSO, 90% sure this unmounting also does not work (idk why tho). See what I did in ImageWriter::onUnraidLanguageDone(). That one works
+    if (manualmount && !_changedDefaultLanguage)
     {
         QStringList args;
         args << folder;
+
+        qDebug() << "Unmounting temp mounting directory" << args;
+
         QProcess::execute("umount", args);
         QDir d;
         d.rmdir(folder);
+        qDebug() << "Deleting temp mounting directory" << folder;
     }
 #endif
 

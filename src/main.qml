@@ -1595,6 +1595,7 @@ ApplicationWindow {
     }
 
     function onUnraidOSLanguageStatusUpdate(msg) {
+        console.log("Unraid Language Status Update: ",msg)
         progressText.text = qsTr(msg)
     }
 
