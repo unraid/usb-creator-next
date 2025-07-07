@@ -328,6 +328,12 @@ void UnraidLanguageManager::downloadLanguageZip(const QString &zipUrl)
     emit progressUpdated("Fetching requested language zip...");
 
     QNetworkRequest request(zipUrl);
+
+    // The URL from the XML will throw a 302, redirect. QT handles that.
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::NoLessSafeRedirectPolicy);
+
+
     QNetworkReply *zipReply = m_networkManager.get(request);
 
     QObject::connect(zipReply, &QNetworkReply::finished, this, [this, zipReply]() {
