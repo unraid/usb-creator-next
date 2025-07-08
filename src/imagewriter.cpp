@@ -296,27 +296,29 @@ void ImageWriter::unraidLanguagesDownloaded()
 
 void ImageWriter::onUnraidLanguageDone()
 {
+ QString mnt = getMountPointForDisk(_dst);
+    emit success();
+
 #ifdef Q_OS_LINUX
-    QString mntPoint = getMountPointForDisk(_dst);
-    QString tempFolder = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
+    // QString mntPoint = getMountPointForDisk(_dst);
+    // QString tempFolder = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
 
-    qDebug() << "Attempting to unmount temporary mountpoint: " << mntPoint;
+    qDebug() << "Attempting to unmount temporary mountpoint: " << mnt << " --> on device: " << _dst;
 
-    if (mntPoint.isEmpty()) {
+    if (mnt.isEmpty()) {
         qDebug() << "Nothing to unmount.";
-    } else {
-        const QByteArray ba = mntPoint.toUtf8();
-        if (::umount(ba.constData()) != 0) {
-            qWarning() << "umount failed:" << strerror(errno);
-        } else {
-            qDebug() << "Successfully unmounted" << mntPoint;
-        }
-        // remove the empty directory
-        QDir().rmdir(mntPoint);
+    } else{
+        QtConcurrent::run([mnt]() {
+            // Force‐lazy unmount
+            ::umount2(mnt.toUtf8().constData(), MNT_DETACH|MNT_FORCE);
+            QDir().rmdir(mnt);
+            qDebug() << "Background unmount of" << mnt << "complete";
+        });
+
     }
 
 #endif
-    emit success();
+
 }
 
 QStringList ImageWriter::getPartitionsForDisk(const QString &diskDevice)
