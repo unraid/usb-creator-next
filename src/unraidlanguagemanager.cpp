@@ -158,7 +158,8 @@ void UnraidLanguageManager::onLanguageXmlDownloaded(QNetworkReply *reply)
         QByteArray xmlData = reply->readAll();
 
         m_xmlPath = m_usbPath + "/config/plugins/lang-" + m_currentLanguageCode + ".xml";
-
+        qDebug() << "m_xmlPath: "  << m_xmlPath; 
+      
         QFile f(m_xmlPath);
         if (!f.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
             emit error(
@@ -187,7 +188,8 @@ void UnraidLanguageManager::onLanguageZipDownloaded(QNetworkReply *reply)
         QByteArray zipData = reply->readAll();
 
         m_zipPath = m_usbPath + "/config/plugins/dynamix/lang-" + m_currentLanguageCode + ".zip";
-
+        qDebug() << "m_zipPath: "  << m_zipPath;
+      
         QFile f(m_zipPath);
         if (!f.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
             emit error(

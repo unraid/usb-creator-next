@@ -227,6 +227,7 @@ private:
     QStringList getPartitionsForDisk(const QString &diskDevice);
     QString getMountPointForDisk(const QString &diskDevice);
     QString getPartitionForDisk(const QString &diskDevice);
+    QString getMountPointForSelectedDrive();
 
 protected:
     QUrl _src, _repo;

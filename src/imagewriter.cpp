@@ -296,76 +296,49 @@ void ImageWriter::unraidLanguagesDownloaded()
 
 void ImageWriter::onUnraidLanguageDone()
 {
- QString mnt = getMountPointForDisk(_dst);
+
     emit success();
 
 #ifdef Q_OS_LINUX
-    // QString mntPoint = getMountPointForDisk(_dst);
-    // QString tempFolder = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
 
-    qDebug() << "Attempting to unmount temporary mountpoint: " << mnt << " --> on device: " << _dst;
+  // this is code for unmounting temp directory that was created (if it was created)
+  // sometimes hangs up the gui. Not sure why. 
+  
+   // QString mnt = getMountPointForSelectedDrive()
+    // qDebug() << "Attempting to unmount temporary mountpoint: " << mnt << " --> on device: " << _dst;
 
-    if (mnt.isEmpty()) {
-        qDebug() << "Nothing to unmount.";
-    } else{
-        QtConcurrent::run([mnt]() {
-            // Force‐lazy unmount
-            ::umount2(mnt.toUtf8().constData(), MNT_DETACH|MNT_FORCE);
-            QDir().rmdir(mnt);
-            qDebug() << "Background unmount of" << mnt << "complete";
-        });
+    // if (mnt.isEmpty()) {
+    //     qDebug() << "Nothing to unmount.";
+    // } else{
+    //     QtConcurrent::run([mnt]() {
+    //         // Force‐lazy unmount
+    //         ::umount2(mnt.toUtf8().constData(), MNT_DETACH|MNT_FORCE);
+    //         QDir().rmdir(mnt);
+    //         qDebug() << "Background unmount of" << mnt << "complete";
+    //     });
 
-    }
+    // }
 
 #endif
 
 }
-
-QStringList ImageWriter::getPartitionsForDisk(const QString &diskDevice)
+QString ImageWriter::getMountPointForSelectedDrive()
 {
-    QStringList partitions;
+    auto drives = Drivelist::ListStorageDevices();
 
-#ifdef Q_OS_LINUX
-    QDir sysBlockDir("/sys/block/" + QFileInfo(diskDevice).fileName());
-    QStringList entries = sysBlockDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
-
-    for (const QString &entry : entries) {
-        if (entry.startsWith(QFileInfo(diskDevice).fileName())) {
-            partitions << "/dev/" + entry;
-        }
-    }
-#elif defined(Q_OS_MAC)
-    // diskDevice: "/dev/disk6"
-    QDir devDir("/dev");
-    QString base = QFileInfo(diskDevice).fileName(); // "disk6"
-    QStringList entries = devDir.entryList(QStringList() << base + "s*", QDir::System);
-    for (const QString &entry : entries) {
-        partitions << "/dev/" + entry;
-    }
-#endif
-    return partitions;
-}
-
-QString ImageWriter::getMountPointForDisk(const QString &diskDevice)
-{
-    QStringList partitions = getPartitionsForDisk(diskDevice);
-    foreach (const QStorageInfo &storage, QStorageInfo::mountedVolumes()) {
-
-        if (storage.isValid() && storage.isReady()) {
-            if (!storage.isReadOnly()) {
-                foreach (const QString &partition, partitions) {
-                    if (storage.device() == partition.toUtf8() ) {
-                        return storage.rootPath();
-                    }
-                }
+    foreach (const auto &drive, drives) {
+        QString deviceName = QString::fromStdString(drive.device);
+        if (deviceName == _dst) {
+            if (!drive.mountpoints.empty()) {
+                return QString::fromStdString(drive.mountpoints.front());
             }
+            break;
         }
     }
 
-    // code should never reach here.
-    qDebug("Could not find selected device's mountpoint.");
-    return "";
+    return QString();
 }
+
 
 void ImageWriter::installUnraidOSLanguage()
 {
@@ -379,10 +352,7 @@ void ImageWriter::installUnraidOSLanguage()
         return;
     }
 
-    QString mntPoint = getMountPointForDisk(_dst);
-
-    QByteArray urlstr = _src.toString(_src.FullyEncoded).toLatin1();
-    QString lowercaseurl = urlstr.toLower();
+    QString mntPoint = getMountPointForSelectedDrive();
     qDebug() << "_dst: " << _dst;
     qDebug() << "mntPoint: " << mntPoint;
 
