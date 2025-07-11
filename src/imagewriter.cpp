@@ -226,7 +226,12 @@ ImageWriter::ImageWriter(QObject *parent)
             SIGNAL(progressUpdated(QString)),
             this,
             SLOT(onUnraidOSLanguageProgressUpdate(QString)));
-    connect(&_unraidLanguageManager, SIGNAL(error(QString)), this, SLOT(onError(QString)));
+    connect(&_unraidLanguageManager, &UnraidLanguageManager::error, this, [this](const QString &rawMsg) {
+        QString msg
+            = tr("<b>Error loading languages. Please select english as default language.</b><br>%1")
+                  .arg(rawMsg);
+        onError(msg);
+    });
     connect(&_unraidLanguageManager, SIGNAL(done()), this, SLOT(onUnraidLanguageDone()));
 }
 
@@ -255,7 +260,7 @@ QStringList ImageWriter::getUnraidOSLanguages()
                     "UnraidLanguageManager::downloadUnraidLoanguagesJson";
 
         // If no cached languages, try to download them
-        _unraidLanguageManager.downloadUnraidLanguagesJson();
+        _unraidLanguageManager.requestUnraidLanguagesJson();
 
         // For now, return English as fallback
         // Lazy Loading it... The UI will need be updated when languages are downloaded
@@ -294,34 +299,6 @@ void ImageWriter::unraidLanguagesDownloaded()
     emit unraidLanguagesUpdated();
 }
 
-void ImageWriter::onUnraidLanguageDone()
-{
-
-    emit success();
-
-#ifdef Q_OS_LINUX
-
-  // this is code for unmounting temp directory that was created (if it was created)
-  // sometimes hangs up the gui. Not sure why. 
-  
-   // QString mnt = getMountPointForSelectedDrive()
-    // qDebug() << "Attempting to unmount temporary mountpoint: " << mnt << " --> on device: " << _dst;
-
-    // if (mnt.isEmpty()) {
-    //     qDebug() << "Nothing to unmount.";
-    // } else{
-    //     QtConcurrent::run([mnt]() {
-    //         // Force‐lazy unmount
-    //         ::umount2(mnt.toUtf8().constData(), MNT_DETACH|MNT_FORCE);
-    //         QDir().rmdir(mnt);
-    //         qDebug() << "Background unmount of" << mnt << "complete";
-    //     });
-
-    // }
-
-#endif
-
-}
 QString ImageWriter::getMountPointForSelectedDrive()
 {
     auto drives = Drivelist::ListStorageDevices();
@@ -339,6 +316,35 @@ QString ImageWriter::getMountPointForSelectedDrive()
     return QString();
 }
 
+void ImageWriter::onUnraidLanguageDone()
+{
+
+    emit success();
+
+#ifdef Q_OS_LINUX
+
+    // this is code for unmounting temp directory that was created (if it was created)
+    // sometimes hangs up the gui. Not sure why.
+    // For now, temp mounts will remain unmounted on linux if they choose a separate language
+
+    // QString mnt = getMountPointForSelectedDrive()
+    // qDebug() << "Attempting to unmount temporary mountpoint: " << mnt << " --> on device: " << _dst;
+
+    // if (mnt.isEmpty()) {
+    //     qDebug() << "Nothing to unmount.";
+    // } else{
+    //     QtConcurrent::run([mnt]() {
+    //         // Force‐lazy unmount
+    //         ::umount2(mnt.toUtf8().constData(), MNT_DETACH|MNT_FORCE);
+    //         QDir().rmdir(mnt);
+    //         qDebug() << "Background unmount of" << mnt << "complete";
+    //     });
+
+    // }
+
+#endif
+
+}
 
 void ImageWriter::installUnraidOSLanguage()
 {
@@ -979,7 +985,6 @@ void ImageWriter::onPreparationStatusUpdate(QString msg)
 
 void ImageWriter::onUnraidOSLanguageProgressUpdate(QString msg)
 {
-    qDebug() << "IMAGEWRITER Progress Updates That Actually Went Through: " << msg;
     emit unraidOSLanguageStatusUpdate(msg);
 }
 

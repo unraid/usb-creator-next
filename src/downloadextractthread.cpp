@@ -241,6 +241,8 @@ void DownloadExtractThread::extractMultiFileRun()
             {
                 folder = QByteArray::fromStdString(i.mountpoints.front());
                 qDebug() << "Found existing mountpoint folder: " << folder;
+
+                // breh this legit only breaks from the first for loop... would need a flag, I think
                 break;
             }
         }

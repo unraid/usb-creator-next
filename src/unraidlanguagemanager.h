@@ -15,7 +15,7 @@ public:
     explicit UnraidLanguageManager(QObject *parent = nullptr);
 
     // Language discovery
-    void downloadUnraidLanguagesJson();
+    void requestUnraidLanguagesJson();
     QMap<QString, QString> getAvailableLanguages() const;
     QString getLanguageName(const QString &languageCode) const;
     QString getCurrentLanguageCode();
@@ -38,10 +38,9 @@ private slots:
     void onLanguageXmlReady();
     void onLanguageZipReady();
 
-
-    void onLanguagesJsonDownloaded(QNetworkReply *reply);
-    void onLanguageXmlDownloaded(QNetworkReply *reply);
-    void onLanguageZipDownloaded(QNetworkReply *reply);
+    void onLanguagesJsonRequest(QNetworkReply *reply);
+    void onLanguageXmlRequest(QNetworkReply *reply);
+    void onLanguageZipRequest(QNetworkReply *reply);
 
 private:
     // helper methods
@@ -51,8 +50,8 @@ private:
     QString parseLanguageUrlFromXml(const QString &xmlPath);
 
     void continueLanguageInstall(const QString &code, const QString &dest);
-    void downloadLanguageXml(const QString &xmlUrl);
-    void downloadLanguageZip(const QString &zipUrl);
+    void requestLanguageXml(const QString &xmlUrl);
+    void requestLanguageZip(const QString &zipUrl);
     void patchDynamixConfig(const QString &langCode);
 
     // data members

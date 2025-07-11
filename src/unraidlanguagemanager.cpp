@@ -29,7 +29,7 @@ UnraidLanguageManager::UnraidLanguageManager(QObject *parent)
 
 // --- public methods ---
 
-void UnraidLanguageManager::downloadUnraidLanguagesJson()
+void UnraidLanguageManager::requestUnraidLanguagesJson()
 {
 
     emit progressUpdated("Downloading JSON file containing supported language information...");
@@ -38,7 +38,7 @@ void UnraidLanguageManager::downloadUnraidLanguagesJson()
     QNetworkReply *jsonReply = m_networkManager.get(request);
 
     QObject::connect(jsonReply, &QNetworkReply::finished, this, [this, jsonReply]() {
-        onLanguagesJsonDownloaded(jsonReply);
+        onLanguagesJsonRequest(jsonReply);
     });
 }
 
@@ -75,7 +75,7 @@ void UnraidLanguageManager::installUnraidOSLanguage(const QString &languageCode,
     if (m_availableLanguages.empty()) {
         emit progressUpdated("Couldn't find language json, installing...");
         m_installPending = true;
-        downloadUnraidLanguagesJson();
+        requestUnraidLanguagesJson();
         return;
     }
 
@@ -98,7 +98,7 @@ void UnraidLanguageManager::onLanguageXmlReady() {
     emit progressUpdated("Parsing XML template file for requested language...");
     QString zipUrl = parseLanguageUrlFromXml(m_xmlPath);
     emit progressUpdated("Parsing XML template file for requested language...[done]");
-    downloadLanguageZip(zipUrl);
+    requestLanguageZip(zipUrl);
 }
 
 void UnraidLanguageManager::onLanguageZipReady() {
@@ -109,8 +109,7 @@ void UnraidLanguageManager::onLanguageZipReady() {
     emit done();
 }
 
-
-void UnraidLanguageManager::onLanguagesJsonDownloaded(QNetworkReply *reply)
+void UnraidLanguageManager::onLanguagesJsonRequest(QNetworkReply *reply)
 {
     if (reply->error() != QNetworkReply::NoError) {
         emit error(QString("Network error fetching Unraid Languages: %1").arg(reply->errorString()));
@@ -145,7 +144,7 @@ void UnraidLanguageManager::onLanguagesJsonDownloaded(QNetworkReply *reply)
     reply->deleteLater();
 }
 
-void UnraidLanguageManager::onLanguageXmlDownloaded(QNetworkReply *reply)
+void UnraidLanguageManager::onLanguageXmlRequest(QNetworkReply *reply)
 {
 
     if (reply->error() != QNetworkReply::NoError) {
@@ -176,7 +175,7 @@ void UnraidLanguageManager::onLanguageXmlDownloaded(QNetworkReply *reply)
     reply->deleteLater();
 }
 
-void UnraidLanguageManager::onLanguageZipDownloaded(QNetworkReply *reply)
+void UnraidLanguageManager::onLanguageZipRequest(QNetworkReply *reply)
 {
     if (reply->error() != QNetworkReply::NoError) {
         emit error(QString("Network error fetching requested language's zip file: %1")
@@ -211,7 +210,7 @@ void UnraidLanguageManager::continueLanguageInstall(const QString &langCode, con
     //basically, here we are *assuming* that json lang file was downloaded
     QString xmlUrl = parseXmlUrlFromJson(m_jsonPath, langCode);
     qDebug() << "xmlUrl = " << xmlUrl;
-    downloadLanguageXml(xmlUrl);
+    requestLanguageXml(xmlUrl);
 }
 
 QMap<QString, QString> UnraidLanguageManager::parseLanguageMap(const QString &jsonPath)
@@ -281,7 +280,7 @@ QString UnraidLanguageManager::parseXmlUrlFromJson(const QString &jsonPath, cons
     return entry.value("URL").toString();
 }
 
-void UnraidLanguageManager::downloadLanguageXml(const QString &xmlUrl)
+void UnraidLanguageManager::requestLanguageXml(const QString &xmlUrl)
 {
     emit progressUpdated("Fetching XML template file for requested language...");
 
@@ -289,7 +288,7 @@ void UnraidLanguageManager::downloadLanguageXml(const QString &xmlUrl)
     QNetworkReply *xmlReply = m_networkManager.get(request);
 
     QObject::connect(xmlReply, &QNetworkReply::finished, this, [this, xmlReply]() {
-        onLanguageXmlDownloaded(xmlReply);
+        onLanguageXmlRequest(xmlReply);
     });
 }
 
@@ -325,7 +324,7 @@ QString UnraidLanguageManager::parseLanguageUrlFromXml(const QString &xmlPath)
     return {};
 }
 
-void UnraidLanguageManager::downloadLanguageZip(const QString &zipUrl)
+void UnraidLanguageManager::requestLanguageZip(const QString &zipUrl)
 {
     emit progressUpdated("Fetching requested language zip...");
 
@@ -339,7 +338,7 @@ void UnraidLanguageManager::downloadLanguageZip(const QString &zipUrl)
     QNetworkReply *zipReply = m_networkManager.get(request);
 
     QObject::connect(zipReply, &QNetworkReply::finished, this, [this, zipReply]() {
-        onLanguageZipDownloaded(zipReply);
+        onLanguageZipRequest(zipReply);
     });
 }
 
