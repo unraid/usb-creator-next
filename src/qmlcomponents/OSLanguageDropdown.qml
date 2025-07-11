@@ -27,12 +27,40 @@ Item {
         font.family: roboto.name
 
         Material.theme: Material.Dark
-        Material.accent: UnColors.orange
         Material.foreground: "white"
 
         //signal
         onActivated: {
             root.languageChanged(combo.editText)
+        }
+
+        delegate: ItemDelegate {
+            width: combo.width
+            height: 40
+            property bool isSelected: index === combo.currentIndex
+
+            contentItem: Text {
+                text: modelData
+                font.pixelSize: 12
+                color: isSelected ? UnColors.orange : "white"
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+            }
+            background: Rectangle {
+                radius: 25
+                color: {
+                    if (parent.hovered)
+                        return "#424242"
+                    return "transparent"
+                }
+                opacity: {
+                    if (isSelected)
+                        return 0.6
+                    if (parent.hovered)
+                        return 1
+                    return 1
+                }
+            }
         }
 
         background: Rectangle {
@@ -42,6 +70,7 @@ Item {
             border.color: UnColors.orange
             border.width: 1
         }
+
         contentItem: Text {
             anchors.fill: parent
             // leftPadding: 12
@@ -53,7 +82,6 @@ Item {
             font.bold: true
             color: "white"
         }
-
         popup: Popup {
             y: combo.height
             width: combo.width
@@ -64,19 +92,18 @@ Item {
             // implicitHeight: contentItem.implicitHeight
             padding: 1
             Material.theme: Material.Dark
-            Material.accent: UnColors.orange
+            Material.accent: UnColors.mediumGray
 
             contentItem: ListView {
                 clip: true
+                width: combo.width
                 implicitHeight: contentHeight
                 model: combo.popup.visible ? combo.delegateModel : null
                 currentIndex: combo.highlightedIndex
                 ScrollIndicator.vertical: ScrollIndicator {}
             }
-
             background: Rectangle {
                 color: UnColors.darkGray
-                radius: 2
             }
         }
     }
