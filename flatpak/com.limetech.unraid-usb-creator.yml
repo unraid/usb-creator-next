@@ -1,0 +1,27 @@
+app-id: com.limetech.unraid-usb-creator
+runtime: org.kde.Platform
+runtime-version: '5.15-22.08'
+sdk: org.kde.Sdk
+command: unraid-usb-creator
+
+#Flapak is sandboxed. Therefore, needs very specific permissions to access os
+# https://docs.flatpak.org/en/latest/sandbox-permissions.html
+finish-args:
+  - --share=ipc
+  - --socket=x11
+  - --socket=wayland
+  - --share=network
+  - --device=dri
+
+modules:
+  - name: UnraidUsbCreator
+    buildsystem: cmake
+ 
+    config-opts:
+      - -DCMAKE_BUILD_TYPE=Release
+    sources:
+      - type: dir
+        path: "../src"
+
+
+    # also have to look at the config-options/finish-args and how that works and if it'll do what we want. 

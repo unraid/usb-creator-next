@@ -1,0 +1,63 @@
+name: Build Flatpak
+
+on:
+  push:
+    branches: ["main", "flatpak"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Flatpak & Builder
+        run: |
+          sudo apt update
+          sudo apt install -y flatpak flatpak-builder
+
+      - name: Add Flathub Remote
+        run: |
+          flatpak --user remote-add --if-not-exists flathub \
+            https://dl.flathub.org/repo/flathub.flatpakrepo
+
+      # Build Flatpak repo into local "repo" directory
+      - name: Build Flatpak Repository
+        run: |
+          # force‐clean ensures a fresh build each time
+          flatpak-builder --user --force-clean \
+            --install-deps-from=flathub \
+            --repo=repo \
+            build-dir \
+            flatpak/com.limetech.unraid-usb-creator.yml
+
+      # Expose that local repo so we can install from it 
+      - name: Add Local Flatpak Repo
+        run: |
+          flatpak --user remote-add --no-gpg-verify local-repo repo
+
+    
+      - name: Install from Local Repo 
+        run: |
+          flatpak --user install --assumeyes local-repo \
+            com.limetech.unraid-usb-creator
+
+      # Create a single‐file .flatpak bundle from that local repo
+      - name: Create Flatpak Bundle
+        run: |
+          flatpak build-bundle \
+            repo \
+            com.limetech.unraid-usb-creator.flatpak \
+            com.limetech.unraid-usb-creator \
+            --arch=x86_64 \
+            --runtime-repo=https://dl.flathub.org/repo/flathub.flatpakrepo
+
+      - name: Upload Flatpak Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Flatpak
+          path: com.limetech.unraid-usb-creator.flatpak
+
+# Need to add signing & distributing 
