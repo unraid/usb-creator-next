@@ -23,7 +23,7 @@ public:
      * - url: URL to download
      * - localfolder: Folder to extract archive to
      */
-    explicit DownloadExtractThread(const QByteArray &url, const QByteArray &localfilename = "", const QByteArray &expectedHash = "", QObject *parent = nullptr);
+    explicit DownloadExtractThread(const QByteArray &url, const QByteArray &localfilename = "",  const QByteArray &expectedHash = "", bool changedDefaultLanguage = false, QObject *parent = nullptr);
 
     virtual ~DownloadExtractThread();
     virtual void cancelDownload();
@@ -58,6 +58,9 @@ protected:
 
     static ssize_t _archive_read(struct archive *a, void *client_data, const void **buff);
     static int _archive_close(struct archive *a, void *client_data);
+
+private:
+    bool _changedDefaultLanguage;
 };
 
 #endif // DOWNLOADEXTRACTTHREAD_H

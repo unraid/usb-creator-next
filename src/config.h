@@ -39,4 +39,6 @@
 
 #define UNRAID_GUID_URL "https://keys.lime-technology.com/validate/guid"
 
+#define UNRAID_LANGUAGES_URL "https://assets.ca.unraid.net/feed/languageSelection.json"
+
 #endif // CONFIG_H

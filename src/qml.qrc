@@ -58,5 +58,6 @@
         <file>unraid/make_bootable_linux</file>
         <file>unraid/make_bootable_mac</file>
         <file>unraid/make_bootable.bat</file>
+        <file>qmlcomponents/OSLanguageDropdown.qml</file>
     </qresource>
 </RCC>

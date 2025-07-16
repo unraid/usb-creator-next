@@ -1,5 +1,6 @@
-build**
+build/
 .vscode
+
 obj-**
 debian/rpi-imager/**
 debian/.debhelper**
@@ -8,9 +9,13 @@ debian/*.substvars
 debian/debhelper**.DS_Store
 
 
+#For QT Creator
+.qtcreator/
+*.autosave
+
+
 # For macOS .dmg creation in workflow
 Releases 
 *.dmg
-
 *.DS_Store
 
