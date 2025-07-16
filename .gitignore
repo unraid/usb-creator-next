@@ -6,3 +6,11 @@ debian/.debhelper**
 debian/files
 debian/*.substvars
 debian/debhelper**.DS_Store
+
+
+# For macOS .dmg creation in workflow
+Releases 
+*.dmg
+
+*.DS_Store
+

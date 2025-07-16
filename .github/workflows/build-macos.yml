@@ -2,9 +2,9 @@ name: Build MacOS
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
@@ -19,16 +19,65 @@ jobs:
         working-directory: src
 
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-    - name: Install Qt
-      uses: jurplel/install-qt-action@v3
+      # Use Cmake < 4.0
+      - name: Setup CMake 3.31
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: "3.31.x"
 
-    - name: Configure CMake
-      # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
-      # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+      # Use Qt 5, not Qt 6
+      - name: Install Qt 5
+        run: |
+          brew update
+          brew install qt@5
 
-    - name: Build
-      # Build your program with the given configuration
-      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+      - name: Configure CMake
+        run: cmake -S . -B ../build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DCMAKE_PREFIX_PATH="$(brew --prefix qt@5)"
+
+      - name: Build
+        run: cmake --build ../build --config ${{ env.BUILD_TYPE }}
+
+      # 5) Ad-hoc code sign (for CI purposes only)
+      - name: Ad-hoc Code Sign .app
+        run: |
+          CAPP="../build/unraid-usb-creator.app"
+          codesign --remove-signature "$CAPP"
+          codesign --force --deep --sign - "$CAPP"
+
+      # 6) Remove quarantine attribute
+      - name: Remove quarantine attribute
+        run: sudo xattr -rc ../build/unraid-usb-creator.app
+
+      # 7) Install Homebrew create-dmg (shell‐script version)
+      - name: Install create-dmg
+        run: |
+          brew update
+          brew install create-dmg
+
+      # 8) Package the signed .app into a DMG that has "drag to Applications"
+      - name: Create DMG with drag-to-Applications UI
+        run: |
+          # Make sure there's a Releases/ folder in the repo root
+          mkdir -p "${{ github.workspace }}/Releases"
+
+          # Create a “drag-to-Applications” DMG:
+          create-dmg \
+            --volname "Unraid Installer" \
+            --volicon "${{ github.workspace }}/src/icons/unraid.icns" \
+            --background "${{ github.workspace }}/src/icons/UN-logotype-gradient.png" \
+            --window-pos 200 120 \
+            --window-size 800 400 \
+            --icon "unraid-usb-creator.app" 200 190 \
+            --hide-extension "unraid-usb-creator.app" \
+            --app-drop-link 600 185 \
+            "${{ github.workspace }}/Releases/unraid-usb-creator.dmg" \
+            "${{ github.workspace }}/build/unraid-usb-creator.app"
+
+      - name: Upload Mac DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: UnraidInstallerMacOS
+          path: Releases/unraid-usb-creator.dmg
+# Might need to use `codesign` to sign the app and everything related to that
