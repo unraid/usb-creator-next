@@ -18,8 +18,8 @@ ApplicationWindow {
     height: imageWriter.isEmbeddedMode() ? -1 : 465
     minimumWidth: imageWriter.isEmbeddedMode() ? -1 : 680
     minimumHeight: imageWriter.isEmbeddedMode() ? -1 : 465
-    
-    
+
+
     color: UnColors.darkGray
 
     title: qsTr("Unraid USB Creator v%1").arg(imageWriter.constantVersion())
@@ -121,7 +121,7 @@ ApplicationWindow {
                 fillMode: Image.PreserveAspectFit
             }
         }
-        
+
         Rectangle {
             color: UnColors.orange
             implicitWidth: window.width
@@ -351,7 +351,7 @@ ApplicationWindow {
                             } else {
                                 confirmwritepopup.askForConfirmation()
                             }
-                            
+
                         }
                     }
                 }
@@ -564,7 +564,7 @@ ApplicationWindow {
             Layout.column: 2
             Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
             spacing: 0
-	
+
             Text {
                 color: UnColors.orange
                 text: qsTr("Select Language")
@@ -605,7 +605,7 @@ ApplicationWindow {
         padding: 0
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
         property string hwselected: ""
-        
+
         background: Rectangle {
             color: UnColors.darkGray
             border.color: UnColors.mediumGray
@@ -714,7 +714,7 @@ ApplicationWindow {
         padding: 0
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
         property string categorySelected : ""
-        
+
         background: Rectangle {
             color: UnColors.darkGray
             border.color: UnColors.mediumGray
@@ -1243,7 +1243,6 @@ ApplicationWindow {
             property string guid: model.guid
             property bool guidValid: model.guidValid
 
-            enabled: guidValid
 
             Rectangle {
                id: dstbgrect
@@ -1253,6 +1252,25 @@ ApplicationWindow {
                property bool mouseOver: false
                border.color: UnColors.mediumGray
 
+            }
+            MouseArea {
+                anchors.fill: parent
+
+                cursorShape: Qt.PointingHandCursor
+                hoverEnabled: true
+
+
+                onEntered: {
+                    dstbgrect.mouseOver = true
+                }
+
+                onExited: {
+                    dstbgrect.mouseOver = false
+                }
+
+                onClicked: {
+                    selectDstItem(model)
+                }
             }
             Rectangle {
                id: dstborderrect
@@ -1278,8 +1296,10 @@ ApplicationWindow {
                 }
                 Column {
                     width: parent.parent.width-64
+
                     ColumnLayout {
                         spacing: 1
+
                         Text {
                             textFormat: Text.StyledText
                             height: parent.parent.parent.parent.height / 3
@@ -1315,46 +1335,57 @@ ApplicationWindow {
                             opacity: enabled ? 1.0 : 0.3
                             anchors.topMargin: 10
                         }
-                        Text {
-                            textFormat: Text.StyledText
-                            height: parent.parent.parent.parent.height / 3
-                            //verticalAlignment: Text.AlignVCenter
-                            font.family: roboto.name
-                            font.pixelSize: 12
-                            text: {
-                                var txt = ""
-                                if(guid != "") {
-                                    txt += "GUID: %1".arg(guid)
-                                    if(!guidValid)  txt += " <font color='red'>[BLACKLISTED - Choose Another Flash Device]</font>"
-                                } else {
-                                    txt += "<font color='red'>[MISSING GUID - Choose Another Flash Device]</font>"
+
+
+                        RowLayout {
+                            spacing: 4
+                            Layout.alignment: Qt.AlignVCenter
+
+                            Text {
+                                textFormat: Text.StyledText
+                                font.family: roboto.name
+                                font.pixelSize: 12
+                                Layout.alignment: Qt.AlignVCenter
+                                color: dstbgrect.mouseOver ? UnColors.darkGray : "white"
+                                opacity: enabled ? 1.0 : 0.3
+                                text: {
+                                    if (guid != "") {
+                                        return guidValid ? "GUID: %1".arg(guid)
+                                                         : "GUID: %1 <font color='red'>[BLACKLISTED]</font>".arg(guid)
+                                    } else {
+                                        return "<font color='red'>[MISSING GUID - Choose Another Flash Device]</font>"
+                                    }
                                 }
-                                return txt;
+
                             }
-                            color: dstbgrect.mouseOver ? UnColors.darkGray : "white"
-                            opacity: enabled ? 1.0 : 0.3
+
+
+                            ToolButton {
+                                icon.source: dstbgrect.mouseOver ? "unraid/icons/info_dark_gray.svg": "unraid/icons/info_orange.svg"
+                                icon.color: "transparent"
+                                icon.width: 16
+                                icon.height: 16
+                                Layout.alignment: Qt.AlignVCenter
+                                padding: 0
+                                implicitWidth:  icon.width
+                                implicitHeight: icon.height
+                                visible: guid != "" && !guidValid
+                                hoverEnabled: true
+                                ToolTip.visible: hovered
+                                ToolTip.text: "This USB device is blacklisted. You may not be able to use this device to get an Unraid license or trial."
+                              }
+
                         }
+
                     }
                 }
+
+
+
+
             }
 
-            MouseArea {
-                anchors.fill: parent
-                cursorShape: Qt.PointingHandCursor
-                hoverEnabled: true
 
-                onEntered: {
-                    dstbgrect.mouseOver = true
-                }
-
-                onExited: {
-                    dstbgrect.mouseOver = false
-                }
-
-                onClicked: {
-                    selectDstItem(model)
-                }
-            }
         }
     }
 
@@ -1367,7 +1398,7 @@ ApplicationWindow {
             imageWriter.openUrl("https://docs.unraid.net/go/quick-install-guide")
         }
     }
-    
+
     MsgPopup {
         id: infopopup
         x: 50
@@ -1950,12 +1981,6 @@ ApplicationWindow {
             }
         } else {
             imageWriter.setSrc(d.url, d.image_download_size, d.extract_size, typeof(d.extract_sha256) != "undefined" ? d.extract_sha256 : "", typeof(d.contains_multiple_files) != "undefined" ? d.contains_multiple_files : false, ospopup.categorySelected, d.name, typeof(d.init_format) != "undefined" ? d.init_format : "")
-            if(imageWriter.getInitFormat() === "UNRAID" && imageWriter.getDstDevice() !== "" && !imageWriter.getDstGuidValid()) {
-                onError(qsTr("Selected device cannot be used to create an Unraid USB due to its invalid GUID."))
-                writebutton.enabled = false
-                imageWriter.setDst("", false)
-                dstbutton.text = qsTr("CHOOSE STORAGE")
-            }
             osbutton.text = d.name
             ospopup.close()
             osswipeview.decrementCurrentIndex()
@@ -1968,12 +1993,6 @@ ApplicationWindow {
     function selectDstItem(d) {
         if (d.isReadOnly) {
             onError(qsTr("SD card is write protected.<br>Push the lock switch on the left side of the card upwards, and try again."))
-            return
-        }
-
-        if(imageWriter.getInitFormat() === "UNRAID" && !d.guidValid) {
-            onError(qsTr("Selected device cannot be used to create an Unraid USB due to its invalid GUID."))
-            writebutton.enabled = false
             return
         }
 
