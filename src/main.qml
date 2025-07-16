@@ -1229,7 +1229,7 @@ ApplicationWindow {
 
         Item {
             width: window.width-100
-            height: 60
+            height: 76
             Accessible.name: {
                 var txt = description+" - "+(size/1000000000).toFixed(1)+" GB"
                 if (mountpoints.length > 0) {
@@ -1242,8 +1242,6 @@ ApplicationWindow {
             property string size: model.size
             property string guid: model.guid
             property bool guidValid: model.guidValid
-
-            enabled: guidValid
 
             Rectangle {
                id: dstbgrect
@@ -1282,7 +1280,7 @@ ApplicationWindow {
                         spacing: 1
                         Text {
                             textFormat: Text.StyledText
-                            height: parent.parent.parent.parent.height / 3
+                            height: parent.parent.parent.parent.height / 4
                             //verticalAlignment: Text.AlignVCenter
                             font.family: roboto.name
                             font.pixelSize: 14
@@ -1297,7 +1295,7 @@ ApplicationWindow {
                         }
                         Text {
                             textFormat: Text.StyledText
-                            height: parent.parent.parent.parent.height / 3
+                            height: parent.parent.parent.parent.height / 4
                             //verticalAlignment: Text.AlignVCenter
                             font.family: roboto.name
                             font.pixelSize: 12
@@ -1317,7 +1315,7 @@ ApplicationWindow {
                         }
                         Text {
                             textFormat: Text.StyledText
-                            height: parent.parent.parent.parent.height / 3
+                            height: parent.parent.parent.parent.height / 4
                             //verticalAlignment: Text.AlignVCenter
                             font.family: roboto.name
                             font.pixelSize: 12
@@ -1325,9 +1323,24 @@ ApplicationWindow {
                                 var txt = ""
                                 if(guid != "") {
                                     txt += "GUID: %1".arg(guid)
-                                    if(!guidValid)  txt += " <font color='red'>[BLACKLISTED - Choose Another Flash Device]</font>"
+                                }
+                                return txt;
+                            }
+                            color: dstbgrect.mouseOver ? UnColors.darkGray : "white"
+                            opacity: enabled ? 1.0 : 0.3
+                        }
+                        Text {
+                            textFormat: Text.StyledText
+                            height: parent.parent.parent.parent.height / 4
+                            //verticalAlignment: Text.AlignVCenter
+                            font.family: roboto.name
+                            font.pixelSize: 12
+                            text: {
+                                var txt = ""
+                                if(guid != "") {
+                                    if(!guidValid)  txt += "<font color='red'>[BLACKLISTED GUID - Unraid license may not work with this flash device]</font>"
                                 } else {
-                                    txt += "<font color='red'>[MISSING GUID - Choose Another Flash Device]</font>"
+                                    txt += "<font color='red'>[MISSING GUID - Unraid license may not work with this flash device]</font>"
                                 }
                                 return txt;
                             }
@@ -1950,12 +1963,6 @@ ApplicationWindow {
             }
         } else {
             imageWriter.setSrc(d.url, d.image_download_size, d.extract_size, typeof(d.extract_sha256) != "undefined" ? d.extract_sha256 : "", typeof(d.contains_multiple_files) != "undefined" ? d.contains_multiple_files : false, ospopup.categorySelected, d.name, typeof(d.init_format) != "undefined" ? d.init_format : "")
-            if(imageWriter.getInitFormat() === "UNRAID" && imageWriter.getDstDevice() !== "" && !imageWriter.getDstGuidValid()) {
-                onError(qsTr("Selected device cannot be used to create an Unraid USB due to its invalid GUID."))
-                writebutton.enabled = false
-                imageWriter.setDst("", false)
-                dstbutton.text = qsTr("CHOOSE STORAGE")
-            }
             osbutton.text = d.name
             ospopup.close()
             osswipeview.decrementCurrentIndex()
@@ -1968,12 +1975,6 @@ ApplicationWindow {
     function selectDstItem(d) {
         if (d.isReadOnly) {
             onError(qsTr("SD card is write protected.<br>Push the lock switch on the left side of the card upwards, and try again."))
-            return
-        }
-
-        if(imageWriter.getInitFormat() === "UNRAID" && !d.guidValid) {
-            onError(qsTr("Selected device cannot be used to create an Unraid USB due to its invalid GUID."))
-            writebutton.enabled = false
             return
         }
 
