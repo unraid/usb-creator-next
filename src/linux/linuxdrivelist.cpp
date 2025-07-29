@@ -54,7 +54,7 @@ namespace Drivelist
             "--json",
             "--paths",
             "--tree",
-            "--output", "kname,type,subsystems,ro,rm,hotplug,size,phy-sec,log-sec,label,vendor,model,mountpoint",
+            "--output", "kname,type,subsystems,ro,rm,hotplug,size,phy-sec,log-sec,label,vendor,model,mountpoint,serial",
             "--exclude", "7"
         };
         p.start("lsblk", args);
@@ -67,8 +67,10 @@ namespace Drivelist
             return deviceList;
         }
 
+        // qDebug() << "lsblk output:" << output;
 
-        QRegularExpression vidRegExp("VENDOR_ID=([0-9A-Za-z]{4})(?:.*)"), pidRegExp("MODEL_ID=([0-9A-Za-z]{4})(?:.*)"), snRegExp("SERIAL_SHORT=([0-9A-Za-z]+)");
+
+        QRegularExpression vidRegExp("ID_VENDOR_ID=([0-9A-Za-z]{4})(?:.*)"), pidRegExp("ID_MODEL_ID=([0-9A-Za-z]{4})(?:.*)"), snRegExp("ID_SERIAL_SHORT=([0-9A-Za-z]+)");
 
         QJsonDocument d = QJsonDocument::fromJson(output);
         const QJsonArray a = d.object().value("blockdevices").toArray();
@@ -166,6 +168,7 @@ namespace Drivelist
 
             QString serialNumber = bdev["serial"].toString();
             d.serialNumber = serialNumber.toStdString();
+            // qDebug() << "Device" << name << "serial from lsblk:" << serialNumber;
             
             // retrieve vendor id (vid) and model id (pid) with udevadm command
             args.clear();
@@ -174,14 +177,30 @@ namespace Drivelist
             p.waitForFinished(2000);
             output = p.readAll();
 
+            // qDebug() << "Executing udevadm" << args.join(" ") << "for device" << name << "with serial number" << serialNumber << "output:" << output;
+            
+            if (p.exitStatus() != QProcess::NormalExit || p.exitCode() || output.isEmpty())
+            {
+                // qDebug() << "Error executing udevadm" << args.join(" ") << " for device" << name << "with serial number" << serialNumber << "output:" << output << p.exitStatus() << p.exitCode();
+                continue;
+            }
+
             if (p.exitStatus() == QProcess::NormalExit && !output.isEmpty())
             {
                 auto vidMatch = vidRegExp.match(output);
                 auto pidMatch = pidRegExp.match(output);
                 auto snMatch = snRegExp.match(output);
+                // qDebug() << "Parsing udevadm output for device" << name << "with serial number" << serialNumber;
+                // qDebug() << "vidMatch:" << vidMatch.captured(1);
+                // qDebug() << "pidMatch:" << pidMatch.captured(1);
+                // qDebug() << "snMatch:" << snMatch.captured(1);
                 if (vidMatch.hasMatch() && pidMatch.hasMatch() && snMatch.hasMatch() && snMatch.captured(1) == serialNumber) {
                     d.vid = vidMatch.captured(1).toStdString(); 
                     d.pid = pidMatch.captured(1).toStdString(); 
+                    // qDebug() << "Successfully extracted VID:" << QString::fromStdString(d.vid) << "PID:" << QString::fromStdString(d.pid);
+                } else {
+                    // qDebug() << "Failed to extract VID/PID/Serial - matches:" << vidMatch.hasMatch() << pidMatch.hasMatch() << snMatch.hasMatch();
+                    // qDebug() << "Serial comparison:" << snMatch.captured(1) << "==" << serialNumber;
                 }
             }
             deviceList.push_back(d);
