@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Unraid Usb Creator (Embedded)
+Comment=Unraid Usb Creator for embedded systems (EGLFS)
+Exec=unraid-usb-creator-embedded
+Icon=unraid
+Terminal=false
+Categories=System;Utility;Embedded;
+Keywords=unraid;usb;creator;embedded;eglfs;headless;
+X-GNOME-SingleWindow=true
+StartupNotify=false 

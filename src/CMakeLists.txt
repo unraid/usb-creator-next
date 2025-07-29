@@ -595,7 +595,7 @@ elseif (WIN32)
         windows/buffer_optimization_windows.cpp
     )
     set(DEPENDENCIES
-        windows/rpi-imager.rc
+        windows/unraid-usb-creator.rc
         wlanapi_delayed.lib
     )
     set(EXTRALIBS setupapi ${CMAKE_BINARY_DIR}/wlanapi_delayed.lib Bcrypt.dll)
@@ -669,7 +669,7 @@ qt_add_translation(QM_FILES  ${TRANSLATIONS})
 configure_file(i18n/translations.qrc "${CMAKE_CURRENT_BINARY_DIR}" COPYONLY)
 set(SOURCES ${SOURCES} ${CMAKE_CURRENT_BINARY_DIR}/translations.qrc ${QM_FILES})
 
-# Create an rpi-imager_lupdate target
+# Create an unraid-usb-creator_lupdate target
 qt_add_lupdate(TS_FILES ${TRANSLATIONS} SOURCE_TARGETS ${PROJECT_NAME} OPTIONS -no-obsolete -locations none)
 
 if (WIN32)
@@ -830,8 +830,8 @@ if (WIN32)
         
         # Configure the Inno Setup script
         configure_file(
-            "${CMAKE_CURRENT_SOURCE_DIR}/windows/rpi-imager.iss.in"
-            "${CMAKE_CURRENT_BINARY_DIR}/rpi-imager.iss"
+            "${CMAKE_CURRENT_SOURCE_DIR}/windows/unraid-usb-creator.iss.in"
+            "${CMAKE_CURRENT_BINARY_DIR}/unraid-usb-creator.iss"
             @ONLY)
             
         # Find Inno Setup compiler
@@ -843,13 +843,13 @@ if (WIN32)
         if(INNO_COMPILER)
             if(IMAGER_SIGNED_APP)
                 add_custom_target(inno_installer
-                    COMMAND "${INNO_COMPILER}" "${CMAKE_CURRENT_BINARY_DIR}/rpi-imager.iss" "/DSIGNING_ENABLED" "/Ssign=${SIGNTOOL} sign /tr http://timestamp.digicert.com /td sha256 /fd sha256 /a $p"
+                    COMMAND "${INNO_COMPILER}" "${CMAKE_CURRENT_BINARY_DIR}/unraid-usb-creator.iss" "/DSIGNING_ENABLED" "/Ssign=${SIGNTOOL} sign /tr http://timestamp.digicert.com /td sha256 /fd sha256 /a $p"
                     DEPENDS ${PROJECT_NAME}
                     COMMENT "Building Inno Setup installer"
                     VERBATIM)
             else()
                 add_custom_target(inno_installer
-                    COMMAND "${INNO_COMPILER}" "${CMAKE_CURRENT_BINARY_DIR}/rpi-imager.iss"
+                    COMMAND "${INNO_COMPILER}" "${CMAKE_CURRENT_BINARY_DIR}/unraid-usb-creator.iss"
                     DEPENDS ${PROJECT_NAME}
                     COMMENT "Building Inno Setup installer"
                     VERBATIM)
@@ -861,8 +861,8 @@ if (WIN32)
     else()
         # NSIS Installer (legacy option)
         configure_file(
-            "${CMAKE_CURRENT_SOURCE_DIR}/windows/rpi-imager.nsi.in"
-            "${CMAKE_CURRENT_BINARY_DIR}/rpi-imager.nsi"
+            "${CMAKE_CURRENT_SOURCE_DIR}/windows/unraid-usb-creator.nsi.in"
+            "${CMAKE_CURRENT_BINARY_DIR}/unraid-usb-creator.nsi"
             @ONLY)
     endif()
 
@@ -896,7 +896,7 @@ elseif(APPLE)
     set(EXTRALIBS ${EXTRALIBS} ${CoreFoundation} ${DiskArbitration} ${Security} ${Cocoa} ${IOKit} ${SystemConfiguration} iconv)
     
     # Set application name with proper spacing
-    set(APP_NAME "Raspberry Pi Imager")
+    set(APP_NAME "Unraid Usb Creator")
     
     # Set all required bundle properties
     set(MACOSX_BUNDLE_BUNDLE_NAME "${APP_NAME}")
@@ -907,7 +907,7 @@ elseif(APPLE)
     set(MACOSX_BUNDLE_LONG_VERSION_STRING "${IMAGER_VERSION_STR}")
     set(MACOSX_BUNDLE_ICON_FILE "unraid.icns")
     string(TIMESTAMP CURRENT_YEAR "%Y")
-    set(MACOSX_BUNDLE_COPYRIGHT "Copyright © 2020-${CURRENT_YEAR} Raspberry Pi Ltd")
+    set(MACOSX_BUNDLE_COPYRIGHT "Copyright © 2020-${CURRENT_YEAR} Lime Technology, Inc.")
     
     # Simple macos bundle with minimal Info.plist configuration
     set_target_properties(${PROJECT_NAME} PROPERTIES 
@@ -1024,8 +1024,8 @@ else()
 
     install(TARGETS ${PROJECT_NAME} DESTINATION bin)
     install(FILES icons/unraid128.png DESTINATION share/icons/hicolor/128x128/apps)
-    install(FILES "${CMAKE_CURRENT_LIST_DIR}/../debian/org.raspberrypi.rpi-imager.desktop" DESTINATION share/applications)
-    install(FILES "${CMAKE_CURRENT_LIST_DIR}/../debian/org.raspberrypi.rpi-imager.metainfo.xml" DESTINATION share/metainfo)
+    install(FILES "${CMAKE_CURRENT_LIST_DIR}/../debian/com.limetech.unraid-usb-creator.desktop" DESTINATION share/applications)
+    install(FILES "${CMAKE_CURRENT_LIST_DIR}/../debian/com.limetech.unraid-usb-creator.metainfo.xml" DESTINATION share/metainfo)
 endif()
 
 add_dependencies(${PROJECT_NAME} ZLIB::ZLIB)

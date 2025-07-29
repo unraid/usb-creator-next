@@ -1749,7 +1749,7 @@ void ImageWriter::_continueStartWriteAfterCacheVerification(bool cacheIsValid)
     }
 
     _thread->setVerifyEnabled(_verifyEnabled);
-    _thread->setUserAgent(QString("Mozilla/5.0 rpi-imager/%1").arg(constantVersion()).toUtf8());
+    _thread->setUserAgent(QString("Mozilla/5.0 unraid-usb-creator/%1").arg(constantVersion()).toUtf8());
     _thread->setImageCustomization(_config, _cmdline, _firstrun, _cloudinit, _cloudinitNetwork, _initFormat, getSavedCustomizationSettings());
 
     // Handle caching setup for downloads using CacheManager

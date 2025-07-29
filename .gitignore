@@ -12,9 +12,9 @@ obj-**
 .qtcreator**
 
 # Debian packaging
-debian/rpi-imager/**
-debian/rpi-imager-amd64/**
-debian/rpi-imager-embedded/**
+debian/unraid-usb-creator/**
+debian/unraid-usb-creator-amd64/**
+debian/unraid-usb-creator-embedded/**
 debian/.debhelper**
 debian/*.debhelper**
 debian/files

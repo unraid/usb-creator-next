@@ -1,0 +1,7 @@
+#!/usr/bin/dh-exec
+
+unraid-usb-creator-embedded.AppImage => /usr/bin/unraid-usb-creator-embedded
+
+debian/unraid.png /usr/share/icons/hicolor/128x128/apps/
+
+debian/com.limetech.unraid-usb-creator-embedded.desktop /usr/share/applications/ 

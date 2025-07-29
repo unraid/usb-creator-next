@@ -2,8 +2,8 @@
 
 set -e
 
-if [ ! -x /usr/bin/rpi-imager ]; then
-    chmod +x /usr/bin/rpi-imager
+if [ ! -x /usr/bin/unraid-usb-creator ]; then
+    chmod +x /usr/bin/unraid-usb-creator
 fi
 
 #DEBHELPER#

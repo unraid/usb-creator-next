@@ -138,7 +138,7 @@ QML_SOURCES_PATH="$PWD/src/qmlcomponents/"
 
 # Location of AppDir and output file
 APPDIR="$PWD/AppDir-$ARCH"
-OUTPUT_FILE="$PWD/Raspberry_Pi_Imager-${PROJECT_VERSION}-${ARCH}.AppImage"
+OUTPUT_FILE="$PWD/Unraid_Usb_Creator-${PROJECT_VERSION}-${ARCH}.AppImage"
 
 # Tools directory for downloaded binaries
 TOOLS_DIR="$PWD/appimage-tools"
@@ -192,7 +192,7 @@ fi
 mkdir -p "$APPDIR"
 mkdir -p "$BUILD_DIR"
 
-echo "Building rpi-imager for $ARCH..."
+echo "Building unraid-usb-creator for $ARCH..."
 # Configure and build with CMake
 cd "$BUILD_DIR"
 
@@ -218,11 +218,11 @@ make DESTDIR="$APPDIR" install
 cd ..
 
 # Copy the desktop file from debian directory
-if [ ! -f "$APPDIR/usr/share/applications/org.raspberrypi.rpi-imager.desktop" ]; then
+if [ ! -f "$APPDIR/usr/share/applications/com.limetech.unraid-usb-creator.desktop" ]; then
     mkdir -p "$APPDIR/usr/share/applications"
-    cp "debian/org.raspberrypi.rpi-imager.desktop" "$APPDIR/usr/share/applications/"
+    cp "debian/com.limetech.unraid-usb-creator.desktop" "$APPDIR/usr/share/applications/"
     # Update the Exec line to match the AppImage requirements
-    sed -i 's|Exec=.*|Exec=rpi-imager|' "$APPDIR/usr/share/applications/org.raspberrypi.rpi-imager.desktop"
+    sed -i 's|Exec=.*|Exec=unraid-usb-creator|' "$APPDIR/usr/share/applications/com.limetech.unraid-usb-creator.desktop"
 fi
 
 # Create the AppRun file if not created by the install process
@@ -235,7 +235,7 @@ export LD_LIBRARY_PATH="${HERE}/usr/lib:${LD_LIBRARY_PATH}"
 export QT_PLUGIN_PATH="${HERE}/usr/plugins"
 export QML_IMPORT_PATH="${HERE}/usr/qml"
 export QT_QPA_PLATFORM_PLUGIN_PATH="${HERE}/usr/plugins/platforms"
-exec "${HERE}/usr/bin/rpi-imager" "$@"
+exec "${HERE}/usr/bin/unraid-usb-creator" "$@"
 EOF
     chmod +x "$APPDIR/AppRun"
 fi
@@ -263,7 +263,7 @@ rm -rf "$APPDIR/usr/qml/QtQuick/Controls/FluentWinUI3"
 # Create the AppImage
 echo "Creating AppImage..."
 # Remove old AppImage symlink
-rm -f "$PWD/rpi-imager.AppImage"
+rm -f "$PWD/unraid-usb-creator.AppImage"
 # Ensure LD_LIBRARY_PATH is still set for this call too
 "$LINUXDEPLOY" --appdir="$APPDIR" --output=appimage
 
@@ -277,7 +277,7 @@ done
 echo "AppImage created at $OUTPUT_FILE"
 
 # Create a symlink with an architecture-specific name
-SYMLINK_NAME="$PWD/rpi-imager-$ARCH.AppImage"
+SYMLINK_NAME="$PWD/unraid-usb-creator-$ARCH.AppImage"
 if [ -L "$SYMLINK_NAME" ] || [ -f "$SYMLINK_NAME" ]; then
     rm -f "$SYMLINK_NAME"
 fi

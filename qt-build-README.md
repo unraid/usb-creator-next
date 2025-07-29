@@ -201,7 +201,7 @@ If the build fails:
   export QT_QPA_EGLFS_KMS_CONFIG=/path/to/custom/eglfs.json
   ```
 
-## Using with rpi-imager
+## Using with unraid-usb-creator
 
 If you're building Qt specifically for the Raspberry Pi Imager:
 

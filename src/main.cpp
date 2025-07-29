@@ -278,13 +278,13 @@ int main(int argc, char *argv[])
         }
         else if (args[i] == "--help")
         {
-            cerr << "rpi-imager [--debug] [--version] [--repo <repository URL>] [--qm <custom qm translation file>]" << /*[--disable-telemetry]*/ "[<image file to write>]" << endl;
-            cerr << "-OR- rpi-imager --cli [--disable-verify] [--sha256 <expected hash>] [--debug] [--quiet] <image file to write> <destination drive device>" << endl;
+            cerr << "unraid-usb-creator [--debug] [--version] [--repo <repository URL>] [--qm <custom qm translation file>]" << /*[--disable-telemetry]*/ "[<image file to write>]" << endl;
+            cerr << "-OR- unraid-usb-creator --cli [--disable-verify] [--sha256 <expected hash>] [--debug] [--quiet] <image file to write> <destination drive device>" << endl;
             return 0;
         }
         else if (args[i] == "--version")
         {
-            cerr << "rpi-imager version " << imageWriter.constantVersion() << endl;
+            cerr << "unraid-usb-creator version " << imageWriter.constantVersion() << endl;
             cerr << "Repository: " << imageWriter.constantOsListUrl().toString() << endl;
             return 0;
         }

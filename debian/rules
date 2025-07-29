@@ -11,4 +11,4 @@ PACKAGES := $(shell dh_listpackages)
 
 .PHONY: override_dh_strip 
 override_dh_strip: 
-	dh_strip --exclude=AppImage --exclude=rpi-imager
+	dh_strip --exclude=AppImage --exclude=unraid-usb-creator

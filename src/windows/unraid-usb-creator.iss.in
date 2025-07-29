@@ -1,10 +1,10 @@
-#define MyAppName "Raspberry Pi Imager"
+#define MyAppName "Unraid USB Creator"
 #define MyAppVersion "@IMAGER_VERSION_STR@"
-#define MyAppPublisher "Raspberry Pi Ltd"
-#define RaspberryPiSoftwareURL "https://www.raspberrypi.com/software"
-#define ImagerRepoRootURL "https://github.com/raspberrypi/rpi-imager"
-#define ImagerRepoIssuesURL "https://github.com/raspberrypi/rpi-imager/issues"
-#define MyAppExeName "rpi-imager.exe"
+#define MyAppPublisher "Lime Technology, Inc"
+#define LimeTechnologyURL "https://unraid.net/"
+#define ImagerRepoRootURL "https://github.com/unraid/usb-creator-next"
+#define ImagerRepoIssuesURL "https://github.com/unraid/usb-creator-next/issues"
+#define MyAppExeName "unraid-usb-creator.exe"
 
 [Setup]
 ; NOTE: This was extracted from an NSIS installation.
@@ -13,16 +13,16 @@ AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppVerName={#MyAppName} {#MyAppVersion}
 AppPublisher={#MyAppPublisher}
-AppPublisherURL={#RaspberryPiSoftwareURL}
+AppPublisherURL={#LimeTechnologyURL}
 AppSupportURL={#ImagerRepoIssuesURL}
 AppUpdatesURL={#ImagerRepoRootURL}
 DefaultDirName={autopf}\{#MyAppName}
-DefaultGroupName=Raspberry Pi
+DefaultGroupName=Unraid USB Creator
 AllowNoIcons=yes
 LicenseFile=@CMAKE_BINARY_DIR@\deploy\license.txt
 OutputDir=@CMAKE_BINARY_DIR@\installer
 OutputBaseFilename=imager-{#MyAppVersion}
-SetupIconFile=@CMAKE_SOURCE_DIR@\icons\rpi-imager.ico
+SetupIconFile=@CMAKE_SOURCE_DIR@\icons\unraid.ico
 Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
@@ -54,20 +54,20 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 
 [Registry]
 Root: HKLM; Subkey: "Software\Microsoft\Windows\CurrentVersion\App Paths\{#MyAppExeName}"; ValueType: string; ValueName: ""; ValueData: "{app}\{#MyAppExeName}"; Flags: uninsdeletekey
-Root: HKLM; Subkey: "Software\Classes\.zip\OpenWithProgIds"; ValueType: string; ValueName: "RPI_IMAGINGUTILITY"; ValueData: ""; Flags: uninsdeletevalue
-Root: HKLM; Subkey: "Software\Classes\.gz\OpenWithProgIds"; ValueType: string; ValueName: "RPI_IMAGINGUTILITY"; ValueData: ""; Flags: uninsdeletevalue
-Root: HKLM; Subkey: "Software\Classes\.xz\OpenWithProgIds"; ValueType: string; ValueName: "RPI_IMAGINGUTILITY"; ValueData: ""; Flags: uninsdeletevalue
-Root: HKLM; Subkey: "Software\Classes\.img\OpenWithProgIds"; ValueType: string; ValueName: "RPI_IMAGINGUTILITY"; ValueData: ""; Flags: uninsdeletevalue
-Root: HKLM; Subkey: "Software\Classes\.wic\OpenWithProgIds"; ValueType: string; ValueName: "RPI_IMAGINGUTILITY"; ValueData: ""; Flags: uninsdeletevalue
-Root: HKLM; Subkey: "Software\Classes\.zstd\OpenWithProgIds"; ValueType: string; ValueName: "RPI_IMAGINGUTILITY"; ValueData: ""; Flags: uninsdeletevalue
-Root: HKLM; Subkey: "Software\Classes\RPI_IMAGINGUTILITY\shell\open"; ValueType: string; ValueName: "FriendlyAppName"; ValueData: "{#MyAppName}"; Flags: uninsdeletekey
-Root: HKLM; Subkey: "Software\Classes\RPI_IMAGINGUTILITY\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#MyAppExeName}"" ""%1"""; Flags: uninsdeletekey
+Root: HKLM; Subkey: "Software\Classes\.zip\OpenWithProgIds"; ValueType: string; ValueName: "UNRAID-USB-CREATOR-UTILITY"; ValueData: ""; Flags: uninsdeletevalue
+Root: HKLM; Subkey: "Software\Classes\.gz\OpenWithProgIds"; ValueType: string; ValueName: "UNRAID-USB-CREATOR-UTILITY"; ValueData: ""; Flags: uninsdeletevalue
+Root: HKLM; Subkey: "Software\Classes\.xz\OpenWithProgIds"; ValueType: string; ValueName: "UNRAID-USB-CREATOR-UTILITY"; ValueData: ""; Flags: uninsdeletevalue
+Root: HKLM; Subkey: "Software\Classes\.img\OpenWithProgIds"; ValueType: string; ValueName: "UNRAID-USB-CREATOR-UTILITY"; ValueData: ""; Flags: uninsdeletevalue
+Root: HKLM; Subkey: "Software\Classes\.wic\OpenWithProgIds"; ValueType: string; ValueName: "UNRAID-USB-CREATOR-UTILITY"; ValueData: ""; Flags: uninsdeletevalue
+Root: HKLM; Subkey: "Software\Classes\.zstd\OpenWithProgIds"; ValueType: string; ValueName: "UNRAID-USB-CREATOR-UTILITY"; ValueData: ""; Flags: uninsdeletevalue
+Root: HKLM; Subkey: "Software\Classes\UNRAID-USB-CREATOR-UTILITY\shell\open"; ValueType: string; ValueName: "FriendlyAppName"; ValueData: "{#MyAppName}"; Flags: uninsdeletekey
+Root: HKLM; Subkey: "Software\Classes\UNRAID-USB-CREATOR-UTILITY\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#MyAppExeName}"" ""%1"""; Flags: uninsdeletekey
 
 [Files]
 ; Main program files
 Source: "@CMAKE_BINARY_DIR@\deploy\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion signonce
 
-Source: "@CMAKE_BINARY_DIR@\deploy\rpi-imager-cli.cmd"; DestDir: "{app}"; Flags: ignoreversion
+Source: "@CMAKE_BINARY_DIR@\deploy\unraid-usb-creator-cli.cmd"; DestDir: "{app}"; Flags: ignoreversion
 Source: "@CMAKE_BINARY_DIR@\deploy\license.txt"; DestDir: "{app}"; Flags: ignoreversion
 
 ; Core DLLs
@@ -205,14 +205,14 @@ begin
   Result := False;
   
   // Check for NSIS registry entry in HKCU
-  if RegQueryStringValue(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Uninstall\Raspberry Pi Imager',
+  if RegQueryStringValue(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Uninstall\Unraid Usb Creator',
                           'UninstallString', NSISUninstallString) then
   begin
     Result := True;
   end;
   
   // Also check in HKLM
-  if not Result and RegQueryStringValue(HKLM, 'Software\Microsoft\Windows\CurrentVersion\Uninstall\Raspberry Pi Imager',
+  if not Result and RegQueryStringValue(HKLM, 'Software\Microsoft\Windows\CurrentVersion\Uninstall\Unraid Usb Creator',
                                        'UninstallString', NSISUninstallString) then
   begin
     Result := True;
@@ -228,7 +228,7 @@ begin
   Result := False;
   
   // First try HKCU
-  if RegQueryStringValue(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Uninstall\Raspberry Pi Imager',
+  if RegQueryStringValue(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Uninstall\Unraid Usb Creator',
                          'UninstallString', NSISUninstallString) then
   begin
     // NSIS uninstaller is typically followed by /S for silent uninstall
@@ -240,7 +240,7 @@ begin
       Result := (ResultCode = 0);
     end;
   end
-  else if RegQueryStringValue(HKLM, 'Software\Microsoft\Windows\CurrentVersion\Uninstall\Raspberry Pi Imager',
+  else if RegQueryStringValue(HKLM, 'Software\Microsoft\Windows\CurrentVersion\Uninstall\Unraid Usb Creator',
                               'UninstallString', NSISUninstallString) then
   begin
     // NSIS uninstaller is typically followed by /S for silent uninstall
@@ -267,21 +267,21 @@ begin
   ProcessFound := False;
   NSISInstalled := False;
   
-  // More reliable way to check if rpi-imager.exe is running
+  // More reliable way to check if unraid-usb-creator.exe is running
   try
     // Try to find process with exact name
     ProcessID := 0;
-    ProcessFound := FindProcess('rpi-imager.exe', ProcessID);
+    ProcessFound := FindProcess('unraid-usb-creator.exe', ProcessID);
     
     if ProcessFound and (ProcessID > 0) then
     begin
-      if MsgBox('Raspberry Pi Imager is running and needs to be closed before continuing. Close it now?', mbConfirmation, MB_YESNO) = IDYES then
+      if MsgBox('Unraid USB Creator is running and needs to be closed before continuing. Close it now?', mbConfirmation, MB_YESNO) = IDYES then
       begin
         // Try to shut down gracefully first
-        ShellExec('', 'taskkill.exe', '/IM rpi-imager.exe /F', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+        ShellExec('', 'taskkill.exe', '/IM unraid-usb-creator.exe /F', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
         if ResultCode <> 0 then
         begin
-          MsgBox('Failed to close Raspberry Pi Imager. Please close it manually and try again.', mbError, MB_OK);
+          MsgBox('Failed to close Unraid USB Creator. Please close it manually and try again.', mbError, MB_OK);
           ResultFlag := False;
         end;
       end
@@ -301,7 +301,7 @@ begin
     NSISInstalled := IsNSISVersionInstalled;
     if NSISInstalled then
     begin
-      if MsgBox('A previous version of Raspberry Pi Imager was found that needs to be uninstalled first. Uninstall now?', 
+      if MsgBox('A previous version of Unraid USB Creator was found that needs to be uninstalled first. Uninstall now?', 
                 mbConfirmation, MB_YESNO) = IDYES then
       begin
         UninstallResult := UninstallNSISVersion;

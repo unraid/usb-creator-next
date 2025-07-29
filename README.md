@@ -1,18 +1,13 @@
-# Unraid USB Creator
+# Raspberry Pi Imager
 
-Unraid USB Creation Utility
+Raspberry Pi Imaging Utility
 
-Download the latest version for Windows, macOS and Ubuntu from the [USB Creator Download Page](https://unraid.net/getting-started/).
- 
-![main page](./screenshots/main_page.png)
+- To install on Raspberry Pi OS, use `sudo apt update && sudo apt install rpi-imager`.
+- Download the latest version for Windows, macOS and Ubuntu from the [Raspberry Pi downloads page](https://www.raspberrypi.com/software/).
 
 ## How to use Raspberry Pi Imager
 
-Based on the work by [Raspberry Pi](https://github.com/raspberrypi/rpi-imager)
-
-## How to use the Unraid USB Creator
-
-Please see our [official documentation](https://docs.unraid.net/unraid-os/getting-started/quick-install-guide/).
+Please see our [official documentation](https://www.raspberrypi.com/documentation/computers/getting-started.html#raspberry-pi-imager).
 
 ## Contributing
 
@@ -29,7 +24,7 @@ sudo apt install --no-install-recommends build-essential cmake git libgnutls28-d
 #### Get the source
 
 ```sh
-git clone --depth 1 https://github.com/unraid/usb-creator-next
+git clone --depth 1 https://github.com/raspberrypi/rpi-imager
 ```
 
 #### Build Qt
@@ -49,7 +44,7 @@ This will build and install the version of Qt preferred for Raspberry Pi Imager 
 
 ### Windows
 
-#### Cross-compile for Windows with Docker + MXE
+#### Get dependencies
 
 - Get the Qt online installer from: https://www.qt.io/download-open-source
   - During installation, choose Qt 6.9 with Mingw64 64-bit toolchain.
@@ -57,15 +52,7 @@ This will build and install the version of Qt preferred for Raspberry Pi Imager 
 - Install Visual Studio Code (or a derivative) and the Qt Extension Pack.
 - It is assumed you already have a valid code signing certificate, and the Windows 10 Kit (SDK) installed.
 
-Then, inside the container:
-```
-git clone https://github.com/unraid/usb-creator-next
-cd usb-creator-next
-mkdir build
-cd build
-cmake ../src -DQt5_DIR=/opt/mxe/usr/i686-w64-mingw32.shared/qt5/lib/cmake/Qt5 -DCMAKE_BUILD_TYPE=Release
-cmake --build . --config Release
-makensis unraid-usb-creator.nsi
+#### Building
 
 Building Raspberry Pi Imager on Windows is best done with Visual Studio Code (or a derivative).
 
@@ -79,47 +66,18 @@ Building Raspberry Pi Imager on Windows is best done with Visual Studio Code (or
 - In the CMake plugin tab, select the 'inno_installer' target, and build it
 - Your resultant installer will be located in `%WORKSPACE%\build\installer`
 
-#### Signing
-
-To sign the .exe installer on Windows, [follow these instructions](https://github.com/unraid/digicert-keylockertools) (private repo)
-
 ### macOS
 
-#### Get macOS dependencies
+#### Get dependencies
 
 - Get the Qt online installer from: https://www.qt.io/download-open-source
   - During installation, choose Qt 6.9.
 - Install Visual Studio Code (or a derivative), and the Qt Extension Pack.
 - It is assumed you have an Apple developer subscription, and already have a "Developer ID" code signing certificate for distribution outside the Mac Store.
 
-#### Building on Mac
+#### Building
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 Building Raspberry Pi Imager on macOS is best done with Visual Studio Code (or a derivative).
-=======
-<<<<<<< HEAD
-Building Raspberry Pi Imager on Windows is best done with Visual Studio Code (or a derivative).
-=======
-- Download source .zip from github and extract it to a folder on disk
-- Start Qt Creator (may need to start "finder" navigate to home folder using the "Go" menu, and find Qt folder to start it manually as it may not have created icon in Applications), and open src/CMakeLists.txt
-- Menu "Build" -> "Build all"
-- Result will be in build_unraid-usb-creator_someversion
-- Install create-dmg for signing `brew install create-dmg`
-
-#### Signing on Mac
-
-For distribution to others:
-
-1. code sign the .app
-2. create a DMG
-3. submit the DMG for notarization to Apple
-4. staple the notarization ticket to the DMG.
->>>>>>> f22862a9 (chore(docs): add screenshots to readme)
->>>>>>> e7b342f1 (chore(docs): add screenshots to readme)
-=======
-Building Raspberry Pi Imager on Windows is best done with Visual Studio Code (or a derivative).
->>>>>>> 30704eaf (Create build-windows.yml (#51))
 
 - Open Visual Studio Code, and select 'Clone repo'. Give it the git url of this project.
 - Open the CMake plugin settings, and set the following Configure Args:
@@ -188,36 +146,3 @@ defaults write org.raspberrypi.Imager.plist telemetry -bool NO
 The main code of the Imaging Utility is made available under the terms of the Apache license.
 See license.txt and files in "src/dependencies" folder for more information about the various open source licenses that apply to the third-party dependencies used such as Qt, libarchive, drivelist, mountutils and libcurl.
 For the embedded (netboot) build see also "embedded/legal-info" for more information about the extra system software included in that.
-Telemetry is currently disabled on the Unraid USB Creator
-
-## Images
-
-### Homepage
-
-![main page](./screenshots/main_page.png)
-
-### OS Selection
-
-![os selection](./screenshots/os_selection.png)
-
-### Drive Selection
-
-#### Blacklisted
-
-![blacklisted](./screenshots/blacklisted_drive.png)
-
-#### Good Drive
-
-![good](./screenshots/good_drive.png)
-
-### Options Selection
-
-![options](./screenshots/options_selection.png)
-
-### Writing in Progress
-
-![writing progress](./screenshots/writing_in_progress.png)
-
-### Success
-
-![success message](./screenshots/success.png)

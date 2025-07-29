@@ -1,12 +1,12 @@
 [Unit]
-Description=Raspberry Pi Imager (Embedded EGLFS Mode)
-Documentation=https://github.com/raspberrypi/rpi-imager
+Description=Unraid USB Creator (Embedded EGLFS Mode)
+Documentation=https://github.com/unraid/usb-creator-next
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/rpi-imager-embedded
+ExecStart=/usr/bin/unraid-usb-creator-embedded
 Restart=on-failure
 RestartSec=5
 User=root
