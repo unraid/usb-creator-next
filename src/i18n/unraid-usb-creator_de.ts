@@ -4,796 +4,685 @@
 <context>
     <name>DownloadExtractThread</name>
     <message>
-        <location filename="usb-creator-next/src/downloadextractthread.cpp" line="196"/>
-        <location filename="usb-creator-next/src/downloadextractthread.cpp" line="464"/>
         <source>Error extracting archive: %1</source>
-        <translation>Fehler beim Entpacken des Archivs: %1</translation>
+        <translation type="vanished">Fehler beim Entpacken des Archivs: %1</translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/downloadextractthread.cpp" line="261"/>
         <source>Error mounting FAT32 partition</source>
-        <translation>Fehler beim Einhängen der FAT32-Partition</translation>
+        <translation type="vanished">Fehler beim Einhängen der FAT32-Partition</translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/downloadextractthread.cpp" line="281"/>
         <source>Operating system did not mount FAT32 partition</source>
-        <translation>Betriebssystem hat die FAT32-Partition nicht eingehängt</translation>
+        <translation type="vanished">Betriebssystem hat die FAT32-Partition nicht eingehängt</translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/downloadextractthread.cpp" line="304"/>
         <source>Error changing to directory &apos;%1&apos;</source>
-        <translation>Fehler beim Wechseln in das Verzeichnis &apos;%1&apos;</translation>
+        <translation type="vanished">Fehler beim Wechseln in das Verzeichnis &apos;%1&apos;</translation>
     </message>
 </context>
-
 <context>
     <name>DownloadThread</name>
     <message>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="118"/>
         <source>unmounting drive</source>
-        <translation>Laufwerk wird ausgehängt</translation>
+        <translation type="vanished">Laufwerk wird ausgehängt</translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="138"/>
         <source>opening drive</source>
-        <translation>Laufwerk wird geöffnet</translation>
+        <translation type="vanished">Laufwerk wird geöffnet</translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="166"/>
         <source>Error running diskpart: %1</source>
-        <translation>Fehler beim Ausführen von diskpart: %1</translation>
+        <translation type="vanished">Fehler beim Ausführen von diskpart: %1</translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="187"/>
         <source>Error removing existing partitions</source>
-        <translation>Fehler beim Entfernen bestehender Partitionen</translation>
+        <translation type="vanished">Fehler beim Entfernen bestehender Partitionen</translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="213"/>
         <source>Authentication cancelled</source>
-        <translation>Authentifizierung abgebrochen</translation>
+        <translation type="vanished">Authentifizierung abgebrochen</translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="216"/>
         <source>Error running authopen to gain access to disk device &apos;%1&apos;</source>
-        <translation>Fehler beim Ausführen von authopen, um Zugriff auf das Festplattengerät &apos;%1&apos; zu erhalten</translation>
+        <translation type="vanished">Fehler beim Ausführen von authopen, um Zugriff auf das Festplattengerät &apos;%1&apos; zu erhalten</translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="217"/>
         <source>Please verify if &apos;Unraid USB Creator&apos; is allowed access to &apos;removable volumes&apos; in privacy settings (under &apos;files and folders&apos; or alternatively give it &apos;full disk access&apos;).</source>
-        <translation>Bitte überprüfen Sie, ob &apos;Unraid USB Creator&apos; in den Datenschutzeinstellungen auf &apos;Wechseldatenträger&apos; zugreifen darf (unter &apos;Dateien und Ordner&apos; oder alternativ geben Sie ihm &apos;vollen Festplattenzugriff&apos;).</translation>
+        <translation type="vanished">Bitte überprüfen Sie, ob &apos;Unraid USB Creator&apos; in den Datenschutzeinstellungen auf &apos;Wechseldatenträger&apos; zugreifen darf (unter &apos;Dateien und Ordner&apos; oder alternativ geben Sie ihm &apos;vollen Festplattenzugriff&apos;).</translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="239"/>
         <source>Cannot open storage device &apos;%1&apos;.</source>
-        <translation>Kann das Speichergerät &apos;%1&apos; nicht öffnen.</translation>
+        <translation type="vanished">Kann das Speichergerät &apos;%1&apos; nicht öffnen.</translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="281"/>
         <source>discarding existing data on drive</source>
-        <translation>Vorhandene Daten auf dem Laufwerk werden verworfen</translation>
+        <translation type="vanished">Vorhandene Daten auf dem Laufwerk werden verworfen</translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="301"/>
         <source>zeroing out first and last MB of drive</source>
-        <translation>Erste und letzte MB des Laufwerks werden gelöscht</translation>
+        <translation type="vanished">Erste und letzte MB des Laufwerks werden gelöscht</translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="307"/>
         <source>Write error while zero&apos;ing out MBR</source>
-        <translation>Schreibfehler beim Löschen des MBR</translation>
+        <translation type="vanished">Schreibfehler beim Löschen des MBR</translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="319"/>
         <source>Write error while trying to zero out last part of card.&lt;br&gt;Card could be advertising wrong capacity (possible counterfeit).</source>
-        <translation>Schreibfehler beim Löschen des letzten Teils der Karte.&lt;br&gt;Die Karte könnte eine falsche Kapazität anzeigen (möglicherweise gefälscht).</translation>
+        <translation type="vanished">Schreibfehler beim Löschen des letzten Teils der Karte.&lt;br&gt;Die Karte könnte eine falsche Kapazität anzeigen (möglicherweise gefälscht).</translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="408"/>
         <source>starting download</source>
-        <translation>Download wird gestartet</translation>
+        <translation type="vanished">Download wird gestartet</translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/downloadthread.cpp" line="468"/>
         <source>Error downloading: %1</source>
-        <translation>Fehler beim Herunterladen: %1</translation>
+        <translation type="vanished">Fehler beim Herunterladen: %1</translation>
     </message>
     <message>
-    <location filename="usb-creator-next/src/downloadthread.cpp" line="665"/>
-    <source>Access denied error while writing file to disk.</source>
-    <translation>Zugriffsverweigerungsfehler beim Schreiben der Datei auf die Festplatte.</translation>
-</message>
-<message>
-    <location filename="usb-creator-next/src/downloadthread.cpp" line="670"/>
-    <source>Controlled Folder Access seems to be enabled. Please add both unraid-usb-creator.exe and fat32format.exe to the list of allowed apps and try again.</source>
-    <translation>Der kontrollierte Ordnerzugriff scheint aktiviert zu sein. Bitte fügen Sie sowohl unraid-usb-creator.exe als auch fat32format.exe zur Liste der erlaubten Apps hinzu und versuchen Sie es erneut.</translation>
-</message>
-<message>
-    <location filename="usb-creator-next/src/downloadthread.cpp" line="677"/>
-    <source>Error writing file to disk</source>
-    <translation>Fehler beim Schreiben der Datei auf die Festplatte</translation>
-</message>
-<message>
-    <location filename="usb-creator-next/src/downloadthread.cpp" line="699"/>
-    <source>Download corrupt. Hash does not match</source>
-    <translation>Download beschädigt. Hash stimmt nicht überein</translation>
-</message>
-<message>
-    <location filename="usb-creator-next/src/downloadthread.cpp" line="711"/>
-    <location filename="usb-creator-next/src/downloadthread.cpp" line="763"/>
-    <source>Error writing to storage (while flushing)</source>
-    <translation>Fehler beim Schreiben auf den Speicher (beim Flush)</translation>
-</message>
-<message>
-    <location filename="usb-creator-next/src/downloadthread.cpp" line="718"/>
-    <location filename="usb-creator-next/src/downloadthread.cpp" line="770"/>
-    <source>Error writing to storage (while fsync)</source>
-    <translation>Fehler beim Schreiben auf den Speicher (beim fsync)</translation>
-</message>
-<message>
-    <location filename="usb-creator-next/src/downloadthread.cpp" line="753"/>
-    <source>Error writing first block (partition table)</source>
-    <translation>Fehler beim Schreiben des ersten Blocks (Partitionstabelle)</translation>
-</message>
-<message>
-    <location filename="usb-creator-next/src/downloadthread.cpp" line="828"/>
-    <source>Error reading from storage.&lt;br&gt;SD card may be broken.</source>
-    <translation>Fehler beim Lesen vom Speicher.&lt;br&gt;SD-Karte könnte defekt sein.</translation>
-</message>
-<message>
-    <location filename="usb-creator-next/src/downloadthread.cpp" line="847"/>
-    <source>Verifying write failed. Contents of SD card is different from what was written to it.</source>
-    <translation>Überprüfung des Schreibvorgangs fehlgeschlagen. Inhalt der SD-Karte stimmt nicht mit dem überein, was darauf geschrieben wurde.</translation>
-</message>
-<message>
-    <location filename="usb-creator-next/src/downloadthread.cpp" line="901"/>
-    <source>Customizing image</source>
-    <translation>Bild anpassen</translation>
-</message>
+        <source>Access denied error while writing file to disk.</source>
+        <translation type="vanished">Zugriffsverweigerungsfehler beim Schreiben der Datei auf die Festplatte.</translation>
+    </message>
+    <message>
+        <source>Controlled Folder Access seems to be enabled. Please add both unraid-usb-creator.exe and fat32format.exe to the list of allowed apps and try again.</source>
+        <translation type="vanished">Der kontrollierte Ordnerzugriff scheint aktiviert zu sein. Bitte fügen Sie sowohl unraid-usb-creator.exe als auch fat32format.exe zur Liste der erlaubten Apps hinzu und versuchen Sie es erneut.</translation>
+    </message>
+    <message>
+        <source>Error writing file to disk</source>
+        <translation type="vanished">Fehler beim Schreiben der Datei auf die Festplatte</translation>
+    </message>
+    <message>
+        <source>Download corrupt. Hash does not match</source>
+        <translation type="vanished">Download beschädigt. Hash stimmt nicht überein</translation>
+    </message>
+    <message>
+        <source>Error writing to storage (while flushing)</source>
+        <translation type="vanished">Fehler beim Schreiben auf den Speicher (beim Flush)</translation>
+    </message>
+    <message>
+        <source>Error writing to storage (while fsync)</source>
+        <translation type="vanished">Fehler beim Schreiben auf den Speicher (beim fsync)</translation>
+    </message>
+    <message>
+        <source>Error writing first block (partition table)</source>
+        <translation type="vanished">Fehler beim Schreiben des ersten Blocks (Partitionstabelle)</translation>
+    </message>
+    <message>
+        <source>Error reading from storage.&lt;br&gt;SD card may be broken.</source>
+        <translation type="vanished">Fehler beim Lesen vom Speicher.&lt;br&gt;SD-Karte könnte defekt sein.</translation>
+    </message>
+    <message>
+        <source>Verifying write failed. Contents of SD card is different from what was written to it.</source>
+        <translation type="vanished">Überprüfung des Schreibvorgangs fehlgeschlagen. Inhalt der SD-Karte stimmt nicht mit dem überein, was darauf geschrieben wurde.</translation>
+    </message>
+    <message>
+        <source>Customizing image</source>
+        <translation type="vanished">Bild anpassen</translation>
+    </message>
 </context>
 <context>
     <name>DriveFormatThread</name>
     <message>
-        <location filename="usb-creator-next/src/driveformatthread.cpp" line="63"/>
-        <location filename="usb-creator-next/src/driveformatthread.cpp" line="129"/>
-        <location filename="usb-creator-next/src/driveformatthread.cpp" line="195"/>
         <source>Error partitioning: %1</source>
-        <translation>Fehler beim Partitionieren: %1</translation>
+        <translation type="vanished">Fehler beim Partitionieren: %1</translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/driveformatthread.cpp" line="88"/>
         <source>Error starting fat32format</source>
-        <translation>Fehler beim Starten von fat32format</translation>
+        <translation type="vanished">Fehler beim Starten von fat32format</translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/driveformatthread.cpp" line="98"/>
         <source>Error running fat32format: %1</source>
-        <translation>Fehler beim Ausführen von fat32format: %1</translation>
+        <translation type="vanished">Fehler beim Ausführen von fat32format: %1</translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/driveformatthread.cpp" line="108"/>
         <source>Error determining new drive letter</source>
-        <translation>Fehler beim Bestimmen des neuen Laufwerkbuchstabens</translation>
+        <translation type="vanished">Fehler beim Bestimmen des neuen Laufwerkbuchstabens</translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/driveformatthread.cpp" line="113"/>
         <source>Invalid device: %1</source>
-        <translation>Ungültiges Gerät: %1</translation>
+        <translation type="vanished">Ungültiges Gerät: %1</translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/driveformatthread.cpp" line="152"/>
         <source>Error formatting (through udisks2)</source>
-        <translation>Fehler beim Formatieren (über udisks2)</translation>
+        <translation type="vanished">Fehler beim Formatieren (über udisks2)</translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/driveformatthread.cpp" line="159"/>
         <source>Elevated privileges needed to properly format drive.</source>
-        <translation>Erhöhte Berechtigungen erforderlich, um das Laufwerk ordnungsgemäß zu formatieren.</translation>
+        <translation type="vanished">Erhöhte Berechtigungen erforderlich, um das Laufwerk ordnungsgemäß zu formatieren.</translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/driveformatthread.cpp" line="184"/>
         <source>Error starting sfdisk</source>
-        <translation>Fehler beim Starten von sfdisk</translation>
+        <translation type="vanished">Fehler beim Starten von sfdisk</translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/driveformatthread.cpp" line="209"/>
         <source>Partitioning did not create expected FAT partition %1</source>
-        <translation>Partitionierung hat die erwartete FAT-Partition %1 nicht erstellt</translation>
+        <translation type="vanished">Partitionierung hat die erwartete FAT-Partition %1 nicht erstellt</translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/driveformatthread.cpp" line="222"/>
         <source>Error starting mkfs.fat</source>
-        <translation>Fehler beim Starten von mkfs.fat</translation>
+        <translation type="vanished">Fehler beim Starten von mkfs.fat</translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/driveformatthread.cpp" line="232"/>
         <source>Error running mkfs.fat: %1</source>
-        <translation>Fehler beim Ausführen von mkfs.fat: %1</translation>
+        <translation type="vanished">Fehler beim Ausführen von mkfs.fat: %1</translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/driveformatthread.cpp" line="239"/>
         <source>Formatting not implemented for this platform</source>
-        <translation>Formatierung für diese Plattform nicht implementiert</translation>
+        <translation type="vanished">Formatierung für diese Plattform nicht implementiert</translation>
     </message>
 </context>
 <context>
     <name>ImageWriter</name>
     <message>
-        <location filename="usb-creator-next/src/imagewriter.cpp" line="269"/>
         <source>Storage capacity is not large enough.&lt;br&gt;Needs to be at least %1 GB.</source>
-        <translation>Speicherkapazität reicht nicht aus.&lt;br&gt;Muss mindestens %1 GB betragen.</translation>
+        <translation type="vanished">Speicherkapazität reicht nicht aus.&lt;br&gt;Muss mindestens %1 GB betragen.</translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/imagewriter.cpp" line="275"/>
         <source>Input file is not a valid disk image.&lt;br&gt;File size %1 bytes is not a multiple of 512 bytes.</source>
-        <translation>Eingabedatei ist kein gültiges Disk-Image.&lt;br&gt;Dateigröße %1 Bytes ist kein Vielfaches von 512 Bytes.</translation>
+        <translation type="vanished">Eingabedatei ist kein gültiges Disk-Image.&lt;br&gt;Dateigröße %1 Bytes ist kein Vielfaches von 512 Bytes.</translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/imagewriter.cpp" line="675"/>
         <source>Downloading and writing image</source>
-        <translation>Herunterladen und Schreiben des Images</translation>
+        <translation type="vanished">Herunterladen und Schreiben des Images</translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/imagewriter.cpp" line="808"/>
         <source>Select image</source>
-        <translation>Bild auswählen</translation>
+        <translation type="vanished">Bild auswählen</translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/imagewriter.cpp" line="983"/>
         <source>Error synchronizing time. Trying again in 3 seconds</source>
-        <translation>Fehler beim Synchronisieren der Zeit. Erneuter Versuch in 3 Sekunden</translation>
+        <translation type="vanished">Fehler beim Synchronisieren der Zeit. Erneuter Versuch in 3 Sekunden</translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/imagewriter.cpp" line="995"/>
         <source>STP is enabled on your Ethernet switch. Getting IP will take long time.</source>
-        <translation>STP ist auf Ihrem Ethernet-Switch aktiviert. Das Abrufen der IP wird lange dauern.</translation>
+        <translation type="vanished">STP ist auf Ihrem Ethernet-Switch aktiviert. Das Abrufen der IP wird lange dauern.</translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/imagewriter.cpp" line="1206"/>
         <source>Would you like to prefill the wifi password from the system keychain?</source>
-        <translation>Möchten Sie das WLAN-Passwort aus dem System-Schlüsselbund vorab ausfüllen?</translation>
+        <translation type="vanished">Möchten Sie das WLAN-Passwort aus dem System-Schlüsselbund vorab ausfüllen?</translation>
     </message>
 </context>
 <context>
     <name>LocalFileExtractThread</name>
     <message>
-        <location filename="usb-creator-next/src/localfileextractthread.cpp" line="34"/>
         <source>opening image file</source>
-        <translation>Bilddatei wird geöffnet</translation>
+        <translation type="vanished">Bilddatei wird geöffnet</translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/localfileextractthread.cpp" line="39"/>
         <source>Error opening image file</source>
-        <translation>Fehler beim Öffnen der Bilddatei</translation>
+        <translation type="vanished">Fehler beim Öffnen der Bilddatei</translation>
     </message>
 </context>
 <context>
     <name>MsgPopup</name>
     <message>
-        <location filename="usb-creator-next/src/MsgPopup.qml" line="107"/>
         <source>NO</source>
-        <translation>NEIN</translation>
+        <translation type="vanished">NEIN</translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/MsgPopup.qml" line="116"/>
         <source>YES</source>
-        <translation>JA</translation>
+        <translation type="vanished">JA</translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/MsgPopup.qml" line="125"/>
         <source>CONTINUE</source>
-        <translation>FORTSETZEN</translation>
+        <translation type="vanished">FORTSETZEN</translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/MsgPopup.qml" line="133"/>
         <source>QUIT</source>
-        <translation>BEENDEN</translation>
+        <translation type="vanished">BEENDEN</translation>
     </message>
 </context>
 <context>
     <name>OptionsPopup</name>
     <message>
-        <location filename="usb-creator-next/src/OptionsPopup.qml" line="20"/>
         <source>OS Customization</source>
-        <translation>Betriebssystem-Anpassung</translation>
+        <translation type="vanished">Betriebssystem-Anpassung</translation>
     </message>
     <message>
-    <location filename="usb-creator-next/src/OptionsPopup.qml" line="68"/>
-    <source>General</source>
-    <translation>Allgemein</translation>
-</message>
-<message>
-    <location filename="usb-creator-next/src/OptionsPopup.qml" line="76"/>
-    <source>Services</source>
-    <translation>Dienste</translation>
-</message>
-<message>
-    <location filename="usb-creator-next/src/OptionsPopup.qml" line="79"/>
-    <source>Options</source>
-    <translation>Optionen</translation>
-</message>
-<message>
-    <location filename="usb-creator-next/src/OptionsPopup.qml" line="95"/>
-    <source>Set hostname:</source>
-    <translation>Hostname festlegen:</translation>
-</message>
-<message>
-    <location filename="usb-creator-next/src/OptionsPopup.qml" line="119"/>
-    <source>Set username and password</source>
-    <translation>Benutzername und Passwort festlegen</translation>
-</message>
-<message>
-    <location filename="usb-creator-next/src/OptionsPopup.qml" line="141"/>
-    <source>Username:</source>
-    <translation>Benutzername:</translation>
-</message>
-<message>
-    <location filename="usb-creator-next/src/OptionsPopup.qml" line="160"/>
-    <location filename="usb-creator-next/src/OptionsPopup.qml" line="231"/>
-    <source>Password:</source>
-    <translation>Passwort:</translation>
-</message>
-<message>
-    <location filename="usb-creator-next/src/OptionsPopup.qml" line="197"/>
-    <source>Configure wireless LAN</source>
-    <translation>Drahtloses LAN konfigurieren</translation>
-</message>
-<message>
-    <location filename="usb-creator-next/src/OptionsPopup.qml" line="216"/>
-    <source>SSID:</source>
-    <translation>SSID:</translation>
-</message>
-<message>
-    <location filename="usb-creator-next/src/OptionsPopup.qml" line="251"/>
-    <source>Show password</source>
-    <translation>Passwort anzeigen</translation>
-</message>
-<message>
-    <location filename="usb-creator-next/src/OptionsPopup.qml" line="257"/>
-    <source>Hidden SSID</source>
-    <translation>Versteckte SSID</translation>
-</message>
-<message>
-    <location filename="usb-creator-next/src/OptionsPopup.qml" line="263"/>
-    <source>Wireless LAN country:</source>
-    <translation>Drahtloses LAN Land:</translation>
-</message>
-<message>
-    <location filename="usb-creator-next/src/OptionsPopup.qml" line="275"/>
-    <source>Set locale settings</source>
-    <translation>Regionale Einstellungen festlegen</translation>
-</message>
-<message>
-    <location filename="usb-creator-next/src/OptionsPopup.qml" line="285"/>
-    <source>Time zone:</source>
-    <translation>Zeitzone:</translation>
-</message>
-<message>
-    <location filename="usb-creator-next/src/OptionsPopup.qml" line="296"/>
-    <source>Keyboard layout:</source>
-    <translation>Tastaturlayout:</translation>
-</message>
-<message>
-    <location filename="usb-creator-next/src/OptionsPopup.qml" line="314"/>
-    <source>Enable SSH</source>
-    <translation>SSH aktivieren</translation>
-</message>
-<message>
-    <location filename="usb-creator-next/src/OptionsPopup.qml" line="333"/>
-    <source>Use password authentication</source>
-    <translation>Passwortauthentifizierung verwenden</translation>
-</message>
-<message>
-    <location filename="usb-creator-next/src/OptionsPopup.qml" line="343"/>
-    <source>Allow public-key authentication only</source>
-    <translation>Nur die Authentifizierung mit öffentlichem Schlüssel zulassen</translation>
-</message>
-<message>
-    <location filename="usb-creator-next/src/OptionsPopup.qml" line="361"/>
-    <source>Set authorized_keys for '%1':</source>
-    <translation>authorized_keys für '%1' festlegen:</translation>
-</message>
-<message>
-    <location filename="usb-creator-next/src/OptionsPopup.qml" line="374"/>
-    <source>RUN SSH-KEYGEN</source>
-    <translation>SSH-KEYGEN AUSFÜHREN</translation>
-</message>
-<message>
-    <location filename="usb-creator-next/src/OptionsPopup.qml" line="392"/>
-    <source>Play sound when finished</source>
-    <translation>Ton abspielen, wenn abgeschlossen</translation>
-</message>
-<message>
-    <location filename="usb-creator-next/src/OptionsPopup.qml" line="396"/>
-    <source>Eject media when finished</source>
-    <translation>Medien beim Abschluss auswerfen</translation>
-</message>
-<message>
-    <location filename="usb-creator-next/src/OptionsPopup.qml" line="416"/>
-    <source>SAVE</source>
-    <translation>SPAREN</translation>
-</message>
+        <source>General</source>
+        <translation type="vanished">Allgemein</translation>
+    </message>
+    <message>
+        <source>Services</source>
+        <translation type="vanished">Dienste</translation>
+    </message>
+    <message>
+        <source>Options</source>
+        <translation type="vanished">Optionen</translation>
+    </message>
+    <message>
+        <source>Set hostname:</source>
+        <translation type="vanished">Hostname festlegen:</translation>
+    </message>
+    <message>
+        <source>Set username and password</source>
+        <translation type="vanished">Benutzername und Passwort festlegen</translation>
+    </message>
+    <message>
+        <source>Username:</source>
+        <translation type="vanished">Benutzername:</translation>
+    </message>
+    <message>
+        <source>Password:</source>
+        <translation type="vanished">Passwort:</translation>
+    </message>
+    <message>
+        <source>Configure wireless LAN</source>
+        <translation type="vanished">Drahtloses LAN konfigurieren</translation>
+    </message>
+    <message>
+        <source>SSID:</source>
+        <translation type="vanished">SSID:</translation>
+    </message>
+    <message>
+        <source>Show password</source>
+        <translation type="vanished">Passwort anzeigen</translation>
+    </message>
+    <message>
+        <source>Hidden SSID</source>
+        <translation type="vanished">Versteckte SSID</translation>
+    </message>
+    <message>
+        <source>Wireless LAN country:</source>
+        <translation type="vanished">Drahtloses LAN Land:</translation>
+    </message>
+    <message>
+        <source>Set locale settings</source>
+        <translation type="vanished">Regionale Einstellungen festlegen</translation>
+    </message>
+    <message>
+        <source>Time zone:</source>
+        <translation type="vanished">Zeitzone:</translation>
+    </message>
+    <message>
+        <source>Keyboard layout:</source>
+        <translation type="vanished">Tastaturlayout:</translation>
+    </message>
+    <message>
+        <source>Enable SSH</source>
+        <translation type="vanished">SSH aktivieren</translation>
+    </message>
+    <message>
+        <source>Use password authentication</source>
+        <translation type="vanished">Passwortauthentifizierung verwenden</translation>
+    </message>
+    <message>
+        <source>Allow public-key authentication only</source>
+        <translation type="vanished">Nur die Authentifizierung mit öffentlichem Schlüssel zulassen</translation>
+    </message>
+    <message>
+        <source>Set authorized_keys for &apos;%1&apos;:</source>
+        <translation type="vanished">authorized_keys für &apos;%1&apos; festlegen:</translation>
+    </message>
+    <message>
+        <source>RUN SSH-KEYGEN</source>
+        <translation type="vanished">SSH-KEYGEN AUSFÜHREN</translation>
+    </message>
+    <message>
+        <source>Play sound when finished</source>
+        <translation type="vanished">Ton abspielen, wenn abgeschlossen</translation>
+    </message>
+    <message>
+        <source>Eject media when finished</source>
+        <translation type="vanished">Medien beim Abschluss auswerfen</translation>
+    </message>
+    <message>
+        <source>SAVE</source>
+        <translation type="vanished">SPAREN</translation>
+    </message>
 </context>
 <context>
     <name>QObject</name>
     <message>
-        <location filename="usb-creator-next/src/linux/linuxdrivelist.cpp" line="123"/>
         <source>Internal SD card reader</source>
-        <translation>Interner SD-Kartenleser</translation>
-</message>
+        <translation type="vanished">Interner SD-Kartenleser</translation>
+    </message>
 </context>
 <context>
     <name>UnraidOptionsPopup</name>
     <message>
-        <location filename="usb-creator-next/src/UnraidOptionsPopup.qml" line="84"/>
         <source>Settings</source>
-        <translation>Einstellungen</translation>
-</message>
-<message>
-        <location filename="usb-creator-next/src/UnraidOptionsPopup.qml" line="137"/>
+        <translation type="vanished">Einstellungen</translation>
+    </message>
+    <message>
         <source>DHCP</source>
-        <translation>DHCP</translation>
-</message>
-<message>
-        <location filename="usb-creator-next/src/UnraidOptionsPopup.qml" line="144"/>
+        <translation type="vanished">DHCP</translation>
+    </message>
+    <message>
         <source>Static IP</source>
-        <translation>Statische IP</translation>
-</message>
-<message>
-        <location filename="usb-creator-next/src/UnraidOptionsPopup.qml" line="230"/>
+        <translation type="vanished">Statische IP</translation>
+    </message>
+    <message>
         <source>CONTINUE</source>
-        <translation>FORTSETZEN</translation>
-</message>
+        <translation type="vanished">FORTSETZEN</translation>
+    </message>
 </context>
 <context>
     <name>UseSavedSettingsPopup</name>
     <message>
-        <location filename="usb-creator-next/src/UseSavedSettingsPopup.qml" line="83"/>
         <source>Use OS customization?</source>
-        <translation>OS-Anpassung verwenden?</translation>
+        <translation type="vanished">OS-Anpassung verwenden?</translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/UseSavedSettingsPopup.qml" line="99"/>
         <source>Would you like to apply OS customization settings?</source>
-        <translation>Möchten Sie die Einstellungen zur OS-Anpassung anwenden?</translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/UseSavedSettingsPopup.qml" line="110"/>
-        <source>EDIT SETTINGS</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/UseSavedSettingsPopup.qml" line="123"/>
-        <source>NO, CLEAR SETTINGS</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/UseSavedSettingsPopup.qml" line="133"/>
-        <source>YES</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/UseSavedSettingsPopup.qml" line="142"/>
-        <source>NO</source>
-        <translation type="unfinished"></translation>
+        <translation type="vanished">Möchten Sie die Einstellungen zur OS-Anpassung anwenden?</translation>
     </message>
 </context>
 <context>
     <name>main</name>
     <message>
-        <location filename="usb-creator-next/src/main.qml" line="25"/>
+        <location filename="../main.qml" line="24"/>
         <source>Unraid USB Creator v%1</source>
         <translation type="unfinished"></translation>
     </message>
+   <message>
+    <location filename="../main.qml" line="100"/>
+    <source>Help</source>
+    <translation>Hilfe</translation>
+</message>
+
     <message>
-        <location filename="usb-creator-next/src/main.qml" line="92"/>
-        <source>Help</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/main.qml" line="159"/>
-        <location filename="usb-creator-next/src/main.qml" line="641"/>
+        <location filename="../main.qml" line="167"/>
+        <location filename="../main.qml" line="659"/>
         <source>Device</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/main.qml" line="173"/>
+        <location filename="../main.qml" line="181"/>
         <source>CHOOSE DEVICE</source>
         <translation>MODELL WÄHLEN</translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/main.qml" line="185"/>
+        <location filename="../main.qml" line="193"/>
         <source>Select this button to choose your target device</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/main.qml" line="201"/>
-        <location filename="usb-creator-next/src/main.qml" line="750"/>
+        <location filename="../main.qml" line="209"/>
+        <location filename="../main.qml" line="771"/>
         <source>Operating System</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/main.qml" line="212"/>
-        <location filename="usb-creator-next/src/main.qml" line="1855"/>
+        <location filename="../main.qml" line="220"/>
+        <location filename="../main.qml" line="1885"/>
         <source>CHOOSE OS</source>
         <translation>OS WÄHLEN</translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/main.qml" line="224"/>
+        <location filename="../main.qml" line="232"/>
         <source>Select this button to change the operating system</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/main.qml" line="238"/>
-        <location filename="usb-creator-next/src/main.qml" line="1158"/>
+        <location filename="../main.qml" line="246"/>
+        <location filename="../main.qml" line="1180"/>
         <source>Storage</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/main.qml" line="249"/>
-        <location filename="usb-creator-next/src/main.qml" line="1529"/>
-        <location filename="usb-creator-next/src/main.qml" line="1938"/>
+        <location filename="../main.qml" line="257"/>
+        <location filename="../main.qml" line="1572"/>
         <source>CHOOSE STORAGE</source>
         <translation>SD-KARTE WÄHLEN</translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/main.qml" line="263"/>
+        <location filename="../main.qml" line="271"/>
         <source>Select this button to change the destination storage device</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/main.qml" line="308"/>
+        <location filename="../main.qml" line="316"/>
         <source>CANCEL WRITE</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/main.qml" line="311"/>
-        <location filename="usb-creator-next/src/main.qml" line="1448"/>
+        <location filename="../main.qml" line="319"/>
+        <location filename="../main.qml" line="1491"/>
         <source>Cancelling...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/main.qml" line="323"/>
+        <location filename="../main.qml" line="331"/>
         <source>CANCEL VERIFY</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/main.qml" line="326"/>
-        <location filename="usb-creator-next/src/main.qml" line="1471"/>
-        <location filename="usb-creator-next/src/main.qml" line="1548"/>
+        <location filename="../main.qml" line="334"/>
+        <location filename="../main.qml" line="1513"/>
+        <location filename="../main.qml" line="1591"/>
         <source>Finalizing...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/main.qml" line="335"/>
+        <location filename="../main.qml" line="343"/>
         <source>Next</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/main.qml" line="341"/>
+        <location filename="../main.qml" line="349"/>
         <source>Select this button to start writing the image</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/main.qml" line="365"/>
+        <location filename="../main.qml" line="371"/>
         <source>Using custom repository: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/main.qml" line="375"/>
+        <location filename="../main.qml" line="381"/>
         <source>Network not ready yet</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/main.qml" line="384"/>
+        <location filename="../main.qml" line="390"/>
         <source>Keyboard navigation: &lt;tab&gt; navigate to next button &lt;space&gt; press button/select item &lt;arrow up/down&gt; go up/down in lists</source>
         <translation type="unfinished"></translation>
     </message>
+   <message>
+    <location filename="../main.qml" line="414"/>
+    <source>Language: </source>
+    <translation>Sprache: </translation>
+</message>
+<message>
+    <location filename="../main.qml" line="461"/>
+    <source>Keyboard: </source>
+    <translation>Tastatur: </translation>
+</message>
+<message>
+    <location filename="../main.qml" line="552"/>
+    <source>Info</source>
+    <translation>Info</translation>
+</message>
+<message>
+    <location filename="../main.qml" line="575"/>
+    <source>Select Language</source>
+    <translation>Sprache auswählen</translation>
+</message>
+
     <message>
-        <location filename="usb-creator-next/src/main.qml" line="408"/>
-        <source>Language: </source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/main.qml" line="455"/>
-        <source>Keyboard: </source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/main.qml" line="547"/>
-        <source>Info</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/main.qml" line="570"/>
-        <source>Select Language</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/main.qml" line="660"/>
+        <location filename="../main.qml" line="678"/>
         <source>[ All ]</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/main.qml" line="818"/>
+        <location filename="../main.qml" line="842"/>
         <source>Back</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/main.qml" line="819"/>
+        <location filename="../main.qml" line="843"/>
         <source>Go back to main menu</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/main.qml" line="1067"/>
+        <location filename="../main.qml" line="1094"/>
         <source>Released: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/main.qml" line="1077"/>
+        <location filename="../main.qml" line="1102"/>
         <source>Cached on your computer</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/main.qml" line="1079"/>
+        <location filename="../main.qml" line="1102"/>
         <source>Local file</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/main.qml" line="1080"/>
+        <location filename="../main.qml" line="1102"/>
         <source>Online - %1 GB download</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/main.qml" line="1187"/>
+        <location filename="../main.qml" line="1212"/>
         <source>No storage devices found</source>
         <translation type="unfinished"></translation>
     </message>
+   <message>
+  <location filename="../main.qml" line="1248"/>
+  <source> Mounted as %1</source>
+  <translation> Eingehängt als %1</translation>
+</message>
+<message>
+  <location filename="../main.qml" line="1336"/>
+  <source>Mounted as %1 </source>
+  <translation>Eingehängt als %1</translation>
+</message>
     <message>
-        <location filename="usb-creator-next/src/main.qml" line="1223"/>
-        <source> Mounted as %1</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/main.qml" line="1294"/>
-        <source>Mounted as %1 </source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/main.qml" line="1297"/>
+        <location filename="../main.qml" line="1339"/>
         <source>[WRITE PROTECTED]</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/main.qml" line="1362"/>
+        <location filename="../main.qml" line="1361"/>
+        <source>GUID: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+   <message>
+    <location filename="../main.qml" line="1361"/>
+    <source>GUID: %1 &lt;font color=&apos;red&apos;&gt;[BLACKLISTED]&lt;/font&gt;</source>
+    <translation>GUID: %1 &lt;font color=&apos;red&apos;&gt;[GESPERRT]&lt;/font&gt;</translation>
+</message>
+<message>
+    <location filename="../main.qml" line="1363"/>
+    <source>&lt;font color=&apos;red&apos;&gt;[MISSING GUID - Choose Another Flash Device]&lt;/font&gt;</source>
+    <translation>&lt;font color=&apos;red&apos;&gt;[GUID FEHLT – Wählen Sie ein anderes Flash-Laufwerk]&lt;/font&gt;</translation>
+</message>
+<message>
+    <location filename="../main.qml" line="1380"/>
+    <source>This USB device is blacklisted. You may not be able to use this device to get an Unraid license or trial.</source>
+    <translation>Dieses USB-Gerät ist gesperrt. Möglicherweise können Sie es nicht verwenden, um eine Unraid-Lizenz oder -Testversion zu erhalten.</translation>
+</message>
+
+    <message>
+        <location filename="../main.qml" line="1406"/>
         <source>About</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/main.qml" line="1364"/>
+        <location filename="../main.qml" line="1408"/>
         <source>License, Credits, and History: </source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/main.qml" line="1364"/>
+        <location filename="../main.qml" line="1408"/>
         <source>Help / Feedback: </source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/main.qml" line="1372"/>
+        <location filename="../main.qml" line="1416"/>
         <source>Are you sure you want to quit?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/main.qml" line="1373"/>
+        <location filename="../main.qml" line="1417"/>
         <source>Unraid USB Creator is still busy.&lt;br&gt;Are you sure you want to quit?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/main.qml" line="1384"/>
+        <location filename="../main.qml" line="1428"/>
         <source>Warning</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/main.qml" line="1393"/>
+        <location filename="../main.qml" line="1437"/>
         <source>Preparing to write...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/main.qml" line="1407"/>
+        <location filename="../main.qml" line="1450"/>
         <source>All existing data on &apos;%1&apos; will be erased.&lt;br&gt;Are you sure you want to continue?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/main.qml" line="1422"/>
+        <location filename="../main.qml" line="1465"/>
         <source>Update available</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/main.qml" line="1423"/>
+        <location filename="../main.qml" line="1466"/>
         <source>There is a newer version of Unraid USB Creator available.&lt;br&gt;Would you like to visit the website to download it?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/main.qml" line="1451"/>
+        <location filename="../main.qml" line="1493"/>
         <source>Writing... %1%</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/main.qml" line="1474"/>
+        <location filename="../main.qml" line="1515"/>
         <source>Verifying... %1%</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/main.qml" line="1481"/>
+        <location filename="../main.qml" line="1522"/>
         <source>Preparing to write... (%1)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/main.qml" line="1501"/>
+        <location filename="../main.qml" line="1542"/>
         <source>Error</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/main.qml" line="1508"/>
+        <location filename="../main.qml" line="1549"/>
         <source>Write Successful</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/main.qml" line="1509"/>
-        <location filename="usb-creator-next/src/imagewriter.cpp" line="617"/>
+        <location filename="../main.qml" line="1550"/>
         <source>Erase</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/main.qml" line="1510"/>
+        <location filename="../main.qml" line="1551"/>
         <source>&lt;b&gt;%1&lt;/b&gt; has been erased.&lt;br&gt;&lt;br&gt;Your drive has been ejected, you can now safely remove it.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/main.qml" line="1517"/>
+        <location filename="../main.qml" line="1557"/>
         <source>&lt;b&gt;%1&lt;/b&gt; has been written to &lt;b&gt;%2&lt;/b&gt;.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/main.qml" line="1519"/>
+        <location filename="../main.qml" line="1560"/>
         <source>&lt;br&gt;&lt;br&gt;If you would like to enable legacy boot (bios), helpful for old hardware, please run the &apos;make_bootable_(mac/linux/windows)&apos; script from this computer, located in the main folder of the UNRAID flash drive.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/main.qml" line="1675"/>
+        <location filename="../main.qml" line="1713"/>
         <source>Error parsing os_list.json</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/main.qml" line="1929"/>
+        <location filename="../main.qml" line="1949"/>
         <source>Connect an USB stick containing images first.&lt;br&gt;The images must be located in the root folder of the USB stick.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="usb-creator-next/src/main.qml" line="1935"/>
-        <location filename="usb-creator-next/src/main.qml" line="1956"/>
-        <source>Selected device cannot be used to create an Unraid USB due to its invalid GUID.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/main.qml" line="1951"/>
+        <location filename="../main.qml" line="1965"/>
         <source>SD card is write protected.&lt;br&gt;Push the lock switch on the left side of the card upwards, and try again.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/imagewriter.cpp" line="618"/>
-        <source>Format USB Drive as FAT32</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/imagewriter.cpp" line="624"/>
-        <source>Use custom</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="usb-creator-next/src/imagewriter.cpp" line="625"/>
-        <source>Select an Unraid .zip file from your computer</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

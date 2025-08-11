@@ -19,19 +19,27 @@ ApplicationWindow {
     minimumWidth: imageWriter.isEmbeddedMode() ? -1 : 680
     minimumHeight: imageWriter.isEmbeddedMode() ? -1 : 465
 
-
     color: UnColors.darkGray
 
     title: qsTr("Unraid USB Creator v%1").arg(imageWriter.constantVersion())
 
-    FontLoader {id: roboto;      source: "fonts/Roboto-Regular.ttf"}
-    FontLoader {id: robotoLight; source: "fonts/Roboto-Light.ttf"}
-    FontLoader {id: robotoBold;  source: "fonts/Roboto-Bold.ttf"}
+    FontLoader {
+        id: roboto
+        source: "fonts/Roboto-Regular.ttf"
+    }
+    FontLoader {
+        id: robotoLight
+        source: "fonts/Roboto-Light.ttf"
+    }
+    FontLoader {
+        id: robotoBold
+        source: "fonts/Roboto-Bold.ttf"
+    }
 
     onClosing: {
         if (progressBar.visible) {
-            close.accepted = false
-            quitpopup.openPopup()
+            close.accepted = false;
+            quitpopup.openPopup();
         }
     }
 
@@ -40,7 +48,7 @@ ApplicationWindow {
         context: Qt.ApplicationShortcut
         onActivated: {
             if (!progressBar.visible) {
-                Qt.quit()
+                Qt.quit();
             }
         }
     }
@@ -52,7 +60,7 @@ ApplicationWindow {
             Layout.fillWidth: true
             Rectangle {
                 id: logoContainer
-                implicitHeight: (window.height - 15)/6
+                implicitHeight: (window.height - 15) / 6
 
                 Image {
                     id: image
@@ -131,7 +139,7 @@ ApplicationWindow {
         Rectangle {
             color: UnColors.darkGray
             implicitWidth: window.width
-            implicitHeight: (window.height - 15) * (1 - 1/6)
+            implicitHeight: (window.height - 15) * (1 - 1 / 6)
 
             GridLayout {
                 id: gridLayout
@@ -178,8 +186,8 @@ ApplicationWindow {
                         Layout.minimumHeight: 40
                         Layout.fillWidth: true
                         onClicked: {
-                            hwpopup.open()
-                            hwlist.forceActiveFocus()
+                            hwpopup.open();
+                            hwlist.forceActiveFocus();
                         }
                         Accessible.ignored: ospopup.visible || dstpopup.visible || hwpopup.visible
                         Accessible.description: qsTr("Select this button to choose your target device")
@@ -217,8 +225,8 @@ ApplicationWindow {
                         Layout.minimumHeight: 40
                         Layout.fillWidth: true
                         onClicked: {
-                            ospopup.open()
-                            osswipeview.currentItem.forceActiveFocus()
+                            ospopup.open();
+                            osswipeview.currentItem.forceActiveFocus();
                         }
                         Accessible.ignored: ospopup.visible || dstpopup.visible || hwpopup.visible
                         Accessible.description: qsTr("Select this button to change the operating system")
@@ -255,9 +263,9 @@ ApplicationWindow {
                         Layout.preferredWidth: 200
                         Layout.fillWidth: true
                         onClicked: {
-                            imageWriter.startDriveListPolling()
-                            dstpopup.open()
-                            dstlist.forceActiveFocus()
+                            imageWriter.startDriveListPolling();
+                            dstpopup.open();
+                            dstlist.forceActiveFocus();
                         }
                         Accessible.ignored: ospopup.visible || dstpopup.visible || hwpopup.visible
                         Accessible.description: qsTr("Select this button to change the destination storage device")
@@ -285,8 +293,8 @@ ApplicationWindow {
                     }
 
                     ProgressBar {
-                        Layout.bottomMargin: 25
                         id: progressBar
+                        Layout.bottomMargin: 25
                         Layout.fillWidth: true
                         visible: false
                     }
@@ -300,31 +308,31 @@ ApplicationWindow {
                     spacing: 0
 
                     ImButton {
+                        id: cancelwritebutton
                         Layout.bottomMargin: 25
                         Layout.minimumHeight: 40
                         Layout.preferredWidth: 200
                         padding: 5
-                        id: cancelwritebutton
                         text: qsTr("CANCEL WRITE")
                         onClicked: {
-                            enabled = false
-                            progressText.text = qsTr("Cancelling...")
-                            imageWriter.cancelWrite()
+                            enabled = false;
+                            progressText.text = qsTr("Cancelling...");
+                            imageWriter.cancelWrite();
                         }
                         Layout.alignment: Qt.AlignRight
                         visible: false
                     }
                     ImButton {
+                        id: cancelverifybutton
                         Layout.bottomMargin: 25
                         Layout.minimumHeight: 40
                         Layout.preferredWidth: 200
                         padding: 5
-                        id: cancelverifybutton
                         text: qsTr("CANCEL VERIFY")
                         onClicked: {
-                            enabled = false
-                            progressText.text = qsTr("Finalizing...")
-                            imageWriter.setVerifyEnabled(false)
+                            enabled = false;
+                            progressText.text = qsTr("Finalizing...");
+                            imageWriter.setVerifyEnabled(false);
                         }
                         Layout.alignment: Qt.AlignRight
                         visible: false
@@ -342,16 +350,14 @@ ApplicationWindow {
                         enabled: false
                         onClicked: {
                             if (!imageWriter.readyToWrite()) {
-                                return
+                                return;
                             }
-
 
                             if (imageWriter.imageSupportsCustomization()) {
-                                optionspopup.openPopup()
+                                optionspopup.openPopup();
                             } else {
-                                confirmwritepopup.askForConfirmation()
+                                confirmwritepopup.askForConfirmation();
                             }
-
                         }
                     }
                 }
@@ -419,10 +425,10 @@ ApplicationWindow {
                             Layout.preferredWidth: 200
                             currentIndex: -1
                             Component.onCompleted: {
-                                currentIndex = find(imageWriter.getCurrentLanguage())
+                                currentIndex = find(imageWriter.getCurrentLanguage());
                             }
                             onActivated: {
-                                imageWriter.changeLanguage(editText)
+                                imageWriter.changeLanguage(editText);
                             }
                             Layout.topMargin: 10
                             Layout.bottomMargin: 10
@@ -440,7 +446,7 @@ ApplicationWindow {
                                     model: languageselector.popup.visible ? languageselector.delegateModel : null
                                     currentIndex: languageselector.highlightedIndex
 
-                                    ScrollIndicator.vertical: ScrollIndicator { }
+                                    ScrollIndicator.vertical: ScrollIndicator {}
                                 }
 
                                 background: Rectangle {
@@ -464,10 +470,10 @@ ApplicationWindow {
                             model: imageWriter.getKeymapLayoutList()
                             currentIndex: -1
                             Component.onCompleted: {
-                                currentIndex = find(imageWriter.getCurrentKeyboard())
+                                currentIndex = find(imageWriter.getCurrentKeyboard());
                             }
                             onActivated: {
-                                imageWriter.changeKeyboard(editText)
+                                imageWriter.changeKeyboard(editText);
                             }
                             Layout.topMargin: 10
                             Layout.bottomMargin: 10
@@ -486,7 +492,7 @@ ApplicationWindow {
                                     model: languageselector.popup.visible ? languageselector.delegateModel : null
                                     currentIndex: languageselector.highlightedIndex
 
-                                    ScrollIndicator.vertical: ScrollIndicator { }
+                                    ScrollIndicator.vertical: ScrollIndicator {}
                                 }
 
                                 background: Rectangle {
@@ -504,7 +510,7 @@ ApplicationWindow {
                     sequences: ["Shift+Ctrl+L", "Shift+Meta+L"]
                     context: Qt.ApplicationShortcut
                     onActivated: {
-                        langbarRect.visible = true
+                        langbarRect.visible = true;
                     }
                 }
             }
@@ -513,16 +519,15 @@ ApplicationWindow {
                 anchors.fill: parent
                 onEntered: {
                     if (drag.active && mimeData.hasUrls()) {
-                        drag.acceptProposedAction()
+                        drag.acceptProposedAction();
                     }
                 }
                 onDropped: {
                     if (drop.urls && drop.urls.length > 0) {
-                        onFileSelected(drop.urls[0].toString())
+                        onFileSelected(drop.urls[0].toString());
                     }
                 }
             }
-
         }
         RowLayout {
             Image {
@@ -600,8 +605,8 @@ ApplicationWindow {
         id: hwpopup
         x: 50
         y: 25
-        width: parent.width-100
-        height: parent.height-50
+        width: parent.width - 100
+        height: parent.height - 50
         padding: 0
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
         property string hwselected: ""
@@ -641,7 +646,7 @@ ApplicationWindow {
                 anchors.fill: parent
                 cursorShape: Qt.PointingHandCursor
                 onClicked: {
-                    hwpopup.close()
+                    hwpopup.close();
                 }
             }
         }
@@ -679,21 +684,24 @@ ApplicationWindow {
                     }
                     currentIndex: -1
                     delegate: hwdelegate
-                    width: window.width-100
-                    height: window.height-100
+                    width: window.width - 100
+                    height: window.height - 100
                     boundsBehavior: Flickable.StopAtBounds
-                    highlight: Rectangle { color: "lightsteelblue"; radius: 5 }
+                    highlight: Rectangle {
+                        color: "lightsteelblue"
+                        radius: 5
+                    }
                     ScrollBar.vertical: ScrollBar {
                         width: 10
                         policy: hwlist.contentHeight > hwlist.height ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
                     }
                     Keys.onSpacePressed: {
                         if (currentIndex != -1)
-                            selectHWitem(model.get(currentIndex))
+                            selectHWitem(model.get(currentIndex));
                     }
                     Accessible.onPressAction: {
                         if (currentIndex != -1)
-                            selectHWitem(model.get(currentIndex))
+                            selectHWitem(model.get(currentIndex));
                     }
                     Keys.onEnterPressed: Keys.onSpacePressed(event)
                     Keys.onReturnPressed: Keys.onSpacePressed(event)
@@ -709,11 +717,11 @@ ApplicationWindow {
         id: ospopup
         x: 50
         y: 25
-        width: parent.width-100
-        height: parent.height-50
+        width: parent.width - 100
+        height: parent.height - 50
         padding: 0
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-        property string categorySelected : ""
+        property string categorySelected: ""
 
         background: Rectangle {
             color: UnColors.darkGray
@@ -750,8 +758,8 @@ ApplicationWindow {
                 anchors.fill: parent
                 cursorShape: Qt.PointingHandCursor
                 onClicked: {
-                    ospopup.close()
-                    osswipeview.decrementCurrentIndex()
+                    ospopup.close();
+                    osswipeview.decrementCurrentIndex();
                 }
             }
         }
@@ -784,28 +792,31 @@ ApplicationWindow {
                         model: osmodel
                         currentIndex: -1
                         delegate: osdelegate
-                        width: window.width-100
-                        height: window.height-100
+                        width: window.width - 100
+                        height: window.height - 100
                         boundsBehavior: Flickable.StopAtBounds
-                        highlight: Rectangle { color: "lightsteelblue"; radius: 5 }
+                        highlight: Rectangle {
+                            color: "lightsteelblue"
+                            radius: 5
+                        }
                         ScrollBar.vertical: ScrollBar {
                             width: 10
                             policy: oslist.contentHeight > oslist.height ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
                         }
                         Keys.onSpacePressed: {
                             if (currentIndex != -1)
-                                selectOSitem(model.get(currentIndex), true)
+                                selectOSitem(model.get(currentIndex), true);
                         }
                         Accessible.onPressAction: {
                             if (currentIndex != -1)
-                                selectOSitem(model.get(currentIndex), true)
+                                selectOSitem(model.get(currentIndex), true);
                         }
                         Keys.onEnterPressed: Keys.onSpacePressed(event)
                         Keys.onReturnPressed: Keys.onSpacePressed(event)
                         Keys.onRightPressed: {
                             // Navigate into sublists but don't select an OS entry
                             if (currentIndex != -1 && isOSsublist(model.get(currentIndex)))
-                                selectOSitem(model.get(currentIndex), true)
+                                selectOSitem(model.get(currentIndex), true);
                         }
                     }
                 }
@@ -838,32 +849,35 @@ ApplicationWindow {
 
             currentIndex: -1
             delegate: osdelegate
-            width: window.width-100
-            height: window.height-100
+            width: window.width - 100
+            height: window.height - 100
             boundsBehavior: Flickable.StopAtBounds
-            highlight: Rectangle { color: "lightsteelblue"; radius: 5 }
+            highlight: Rectangle {
+                color: "lightsteelblue"
+                radius: 5
+            }
             ScrollBar.vertical: ScrollBar {
                 width: 10
                 policy: parent.contentHeight > parent.height ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
             }
             Keys.onSpacePressed: {
                 if (currentIndex != -1)
-                    selectOSitem(model.get(currentIndex))
+                    selectOSitem(model.get(currentIndex));
             }
             Accessible.onPressAction: {
                 if (currentIndex != -1)
-                    selectOSitem(model.get(currentIndex))
+                    selectOSitem(model.get(currentIndex));
             }
             Keys.onEnterPressed: Keys.onSpacePressed(event)
             Keys.onReturnPressed: Keys.onSpacePressed(event)
             Keys.onRightPressed: {
                 // Navigate into sublists but don't select an OS entry
                 if (currentIndex != -1 && isOSsublist(model.get(currentIndex)))
-                    selectOSitem(model.get(currentIndex), true)
+                    selectOSitem(model.get(currentIndex), true);
             }
             Keys.onLeftPressed: {
-                osswipeview.decrementCurrentIndex()
-                ospopup.categorySelected = ""
+                osswipeview.decrementCurrentIndex();
+                ospopup.categorySelected = "";
             }
         }
     }
@@ -882,9 +896,9 @@ ApplicationWindow {
         id: hwdelegate
 
         Item {
-            width: window.width-100
+            width: window.width - 100
             height: contentLayout.implicitHeight + 24
-            Accessible.name: name+".\n"+description
+            Accessible.name: name + ".\n" + description
 
             MouseArea {
                 id: hwMouseArea
@@ -893,32 +907,32 @@ ApplicationWindow {
                 hoverEnabled: true
 
                 onEntered: {
-                    bgrect.mouseOver = true
+                    bgrect.mouseOver = true;
                 }
 
                 onExited: {
-                    bgrect.mouseOver = false
+                    bgrect.mouseOver = false;
                 }
 
                 onClicked: {
-                    selectHWitem(model)
+                    selectHWitem(model);
                 }
             }
 
             Rectangle {
-               id: bgrect
-               anchors.fill: parent
-               color: mouseOver ? UnColors.orange : UnColors.darkGray
-               visible: mouseOver && parent.ListView.view.currentIndex !== index
-               property bool mouseOver: false
-               border.color: UnColors.mediumGray
+                id: bgrect
+                anchors.fill: parent
+                color: mouseOver ? UnColors.orange : UnColors.darkGray
+                visible: mouseOver && parent.ListView.view.currentIndex !== index
+                property bool mouseOver: false
+                border.color: UnColors.mediumGray
             }
             Rectangle {
-               id: borderrect
-               implicitHeight: 1
-               implicitWidth: parent.width
-               color: UnColors.mediumGray
-               y: parent.height
+                id: borderrect
+                implicitHeight: 1
+                implicitWidth: parent.width
+                color: UnColors.mediumGray
+                y: parent.height
             }
 
             RowLayout {
@@ -962,9 +976,9 @@ ApplicationWindow {
                     }
 
                     ToolTip {
-                        visible: hwMouseArea.containsMouse && typeof(tooltip) == "string" && tooltip != ""
+                        visible: hwMouseArea.containsMouse && typeof (tooltip) == "string" && tooltip != ""
                         delay: 1000
-                        text: typeof(tooltip) == "string" ? tooltip : ""
+                        text: typeof (tooltip) == "string" ? tooltip : ""
                         clip: false
                     }
                 }
@@ -976,9 +990,9 @@ ApplicationWindow {
         id: osdelegate
 
         Item {
-            width: window.width-100
+            width: window.width - 100
             height: contentLayout.implicitHeight + 24
-            Accessible.name: name+".\n"+description
+            Accessible.name: name + ".\n" + description
 
             MouseArea {
                 id: osMouseArea
@@ -987,32 +1001,32 @@ ApplicationWindow {
                 hoverEnabled: true
 
                 onEntered: {
-                    bgrect.mouseOver = true
+                    bgrect.mouseOver = true;
                 }
 
                 onExited: {
-                    bgrect.mouseOver = false
+                    bgrect.mouseOver = false;
                 }
 
                 onClicked: {
-                    selectOSitem(model)
+                    selectOSitem(model);
                 }
             }
 
             Rectangle {
-               id: bgrect
-               anchors.fill: parent
-               color: mouseOver ? UnColors.orange : UnColors.darkGray
-               visible: mouseOver && parent.ListView.view.currentIndex !== index
-               property bool mouseOver: false
-               border.color: UnColors.mediumGray
+                id: bgrect
+                anchors.fill: parent
+                color: mouseOver ? UnColors.orange : UnColors.darkGray
+                visible: mouseOver && parent.ListView.view.currentIndex !== index
+                property bool mouseOver: false
+                border.color: UnColors.mediumGray
             }
             Rectangle {
-               id: borderrect
-               implicitHeight: 1
-               implicitWidth: parent.width
-               color: UnColors.mediumGray
-               y: parent.height
+                id: borderrect
+                implicitHeight: 1
+                implicitWidth: parent.width
+                color: UnColors.mediumGray
+                y: parent.height
             }
 
             RowLayout {
@@ -1027,7 +1041,7 @@ ApplicationWindow {
 
                 Image {
                     id: iconimage
-                    source: (icon == "https://craftassets.unraid.net/static/favicon/favicon.ico") ? (bgrect.mouseOver ? "unraid/icons/un-mark-dark-gray.svg" : "unraid/icons/un-mark-gradient.svg") : (icon == "icons/erase.png" ? (bgrect.mouseOver ? "unraid/icons/erase_dark_gray.svg" : "unraid/icons/erase_orange.svg")  : (icon == "icons/use_custom.png" ? (bgrect.mouseOver ? "unraid/icons/use_custom_dark_gray.svg" : "unraid/icons/use_custom_orange.svg") : icon))
+                    source: (icon == "https://craftassets.unraid.net/static/favicon/favicon.ico") ? (bgrect.mouseOver ? "unraid/icons/un-mark-dark-gray.svg" : "unraid/icons/un-mark-gradient.svg") : (icon == "icons/erase.png" ? (bgrect.mouseOver ? "unraid/icons/erase_dark_gray.svg" : "unraid/icons/erase_orange.svg") : (icon == "icons/use_custom.png" ? (bgrect.mouseOver ? "unraid/icons/use_custom_dark_gray.svg" : "unraid/icons/use_custom_orange.svg") : icon))
                     Layout.preferredHeight: 40
                     Layout.preferredWidth: 40
                     sourceSize.width: 40
@@ -1052,7 +1066,7 @@ ApplicationWindow {
                             source: bgrect.mouseOver ? "unraid/icons/info_dark_gray.svg" : "unraid/icons/info_orange.svg"
                             Layout.preferredHeight: 16
                             Layout.preferredWidth: 16
-                            visible: typeof(website) == "string" && website
+                            visible: typeof (website) == "string" && website
                             MouseArea {
                                 anchors.fill: parent
                                 onClicked: imageWriter.openUrl(website)
@@ -1076,7 +1090,7 @@ ApplicationWindow {
                         elide: Text.ElideRight
                         color: bgrect.mouseOver ? UnColors.darkGray : "white"
                         font.weight: Font.Light
-                        visible: typeof(release_date) == "string" && release_date
+                        visible: typeof (release_date) == "string" && release_date
                         text: qsTr("Released: %1").arg(release_date)
                     }
                     Text {
@@ -1084,25 +1098,20 @@ ApplicationWindow {
                         elide: Text.ElideRight
                         color: bgrect.mouseOver ? UnColors.darkGray : "white"
                         font.weight: Font.Light
-                        visible: typeof(url) == "string" && url != "" && url != "internal://format"
-                        text: !url ? "" :
-                              typeof(extract_sha256) != "undefined" && imageWriter.isCached(url,extract_sha256)
-                                ? qsTr("Cached on your computer")
-                                : url.startsWith("file://")
-                                  ? qsTr("Local file")
-                                  : qsTr("Online - %1 GB download").arg((image_download_size/1073741824).toFixed(1))
+                        visible: typeof (url) == "string" && url != "" && url != "internal://format"
+                        text: !url ? "" : typeof (extract_sha256) != "undefined" && imageWriter.isCached(url, extract_sha256) ? qsTr("Cached on your computer") : url.startsWith("file://") ? qsTr("Local file") : qsTr("Online - %1 GB download").arg((image_download_size / 1073741824).toFixed(1))
                     }
 
                     ToolTip {
-                        visible: osMouseArea.containsMouse && typeof(tooltip) == "string" && tooltip != ""
+                        visible: osMouseArea.containsMouse && typeof (tooltip) == "string" && tooltip != ""
                         delay: 1000
-                        text: typeof(tooltip) == "string" ? tooltip : ""
+                        text: typeof (tooltip) == "string" ? tooltip : ""
                         clip: false
                     }
                 }
                 Image {
                     source: "icons/ic_chevron_right_40px_orange.svg"
-                    visible: (typeof(subitems_json) == "string" && subitems_json != "") || (typeof(subitems_url) == "string" && subitems_url != "" && subitems_url != "internal://back")
+                    visible: (typeof (subitems_json) == "string" && subitems_json != "") || (typeof (subitems_url) == "string" && subitems_url != "" && subitems_url != "internal://back")
                     Layout.preferredHeight: 40
                     Layout.preferredWidth: 40
                     fillMode: Image.PreserveAspectFit
@@ -1118,8 +1127,8 @@ ApplicationWindow {
         id: dstpopup
         x: 50
         y: 25
-        width: parent.width-100
-        height: parent.height-50
+        width: parent.width - 100
+        height: parent.height - 50
         padding: 0
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
         onClosed: imageWriter.stopDriveListPolling()
@@ -1159,7 +1168,7 @@ ApplicationWindow {
                 anchors.fill: parent
                 cursorShape: Qt.PointingHandCursor
                 onClicked: {
-                    dstpopup.close()
+                    dstpopup.close();
                 }
             }
         }
@@ -1187,10 +1196,13 @@ ApplicationWindow {
                     id: dstlist
                     model: driveListModel
                     delegate: dstdelegate
-                    width: window.width-100
-                    height: window.height-100
+                    width: window.width - 100
+                    height: window.height - 100
                     boundsBehavior: Flickable.StopAtBounds
-                    highlight: Rectangle { color: "lightsteelblue"; radius: 5 }
+                    highlight: Rectangle {
+                        color: "lightsteelblue"
+                        radius: 5
+                    }
 
                     Label {
                         anchors.fill: parent
@@ -1209,13 +1221,13 @@ ApplicationWindow {
 
                     Keys.onSpacePressed: {
                         if (currentIndex == -1)
-                            return
-                        selectDstItem(currentItem)
+                            return;
+                        selectDstItem(currentItem);
                     }
                     Accessible.onPressAction: {
                         if (currentIndex == -1)
-                            return
-                        selectDstItem(currentItem)
+                            return;
+                        selectDstItem(currentItem);
                     }
                     Keys.onEnterPressed: Keys.onSpacePressed(event)
                     Keys.onReturnPressed: Keys.onSpacePressed(event)
@@ -1228,12 +1240,12 @@ ApplicationWindow {
         id: dstdelegate
 
         Item {
-            width: window.width-100
+            width: window.width - 100
             height: 60
             Accessible.name: {
-                var txt = description+" - "+(size/1000000000).toFixed(1)+" GB"
+                var txt = description + " - " + (size / 1000000000).toFixed(1) + " GB";
                 if (mountpoints.length > 0) {
-                    txt += qsTr(" Mounted as %1").arg(mountpoints.join(", "))
+                    txt += qsTr(" Mounted as %1").arg(mountpoints.join(", "));
                 }
                 return txt;
             }
@@ -1243,15 +1255,13 @@ ApplicationWindow {
             property string guid: model.guid
             property bool guidValid: model.guidValid
 
-
             Rectangle {
-               id: dstbgrect
-               anchors.fill: parent
-               color: mouseOver ? UnColors.orange : UnColors.darkGray
-               visible: mouseOver && parent.ListView.view.currentIndex !== index
-               property bool mouseOver: false
-               border.color: UnColors.mediumGray
-
+                id: dstbgrect
+                anchors.fill: parent
+                color: mouseOver ? UnColors.orange : UnColors.darkGray
+                visible: mouseOver && parent.ListView.view.currentIndex !== index
+                property bool mouseOver: false
+                border.color: UnColors.mediumGray
             }
             MouseArea {
                 anchors.fill: parent
@@ -1259,25 +1269,24 @@ ApplicationWindow {
                 cursorShape: Qt.PointingHandCursor
                 hoverEnabled: true
 
-
                 onEntered: {
-                    dstbgrect.mouseOver = true
+                    dstbgrect.mouseOver = true;
                 }
 
                 onExited: {
-                    dstbgrect.mouseOver = false
+                    dstbgrect.mouseOver = false;
                 }
 
                 onClicked: {
-                    selectDstItem(model)
+                    selectDstItem(model);
                 }
             }
             Rectangle {
-               id: dstborderrect
-               implicitHeight: 1
-               implicitWidth: parent.width
-               color: UnColors.mediumGray
-               y: parent.height
+                id: dstborderrect
+                implicitHeight: 1
+                implicitWidth: parent.width
+                color: UnColors.mediumGray
+                y: parent.height
             }
 
             Row {
@@ -1295,7 +1304,7 @@ ApplicationWindow {
                     }
                 }
                 Column {
-                    width: parent.parent.width-64
+                    width: parent.parent.width - 64
 
                     ColumnLayout {
                         spacing: 1
@@ -1307,9 +1316,9 @@ ApplicationWindow {
                             font.family: roboto.name
                             font.pixelSize: 14
                             text: {
-                                var sizeStr = (size/1000000000).toFixed(1) + " GB";
-                                var txt = description + " - " + sizeStr
-                                return txt
+                                var sizeStr = (size / 1000000000).toFixed(1) + " GB";
+                                var txt = description + " - " + sizeStr;
+                                return txt;
                             }
                             color: dstbgrect.mouseOver ? UnColors.darkGray : "white"
                             opacity: enabled ? 1.0 : 0.3
@@ -1322,20 +1331,19 @@ ApplicationWindow {
                             font.family: roboto.name
                             font.pixelSize: 12
                             text: {
-                                var txt = ""
+                                var txt = "";
                                 if (mountpoints.length > 0) {
-                                    txt += qsTr("Mounted as %1 ").arg(mountpoints.join(", "))
+                                    txt += qsTr("Mounted as %1 ").arg(mountpoints.join(", "));
                                 }
                                 if (isReadOnly) {
-                                    txt += qsTr("[WRITE PROTECTED]")
+                                    txt += qsTr("[WRITE PROTECTED]");
                                 }
-                                return txt
+                                return txt;
                             }
                             color: dstbgrect.mouseOver ? UnColors.darkGray : "white"
                             opacity: enabled ? 1.0 : 0.3
                             anchors.topMargin: 10
                         }
-
 
                         RowLayout {
                             spacing: 4
@@ -1350,52 +1358,41 @@ ApplicationWindow {
                                 opacity: enabled ? 1.0 : 0.3
                                 text: {
                                     if (guid != "") {
-                                        return guidValid ? "GUID: %1".arg(guid)
-                                                         : "GUID: %1 <font color='red'>[BLACKLISTED]</font>".arg(guid)
+                                        return guidValid ? qsTr("GUID: %1").arg(guid) : qsTr("GUID: %1 <font color='red'>[BLACKLISTED]</font>").arg(guid);
                                     } else {
-                                        return "<font color='red'>[MISSING GUID - Choose Another Flash Device]</font>"
+                                        return qsTr("<font color='red'>[MISSING GUID - Choose Another Flash Device]</font>");
                                     }
                                 }
-
                             }
 
-
                             ToolButton {
-                                icon.source: dstbgrect.mouseOver ? "unraid/icons/info_dark_gray.svg": "unraid/icons/info_orange.svg"
+                                icon.source: dstbgrect.mouseOver ? "unraid/icons/info_dark_gray.svg" : "unraid/icons/info_orange.svg"
                                 icon.color: "transparent"
                                 icon.width: 16
                                 icon.height: 16
                                 Layout.alignment: Qt.AlignVCenter
                                 padding: 0
-                                implicitWidth:  icon.width
+                                implicitWidth: icon.width
                                 implicitHeight: icon.height
                                 visible: guid != "" && !guidValid
                                 hoverEnabled: true
                                 ToolTip.visible: hovered
-                                ToolTip.text: "This USB device is blacklisted. You may not be able to use this device to get an Unraid license or trial."
-                              }
-
+                                ToolTip.text: qsTr("This USB device is blacklisted. You may not be able to use this device to get an Unraid license or trial.")
+                            }
                         }
-
                     }
                 }
-
-
-
-
             }
-
-
         }
     }
 
     MsgPopup {
         id: msgpopup
         onOpened: {
-            forceActiveFocus()
+            forceActiveFocus();
         }
         onInstallGuide: {
-            imageWriter.openUrl("https://docs.unraid.net/go/quick-install-guide")
+            imageWriter.openUrl("https://docs.unraid.net/go/quick-install-guide");
         }
     }
 
@@ -1419,7 +1416,7 @@ ApplicationWindow {
         title: qsTr("Are you sure you want to quit?")
         text: qsTr("Unraid USB Creator is still busy.<br>Are you sure you want to quit?")
         onYes: {
-            Qt.quit()
+            Qt.quit();
         }
     }
 
@@ -1431,32 +1428,31 @@ ApplicationWindow {
         title: qsTr("Warning")
         modal: true
         onYes: {
-            langbarRect.visible = false
-            writebutton.visible = false
-            writebutton.enabled = false
-            cancelwritebutton.enabled = true
-            cancelwritebutton.visible = true
-            cancelverifybutton.enabled = true
+            langbarRect.visible = false;
+            writebutton.visible = false;
+            writebutton.enabled = false;
+            cancelwritebutton.enabled = true;
+            cancelwritebutton.visible = true;
+            cancelverifybutton.enabled = true;
             progressText.text = qsTr("Preparing to write...");
-            progressText.visible = true
-            progressBar.visible = true
-            progressBar.indeterminate = true
-            progressBar.Material.accent = UnColors.orange
-            osbutton.enabled = false
-            dstbutton.enabled = false
-            hwbutton.enabled = false
-            imageWriter.setVerifyEnabled(true)
-            imageWriter.startWrite()
+            progressText.visible = true;
+            progressBar.visible = true;
+            progressBar.indeterminate = true;
+            progressBar.Material.accent = UnColors.orange;
+            osbutton.enabled = false;
+            dstbutton.enabled = false;
+            hwbutton.enabled = false;
+            imageWriter.setVerifyEnabled(true);
+            imageWriter.startWrite();
         }
 
-        function askForConfirmation()
-        {
-            text = qsTr("All existing data on '%1' will be erased.<br>Are you sure you want to continue?").arg(dstbutton.text)
-            openPopup()
+        function askForConfirmation() {
+            text = qsTr("All existing data on '%1' will be erased.<br>Are you sure you want to continue?").arg(dstbutton.text);
+            openPopup();
         }
 
         onOpened: {
-            forceActiveFocus()
+            forceActiveFocus();
         }
     }
 
@@ -1469,137 +1465,134 @@ ApplicationWindow {
         title: qsTr("Update available")
         text: qsTr("There is a newer version of Unraid USB Creator available.<br>Would you like to visit the website to download it?")
         onYes: {
-            imageWriter.openUrl(url)
+            imageWriter.openUrl(url);
         }
     }
 
     UnraidOptionsPopup {
         id: optionspopup
         onSaveSettingsSignal: {
-            imageWriter.setSavedCustomizationSettings(settings)
+            imageWriter.setSavedCustomizationSettings(settings);
         }
         onContinueSignal: {
-            confirmwritepopup.askForConfirmation()
+            confirmwritepopup.askForConfirmation();
         }
     }
 
     /* Slots for signals imagewrite emits */
-    function onDownloadProgress(now,total) {
-        var newPos
+    function onDownloadProgress(now, total) {
+        var newPos;
         if (total) {
-            newPos = now/(total+1)
+            newPos = now / (total + 1);
         } else {
-            newPos = 0
+            newPos = 0;
         }
         if (progressBar.value !== newPos) {
             if (progressText.text === qsTr("Cancelling..."))
-                return
-
-            progressText.text = qsTr("Writing... %1%").arg(Math.floor(newPos*100))
-            progressBar.indeterminate = false
-            progressBar.value = newPos
+                return;
+            progressText.text = qsTr("Writing... %1%").arg(Math.floor(newPos * 100));
+            progressBar.indeterminate = false;
+            progressBar.value = newPos;
         }
     }
 
-    function onVerifyProgress(now,total) {
-        var newPos
+    function onVerifyProgress(now, total) {
+        var newPos;
         if (total) {
-            newPos = now/total
+            newPos = now / total;
         } else {
-            newPos = 0
+            newPos = 0;
         }
 
         if (progressBar.value !== newPos) {
             if (cancelwritebutton.visible) {
-                cancelwritebutton.visible = false
-                cancelverifybutton.visible = true
+                cancelwritebutton.visible = false;
+                cancelverifybutton.visible = true;
             }
 
             if (progressText.text === qsTr("Finalizing..."))
-                return
-
-            progressText.text = qsTr("Verifying... %1%").arg(Math.floor(newPos*100))
-            progressBar.Material.accent = UnColors.orange
-            progressBar.value = newPos
+                return;
+            progressText.text = qsTr("Verifying... %1%").arg(Math.floor(newPos * 100));
+            progressBar.Material.accent = UnColors.orange;
+            progressBar.value = newPos;
         }
     }
 
     function onPreparationStatusUpdate(msg) {
-        progressText.text = qsTr("Preparing to write... (%1)").arg(msg)
+        progressText.text = qsTr("Preparing to write... (%1)").arg(msg);
     }
 
     function onOsListPrepared() {
-        fetchOSlist()
+        fetchOSlist();
     }
 
     function resetWriteButton() {
-        progressText.visible = false
-        progressBar.visible = false
-        osbutton.enabled = true
-        dstbutton.enabled = true
-        hwbutton.enabled = true
-        writebutton.visible = true
-        writebutton.enabled = imageWriter.readyToWrite()
-        cancelwritebutton.visible = false
-        cancelverifybutton.visible = false
+        progressText.visible = false;
+        progressBar.visible = false;
+        osbutton.enabled = true;
+        dstbutton.enabled = true;
+        hwbutton.enabled = true;
+        writebutton.visible = true;
+        writebutton.enabled = imageWriter.readyToWrite();
+        cancelwritebutton.visible = false;
+        cancelverifybutton.visible = false;
     }
 
     function onError(msg) {
-        msgpopup.title = qsTr("Error")
-        msgpopup.text = msg
-        msgpopup.openPopup()
-        resetWriteButton()
+        msgpopup.title = qsTr("Error");
+        msgpopup.text = msg;
+        msgpopup.openPopup();
+        resetWriteButton();
     }
 
     function onSuccess() {
-        msgpopup.title = qsTr("Write Successful")
+        msgpopup.title = qsTr("Write Successful");
         if (osbutton.text === qsTr("Erase"))
-            msgpopup.text = qsTr("<b>%1</b> has been erased.<br><br>Your drive has been ejected, you can now safely remove it.").arg(dstbutton.text)
+            msgpopup.text = qsTr("<b>%1</b> has been erased.<br><br>Your drive has been ejected, you can now safely remove it.").arg(dstbutton.text);
         else if (imageWriter.isEmbeddedMode()) {
             //msgpopup.text = qsTr("<b>%1</b> has been written to <b>%2</b>").arg(osbutton.text).arg(dstbutton.text)
             /* Just reboot to the installed OS */
-            Qt.quit()
-        }
-        else {
-            msgpopup.text = qsTr("<b>%1</b> has been written to <b>%2</b>.").arg(osbutton.text).arg(dstbutton.text)
-            if(imageWriter.getInitFormat() === "UNRAID") {
-                if(!imageWriter.windowsBuild()) {
-                    msgpopup.text += qsTr("<br><br>If you would like to enable legacy boot (bios), helpful for old hardware, please run the 'make_bootable_(mac/linux/windows)' script from this computer, located in the main folder of the UNRAID flash drive.")
+            Qt.quit();
+        } else {
+            msgpopup.text = qsTr("<b>%1</b> has been written to <b>%2</b>.").arg(osbutton.text).arg(dstbutton.text);
+            if (imageWriter.getInitFormat() === "UNRAID") {
+                if (!imageWriter.windowsBuild()) {
+                    msgpopup.text += qsTr("<br><br>If you would like to enable legacy boot (bios), helpful for old hardware, please run the 'make_bootable_(mac/linux/windows)' script from this computer, located in the main folder of the UNRAID flash drive.");
                 }
-                msgpopup.installGuideButton = true
+                msgpopup.installGuideButton = true;
             }
         }
         if (imageWriter.isEmbeddedMode()) {
-            msgpopup.continueButton = false
-            msgpopup.quitButton = true
+            msgpopup.continueButton = false;
+            msgpopup.quitButton = true;
         }
 
-        msgpopup.openPopup()
-        imageWriter.setDst("", false)
-        dstbutton.text = qsTr("CHOOSE STORAGE")
-        resetWriteButton()
+        msgpopup.openPopup();
+        imageWriter.setDst("", false);
+        dstbutton.text = qsTr("CHOOSE STORAGE");
+        resetWriteButton();
     }
 
     function onFileSelected(file) {
-        imageWriter.setSrc(file)
-        osbutton.text = imageWriter.srcFileName()
-        ospopup.close()
-        osswipeview.decrementCurrentIndex()
+        imageWriter.setSrc(file);
+        osbutton.text = imageWriter.srcFileName();
+        ospopup.close();
+        osswipeview.decrementCurrentIndex();
         if (imageWriter.readyToWrite()) {
-            writebutton.enabled = true
+            writebutton.enabled = true;
         }
     }
 
     function onCancelled() {
-        resetWriteButton()
+        resetWriteButton();
     }
 
     function onFinalizing() {
-        progressText.text = qsTr("Finalizing...")
+        progressText.text = qsTr("Finalizing...");
     }
 
     function onNetworkInfo(msg) {
-        networkInfo.text = msg
+        networkInfo.text = msg;
     }
 
     function shuffle(arr) {
@@ -1614,199 +1607,189 @@ ApplicationWindow {
 
     function checkForRandom(list) {
         for (var i in list) {
-            var entry = list[i]
+            var entry = list[i];
 
             if ("subitems" in entry) {
-                checkForRandom(entry["subitems"])
+                checkForRandom(entry["subitems"]);
                 if ("random" in entry && entry["random"]) {
-                    shuffle(entry["subitems"])
+                    shuffle(entry["subitems"]);
                 }
             }
         }
     }
 
-    function filterItems(list, tags, matchingType)
-    {
+    function filterItems(list, tags, matchingType) {
         if (!tags || !tags.length)
-            return
-
-        var i = list.length
+            return;
+        var i = list.length;
         while (i--) {
-            var entry = list[i]
+            var entry = list[i];
 
             if ("devices" in entry && entry["devices"].length) {
-                var foundTag = false
+                var foundTag = false;
 
-                switch(matchingType) {
-                    case 0: /* exact matching */
-                    case 2: /* exact matching */
-                        for (var j in tags)
-                        {
-                            if (entry["devices"].includes(tags[j]))
-                            {
-                                foundTag = true
-                                break
+                switch (matchingType) {
+                case 0: /* exact matching */
+                case 2 /* exact matching */
+                :
+                    for (var j in tags) {
+                        if (entry["devices"].includes(tags[j])) {
+                            foundTag = true;
+                            break;
+                        }
+                    }
+                    /* If there's no match, remove this item from the list. */
+                    if (!foundTag) {
+                        list.splice(i, 1);
+                        continue;
+                    }
+                    break;
+                case 1: /* Exlusive by prefix matching */
+                case 3 /* Inclusive by prefix matching */
+                :
+                    for (var deviceTypePrefix in tags) {
+                        for (var deviceSpec in entry["devices"]) {
+                            if (deviceSpec.startsWith(deviceTypePrefix)) {
+                                foundTag = true;
+                                break;
                             }
                         }
-                        /* If there's no match, remove this item from the list. */
-                        if (!foundTag)
-                        {
-                            list.splice(i, 1)
-                            continue
-                        }
-                        break
-                    case 1: /* Exlusive by prefix matching */
-                    case 3: /* Inclusive by prefix matching */
-                        for (var deviceTypePrefix in tags) {
-                            for (var deviceSpec in entry["devices"]) {
-                                if (deviceSpec.startsWith(deviceTypePrefix)) {
-                                    foundTag = true
-                                    break
-                                }
-                            }
-                            /* Terminate outer loop early if we've already
+                        /* Terminate outer loop early if we've already
                              * decided it's a match
                              */
-                            if (foundTag) {
-                                break
-                            }
+                        if (foundTag) {
+                            break;
                         }
-                        /* If there's no match, remove this item from the list. */
-                        if (!foundTag)
-                        {
-                            list.splice(i, 1)
-                            continue
-                        }
-                        break
+                    }
+                    /* If there's no match, remove this item from the list. */
+                    if (!foundTag) {
+                        list.splice(i, 1);
+                        continue;
+                    }
+                    break;
                 }
             } else {
                 /* No device list attached? If we're in an exclusive mode that's bad news indeed. */
                 switch (matchingType) {
-                    case 0:
-                    case 1:
-                        if (!("subitems" in entry)) {
-                            /* If you're not carrying subitems, you're not going in. */
-                            list.splice(i, 1)
-                        }
-                        break
-                    case 2:
-                    case 3:
-                        /* Inclusive filtering. We're keeping this one. */
-                        break;
+                case 0:
+                case 1:
+                    if (!("subitems" in entry)) {
+                        /* If you're not carrying subitems, you're not going in. */
+                        list.splice(i, 1);
+                    }
+                    break;
+                case 2:
+                case 3:
+                    /* Inclusive filtering. We're keeping this one. */
+                    break;
                 }
             }
 
             if ("subitems" in entry) {
-                filterItems(entry["subitems"], tags, hwTagMatchingType)
+                filterItems(entry["subitems"], tags, hwTagMatchingType);
 
                 // If this sub-list has no items then hide it
                 if (entry["subitems"].length == 0) {
-                    list.splice(i, 1)
+                    list.splice(i, 1);
                 }
             }
         }
     }
 
     function oslistFromJson(o) {
-        var oslist_parsed = false
-        var lang_country = Qt.locale().name
-        if ("os_list_"+lang_country in o) {
-            oslist_parsed = o["os_list_"+lang_country]
-        }
-        else if (lang_country.includes("_")) {
-            var lang = lang_country.substr(0, lang_country.indexOf("_"))
-            if ("os_list_"+lang in o) {
-                oslist_parsed = o["os_list_"+lang]
+        var oslist_parsed = false;
+        var lang_country = Qt.locale().name;
+        if ("os_list_" + lang_country in o) {
+            oslist_parsed = o["os_list_" + lang_country];
+        } else if (lang_country.includes("_")) {
+            var lang = lang_country.substr(0, lang_country.indexOf("_"));
+            if ("os_list_" + lang in o) {
+                oslist_parsed = o["os_list_" + lang];
             }
         }
 
         if (!oslist_parsed) {
             if (!"os_list" in o) {
-                onError(qsTr("Error parsing os_list.json"))
-                return false
+                onError(qsTr("Error parsing os_list.json"));
+                return false;
             }
 
-            oslist_parsed = o["os_list"]
+            oslist_parsed = o["os_list"];
         }
 
-        checkForRandom(oslist_parsed)
+        checkForRandom(oslist_parsed);
 
         /* Flatten subitems to subitems_json */
         for (var i in oslist_parsed) {
             var entry = oslist_parsed[i];
             if ("subitems" in entry) {
-                entry["subitems_json"] = JSON.stringify(entry["subitems"])
-                delete entry["subitems"]
+                entry["subitems_json"] = JSON.stringify(entry["subitems"]);
+                delete entry["subitems"];
             }
         }
 
-        return oslist_parsed
+        return oslist_parsed;
     }
 
-    function selectNamedOS(name, collection)
-    {
+    function selectNamedOS(name, collection) {
         for (var i = 0; i < collection.count; i++) {
-            var os = collection.get(i)
+            var os = collection.get(i);
 
-            if (typeof(os.subitems_json) == "string" && os.subitems_json != "") {
-                selectNamedOS(name, os.subitems_json)
-            }
-            else if (typeof(os.url) !== "undefined" && name === os.name) {
-                selectOSitem(os, false)
-                break
+            if (typeof (os.subitems_json) == "string" && os.subitems_json != "") {
+                selectNamedOS(name, os.subitems_json);
+            } else if (typeof (os.url) !== "undefined" && name === os.name) {
+                selectOSitem(os, false);
+                break;
             }
         }
     }
 
     function fetchOSlist() {
         var oslist_json = imageWriter.getFilteredOSlist();
-        var o = JSON.parse(oslist_json)
-        var oslist_parsed = oslistFromJson(o)
+        var o = JSON.parse(oslist_json);
+        var oslist_parsed = oslistFromJson(o);
         if (oslist_parsed === false)
-            return
-        osmodel.clear()
+            return;
+        osmodel.clear();
         for (var i in oslist_parsed) {
-            osmodel.append(oslist_parsed[i])
+            osmodel.append(oslist_parsed[i]);
         }
 
         if ("imager" in o) {
-            var imager = o["imager"]
+            var imager = o["imager"];
 
-            if ("devices" in imager)
-            {
-                deviceModel.clear()
-                var devices = imager["devices"]
-                for (var j in devices)
-                {
-                    devices[j]["tags"] = JSON.stringify(devices[j]["tags"])
-                    deviceModel.append(devices[j])
-                    if ("default" in devices[j] && devices[j]["default"])
-                    {
-                        hwlist.currentIndex = deviceModel.count-1
+            if ("devices" in imager) {
+                deviceModel.clear();
+                var devices = imager["devices"];
+                for (var j in devices) {
+                    devices[j]["tags"] = JSON.stringify(devices[j]["tags"]);
+                    deviceModel.append(devices[j]);
+                    if ("default" in devices[j] && devices[j]["default"]) {
+                        hwlist.currentIndex = deviceModel.count - 1;
                     }
                 }
                 // default select first item in hwlist if hwlist not empty
-                if(hwlist.count > 0)
-                    selectHWitem(hwlist.model.get(0))
+                if (hwlist.count > 0)
+                    selectHWitem(hwlist.model.get(0));
             }
 
             if (imageWriter.getBoolSetting("check_version") && "latest_version" in imager && "url" in imager) {
                 if (!imageWriter.isEmbeddedMode() && imageWriter.isVersionNewer(imager["latest_version"])) {
-                    updatepopup.url = imager["url"]
-                    updatepopup.openPopup()
+                    updatepopup.url = imager["url"];
+                    updatepopup.openPopup();
                 }
             }
             if ("default_os" in imager) {
-                selectNamedOS(imager["default_os"], osmodel)
+                selectNamedOS(imager["default_os"], osmodel);
             }
             if (imageWriter.isEmbeddedMode()) {
                 if ("embedded_default_os" in imager) {
-                    selectNamedOS(imager["embedded_default_os"], osmodel)
+                    selectNamedOS(imager["embedded_default_os"], osmodel);
                 }
                 if ("embedded_default_destination" in imager) {
-                    imageWriter.startDriveListPolling()
-                    setDefaultDest.drive = imager["embedded_default_destination"]
-                    setDefaultDest.start()
+                    imageWriter.startDriveListPolling();
+                    setDefaultDest.drive = imager["embedded_default_destination"];
+                    setDefaultDest.start();
                 }
             }
         }
@@ -1815,67 +1798,64 @@ ApplicationWindow {
     Timer {
         /* Verify if default drive is in our list after 100 ms */
         id: setDefaultDest
-        property string drive : ""
+        property string drive: ""
         interval: 100
         onTriggered: {
-            for (var i = 0; i < driveListModel.rowCount(); i++)
-            {
+            for (var i = 0; i < driveListModel.rowCount(); i++) {
                 /* FIXME: there should be a better way to iterate drivelist than
                    fetch data by numeric role number */
-                if (driveListModel.data(driveListModel.index(i,0), 0x101) === drive) {
+                if (driveListModel.data(driveListModel.index(i, 0), 0x101) === drive) {
                     selectDstItem({
                         device: drive,
-                        description: driveListModel.data(driveListModel.index(i,0), 0x102),
-                        size: driveListModel.data(driveListModel.index(i,0), 0x103),
-                        guid: driveListModel.data(driveListModel.index(i,0), 0x108),
-                        guidValid: driveListModel.data(driveListModel.index(i,0), 0x109),
+                        description: driveListModel.data(driveListModel.index(i, 0), 0x102),
+                        size: driveListModel.data(driveListModel.index(i, 0), 0x103),
+                        guid: driveListModel.data(driveListModel.index(i, 0), 0x108),
+                        guidValid: driveListModel.data(driveListModel.index(i, 0), 0x109),
                         readonly: false
-                    })
-                    break
+                    });
+                    break;
                 }
             }
         }
     }
 
     function newSublist() {
-        if (osswipeview.currentIndex == (osswipeview.count-1))
-        {
-            var newlist = suboslist.createObject(osswipeview)
-            osswipeview.addItem(newlist)
+        if (osswipeview.currentIndex == (osswipeview.count - 1)) {
+            var newlist = suboslist.createObject(osswipeview);
+            osswipeview.addItem(newlist);
         }
 
-        var m = osswipeview.itemAt(osswipeview.currentIndex+1).model
+        var m = osswipeview.itemAt(osswipeview.currentIndex + 1).model;
 
-        if (m.count>1)
-        {
-            m.remove(1, m.count-1)
+        if (m.count > 1) {
+            m.remove(1, m.count - 1);
         }
 
-        return m
+        return m;
     }
 
     function selectHWitem(hwmodel) {
         /* Default is exclusive matching */
-        var inclusive = false
+        var inclusive = false;
 
         if (hwmodel.matching_type) {
             switch (hwmodel.matching_type) {
-                case "exclusive":
-                    break;
-                case "inclusive":
-                    inclusive = true
-                    break;
+            case "exclusive":
+                break;
+            case "inclusive":
+                inclusive = true;
+                break;
             }
         }
 
-        imageWriter.setHWFilterList(hwmodel.tags, inclusive)
+        imageWriter.setHWFilterList(hwmodel.tags, inclusive);
 
         /* Reload list */
         var oslist_json = imageWriter.getFilteredOSlist();
-        var o = JSON.parse(oslist_json)
-        var oslist_parsed = oslistFromJson(o)
+        var o = JSON.parse(oslist_json);
+        var oslist_parsed = oslistFromJson(o);
         if (oslist_parsed === false)
-            return
+            return;
 
         /* As we're filtering the OS list, we need to ensure we present a 'Recommended' OS.
             * To do this, we exploit a convention of how we build the OS list. By convention,
@@ -1883,124 +1863,114 @@ ApplicationWindow {
             * lowest index. So..
             */
         if (oslist_parsed.length != 0) {
-            var candidate = oslist_parsed[0]
+            var candidate = oslist_parsed[0];
 
             if ("description" in candidate && !("subitems" in candidate)) {
-                candidate["description"] += " (Recommended)"
+                candidate["description"] += " (Recommended)";
             }
         }
 
-        osmodel.clear()
+        osmodel.clear();
         for (var i in oslist_parsed) {
-            osmodel.append(oslist_parsed[i])
+            osmodel.append(oslist_parsed[i]);
         }
 
         // When the HW device is changed, reset the OS selection otherwise
         // you get a weird effect with the selection moving around in the list
         // when the user next opens the OS list, and the user could still have
         // an OS selected which isn't compatible with this HW device
-        oslist.currentIndex = -1
-        osswipeview.currentIndex = 0
-        imageWriter.setSrc("")
-        osbutton.text = qsTr("CHOOSE OS")
-        writebutton.enabled = false
+        oslist.currentIndex = -1;
+        osswipeview.currentIndex = 0;
+        imageWriter.setSrc("");
+        osbutton.text = qsTr("CHOOSE OS");
+        writebutton.enabled = false;
 
-        hwbutton.text = hwmodel.name
-        hwpopup.close()
+        hwbutton.text = hwmodel.name;
+        hwpopup.close();
     }
 
     /// Is the item a sub-list or sub-sub-list in the OS selection model?
     function isOSsublist(d) {
         // Top level category
-        if (typeof(d.subitems_json) == "string" && d.subitems_json !== "") {
-            return true
+        if (typeof (d.subitems_json) == "string" && d.subitems_json !== "") {
+            return true;
         }
 
         // Sub-category
-        if (typeof(d.subitems_url) == "string" && d.subitems_url !== ""
-            && d.subitems_url !== "internal://back")
-        {
-            return true
+        if (typeof (d.subitems_url) == "string" && d.subitems_url !== "" && d.subitems_url !== "internal://back") {
+            return true;
         }
 
-        return false
+        return false;
     }
 
-    function selectOSitem(d, selectFirstSubitem)
-    {
-        if (typeof(d.subitems_json) == "string" && d.subitems_json !== "") {
-            var m = newSublist()
-            var subitems = JSON.parse(d.subitems_json)
+    function selectOSitem(d, selectFirstSubitem) {
+        if (typeof (d.subitems_json) == "string" && d.subitems_json !== "") {
+            var m = newSublist();
+            var subitems = JSON.parse(d.subitems_json);
 
-            for (var i in subitems)
-            {
+            for (var i in subitems) {
                 var entry = subitems[i];
                 if ("subitems" in entry) {
                     /* Flatten sub-subitems entry */
-                    entry["subitems_json"] = JSON.stringify(entry["subitems"])
-                    delete entry["subitems"]
+                    entry["subitems_json"] = JSON.stringify(entry["subitems"]);
+                    delete entry["subitems"];
                 }
-                m.append(entry)
+                m.append(entry);
             }
 
-            osswipeview.itemAt(osswipeview.currentIndex+1).currentIndex = (selectFirstSubitem === true) ? 0 : -1
-            osswipeview.incrementCurrentIndex()
-            ospopup.categorySelected = d.name
-        } else if (typeof(d.subitems_url) == "string" && d.subitems_url !== "") {
-            if (d.subitems_url === "internal://back")
-            {
-                osswipeview.decrementCurrentIndex()
-                ospopup.categorySelected = ""
-            }
-            else
-            {
+            osswipeview.itemAt(osswipeview.currentIndex + 1).currentIndex = (selectFirstSubitem === true) ? 0 : -1;
+            osswipeview.incrementCurrentIndex();
+            ospopup.categorySelected = d.name;
+        } else if (typeof (d.subitems_url) == "string" && d.subitems_url !== "") {
+            if (d.subitems_url === "internal://back") {
+                osswipeview.decrementCurrentIndex();
+                ospopup.categorySelected = "";
+            } else {
                 console.log("Failure: Backend should have pre-flattened the JSON!");
 
-                osswipeview.itemAt(osswipeview.currentIndex+1).currentIndex = (selectFirstSubitem === true) ? 0 : -1
-                osswipeview.incrementCurrentIndex()
+                osswipeview.itemAt(osswipeview.currentIndex + 1).currentIndex = (selectFirstSubitem === true) ? 0 : -1;
+                osswipeview.incrementCurrentIndex();
             }
         } else if (d.url === "") {
             if (!imageWriter.isEmbeddedMode()) {
-                imageWriter.openFileDialog()
-            }
-            else {
+                imageWriter.openFileDialog();
+            } else {
                 if (imageWriter.mountUsbSourceMedia()) {
-                    var m = newSublist()
+                    var m = newSublist();
 
-                    var usboslist = JSON.parse(imageWriter.getUsbSourceOSlist())
+                    var usboslist = JSON.parse(imageWriter.getUsbSourceOSlist());
                     for (var i in usboslist) {
-                        m.append(usboslist[i])
+                        m.append(usboslist[i]);
                     }
-                    osswipeview.itemAt(osswipeview.currentIndex+1).currentIndex = (selectFirstSubitem === true) ? 0 : -1
-                    osswipeview.incrementCurrentIndex()
-                }
-                else
-                {
-                    onError(qsTr("Connect an USB stick containing images first.<br>The images must be located in the root folder of the USB stick."))
+                    osswipeview.itemAt(osswipeview.currentIndex + 1).currentIndex = (selectFirstSubitem === true) ? 0 : -1;
+                    osswipeview.incrementCurrentIndex();
+                } else {
+                    onError(qsTr("Connect an USB stick containing images first.<br>The images must be located in the root folder of the USB stick."));
                 }
             }
         } else {
-            imageWriter.setSrc(d.url, d.image_download_size, d.extract_size, typeof(d.extract_sha256) != "undefined" ? d.extract_sha256 : "", typeof(d.contains_multiple_files) != "undefined" ? d.contains_multiple_files : false, ospopup.categorySelected, d.name, typeof(d.init_format) != "undefined" ? d.init_format : "")
-            osbutton.text = d.name
-            ospopup.close()
-            osswipeview.decrementCurrentIndex()
+            imageWriter.setSrc(d.url, d.image_download_size, d.extract_size, typeof (d.extract_sha256) != "undefined" ? d.extract_sha256 : "", typeof (d.contains_multiple_files) != "undefined" ? d.contains_multiple_files : false, ospopup.categorySelected, d.name, typeof (d.init_format) != "undefined" ? d.init_format : "");
+            osbutton.text = d.name;
+            ospopup.close();
+            osswipeview.decrementCurrentIndex();
             if (imageWriter.readyToWrite()) {
-                writebutton.enabled = true
+                writebutton.enabled = true;
             }
         }
     }
 
     function selectDstItem(d) {
         if (d.isReadOnly) {
-            onError(qsTr("SD card is write protected.<br>Push the lock switch on the left side of the card upwards, and try again."))
-            return
+            onError(qsTr("SD card is write protected.<br>Push the lock switch on the left side of the card upwards, and try again."));
+            return;
         }
 
-        dstpopup.close()
-        imageWriter.setDst(d.device, d.guidValid, d.size)
-        dstbutton.text = d.description
+        dstpopup.close();
+        imageWriter.setDst(d.device, d.guidValid, d.size);
+        dstbutton.text = d.description;
         if (imageWriter.readyToWrite()) {
-            writebutton.enabled = true
+            writebutton.enabled = true;
         }
     }
 }
