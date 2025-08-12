@@ -39,16 +39,29 @@ jobs:
       - name: Build
         run: cmake --build ../build --config ${{ env.BUILD_TYPE }}
 
-      # 5) Ad-hoc code sign (for CI purposes only)
-      - name: Ad-hoc Code Sign .app
+      # Setup keychain and certificates for signing & unlock keychain
+      - name: Setup Keychain and Certificates
+        env:
+          APPLE_BUILD_CERTIFICATE_BASE64: ${{ secrets.APPLE_BUILD_CERTIFICATE_BASE64 }}
+          APPLE_BUILD_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_BUILD_CERTIFICATE_PASSWORD }}
+          APPLE_KEYCHAIN_PASSWORD: ${{ secrets.APPLE_KEYCHAIN_PASSWORD }}
+        run: |
+          chmod +x ../scripts/setup-keychain-mac.sh
+          ../scripts/setup-keychain-mac.sh
+
+       # Code sign the .app with proper certificate
+      - name: Code Sign .app
+        env:
+          APPLE_SIGNING_KEY_ID: ${{ secrets.APPLE_SIGNING_KEY_ID }}
+          APPLE_KEYCHAIN_PASSWORD: ${{ secrets.APPLE_KEYCHAIN_PASSWORD }}
         run: |
           CAPP="../build/unraid-usb-creator.app"
-          codesign --remove-signature "$CAPP"
-          codesign --force --deep --sign - "$CAPP"
+          codesign --deep --force --verify --verbose --sign "$APPLE_SIGNING_KEY_ID" --options runtime "$CAPP"
 
-      # 6) Remove quarantine attribute
+      # Remove quarantine attribute
       - name: Remove quarantine attribute
         run: sudo xattr -rc ../build/unraid-usb-creator.app
+
 
       # 7) Install Homebrew create-dmg (shell‐script version)
       - name: Install create-dmg
@@ -75,9 +88,20 @@ jobs:
             "${{ github.workspace }}/Releases/unraid-usb-creator.dmg" \
             "${{ github.workspace }}/build/unraid-usb-creator.app"
 
+
+      # Notarize the DMG
+      - name: Notarize DMG
+        env:
+          APPLE_EMAIL_ADDRESS: ${{ secrets.APPLE_EMAIL_ADDRESS }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          cd "${{ github.workspace }}/Releases"
+          xcrun notarytool submit "unraid-usb-creator.dmg" --apple-id "$APPLE_EMAIL_ADDRESS" --password "$APPLE_APP_PASSWORD" --team-id "$APPLE_TEAM_ID" --wait
+          xcrun stapler staple "unraid-usb-creator.dmg"
+
       - name: Upload Mac DMG
         uses: actions/upload-artifact@v4
         with:
           name: UnraidInstallerMacOS
           path: Releases/unraid-usb-creator.dmg
-# Might need to use `codesign` to sign the app and everything related to that
