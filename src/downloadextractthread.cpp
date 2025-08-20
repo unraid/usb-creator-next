@@ -19,6 +19,7 @@
 #include <QProcess>
 #include <QTemporaryDir>
 #include <QDebug>
+#include <QDomDocument>
 
 using namespace std;
 
@@ -355,83 +356,11 @@ void DownloadExtractThread::extractMultiFileRun()
         }
 
         if(_initFormat == "UNRAID") {
-            if(_allNetworkSettingsPresent() && _imgWriterSettings["static"].toBool())
-            {
-                QFile fileNetwork(folder + "/config/network.cfg");
-                if (fileNetwork.exists())
-                {
-                    fileNetwork.open(QIODevice::ReadOnly);
-                    QString dataText = fileNetwork.readAll();
-                    fileNetwork.close();
-
-                    dataText.replace("USE_DHCP=\"yes\"", "USE_DHCP=\"no\"");
-                    dataText.replace("IPADDR=", "IPADDR=\"" + _imgWriterSettings["ipaddr"].toString() + "\"");
-                    dataText.replace("NETMASK=", "NETMASK=\"" + _imgWriterSettings["netmask"].toString() + "\"");
-                    dataText.replace("GATEWAY=", "GATEWAY=\"" + _imgWriterSettings["gateway"].toString() + "\"");
-                    dataText.append("DNS_SERVER1=\"" + _imgWriterSettings["dns"].toString() + "\"\r\n");
-
-                    if (fileNetwork.open(QFile::WriteOnly | QFile::Truncate))
-                    {
-                        QTextStream out(&fileNetwork);
-                        out << dataText;
-                    }
-                    fileNetwork.close();
-                }
-
-            }
-            if(_imgWriterSettings.contains("servername")) {
-                QFile fileIdent(folder + "/config/ident.cfg");
-                if (fileIdent.exists())
-                {
-                    fileIdent.open(QIODevice::ReadOnly);
-                    QString dataText = fileIdent.readAll();
-                    fileIdent.close();
-
-                    dataText.replace("NAME=\"Tower\"", "NAME=\"" + _imgWriterSettings["servername"].toString() + "\"");
-
-                    if (fileIdent.open(QFile::WriteOnly | QFile::Truncate))
-                    {
-                        QTextStream out(&fileIdent);
-                        out << dataText;
-                    }
-                    fileIdent.close();
-                }
-            }
-
-            // restore make bootable scripts and/or syslinux, if necessary
-            QDir dirTarget(folder);
-            if (dirTarget.mkdir("syslinux"))
-            {
-                QFile::copy(":/unraid/syslinux/ldlinux.c32", folder + "/syslinux/ldlinux.c32");
-                QFile::copy(":/unraid/syslinux/libcom32.c32", folder + "/syslinux/libcom32.c32");
-                QFile::copy(":/unraid/syslinux/libutil.c32", folder + "/syslinux/libutil.c32");
-                QFile::copy(":/unraid/syslinux/make_bootable_linux.sh", folder + "/syslinux/make_bootable_linux.sh");
-                QFile::copy(":/unraid/syslinux/make_bootable_mac.sh", folder + "/syslinux/make_bootable_mac.sh");
-                QFile::copy(":/unraid/syslinux/mboot.c32", folder + "/syslinux/mboot.c32");
-                QFile::copy(":/unraid/syslinux/mbr.bin", folder + "/syslinux/mbr.bin");
-                QFile::copy(":/unraid/syslinux/menu.c32", folder + "/syslinux/menu.c32");
-                QFile::copy(":/unraid/syslinux/syslinux", folder + "/syslinux/syslinux");
-                QFile::copy(":/unraid/syslinux/syslinux_linux", folder + "/syslinux/syslinux_linux");
-                QFile::copy(":/unraid/syslinux/syslinux.cfg", folder + "/syslinux/syslinux.cfg");
-                QFile::copy(":/unraid/syslinux/syslinux.cfg-", folder + "/syslinux/syslinux.cfg-");
-                QFile::copy(":/unraid/syslinux/syslinux.exe", folder + "/syslinux/syslinux.exe");
-                QFile::copy(":/unraid/make_bootable_linux", folder + "/make_bootable_linux");
-                QFile::copy(":/unraid/make_bootable_mac", folder + "/make_bootable_mac");
-                QFile::copy(":/unraid/make_bootable.bat", folder + "/make_bootable.bat");
-            }
-
-#ifdef Q_OS_WIN
-            QString program{"cmd.exe"};
-            QStringList args;
-            args << "/C" << "echo Y | make_bootable.bat";
-
-            int retcode = QProcess::execute(program, args);
-
-            if (retcode)
-            {
-                throw runtime_error("Error running make_bootable script");
-            }
-#endif
+            _writeUnraidNetworkSettings();
+            _writeUnraidServerSettings();
+            _writeUnraidLanguageSettings();
+            _writeUnraidSyslinuxFiles();
+            _runUnraidMakeBootableScript();
         }
         emit success();
     }
@@ -552,4 +481,183 @@ void DownloadExtractThread::_pushQueue(const char *data, size_t len)
         lock.unlock();
         _cv.notify_one();
     }
+}
+
+void DownloadExtractThread::_writeUnraidNetworkSettings(const QString& dstDir)
+{
+    if(_allNetworkSettingsPresent() && _imgWriterSettings["static"].toBool())
+    {
+        QFile fileNetwork(dstDir + "/config/network.cfg");
+        if (fileNetwork.exists())
+        {
+            fileNetwork.open(QIODevice::ReadOnly);
+            QString dataText = fileNetwork.readAll();
+            fileNetwork.close();
+
+            dataText.replace("USE_DHCP=\"yes\"", "USE_DHCP=\"no\"");
+            dataText.replace("IPADDR=", "IPADDR=\"" + _imgWriterSettings["ipaddr"].toString() + "\"");
+            dataText.replace("NETMASK=", "NETMASK=\"" + _imgWriterSettings["netmask"].toString() + "\"");
+            dataText.replace("GATEWAY=", "GATEWAY=\"" + _imgWriterSettings["gateway"].toString() + "\"");
+            dataText.append("DNS_SERVER1=\"" + _imgWriterSettings["dns"].toString() + "\"\r\n");
+
+            if (fileNetwork.open(QFile::WriteOnly | QFile::Truncate))
+            {
+                QTextStream out(&fileNetwork);
+                out << dataText;
+            }
+            fileNetwork.close();
+        }
+
+    }
+}
+
+void DownloadExtractThread::_writeUnraidServerSettings(const QString& dstDir)
+{
+    if(_imgWriterSettings.contains("servername")) {
+        QFile fileIdent(dstDir + "/config/ident.cfg");
+        if (fileIdent.exists())
+        {
+            fileIdent.open(QIODevice::ReadOnly);
+            QString dataText = fileIdent.readAll();
+            fileIdent.close();
+
+            dataText.replace("NAME=\"Tower\"", "NAME=\"" + _imgWriterSettings["servername"].toString() + "\"");
+
+            if (fileIdent.open(QFile::WriteOnly | QFile::Truncate))
+            {
+                QTextStream out(&fileIdent);
+                out << dataText;
+            }
+            fileIdent.close();
+        }
+    }
+}
+
+void DownloadExtractThread::_writeUnraidLanguageSettings(const QString& dstDir)
+{
+    if(_imgWriterSettings.contains("UNRAID_LANG_JSON")) {
+        // remove this tmp file now that we're definitely done with it
+        QFile langJson(_imgWriterSettings["UNRAID_LANG_JSON"].toByteArray());
+        langJson.remove();
+    }
+
+    if(_imgWriterSettings.contains("UNRAID_LANG_CODE"))
+    {
+        QString unraidLangCode(_imgWriterSettings["UNRAID_LANG_CODE"].toString());
+        if(_imgWriterSettings.contains("UNRAID_LANG_XML")) {
+            QFile langXml(_imgWriterSettings["UNRAID_LANG_XML"].toByteArray());
+            QFile::rename(langXml.fileName(), dstDir + "/config/plugins/lang-" + unraidLangCode + ".xml");
+        }
+
+        if(_imgWriterSettings.contains("UNRAID_LANG_ZIP")) {
+            QFile langZip(_imgWriterSettings["UNRAID_LANG_ZIP"].toByteArray());
+            QFile::rename(langZip.fileName(), dstDir + "/config/plugins/dynamix/lang-" + unraidLangCode + ".zip");
+        }
+        QFile dynamixCfg(dstDir + "/config/plugins/dynamix/dynamix.cfg");
+        if (dynamixCfg.exists())
+        {
+            dynamixCfg.open(QIODevice::ReadOnly);
+            QString dataText = dynamixCfg.readAll();
+            dynamixCfg.close();
+
+            _addLocaleToUnraidDynamixConfig(dataText, unraidLangCode);
+
+            if (dynamixCfg.open(QFile::WriteOnly | QFile::Truncate))
+            {
+                QTextStream out(&dynamixCfg);
+                out << dataText;
+            }
+            dynamixCfg.close();
+        }
+    }
+}
+
+void DownloadExtractThread::_writeUnraidSyslinuxFiles(const QString& dstDir)
+{
+    // restore make bootable scripts and/or syslinux, if necessary
+    QDir dirTarget(dstDir);
+    if (dirTarget.mkdir("syslinux"))
+    {
+        QFile::copy(":/unraid/syslinux/ldlinux.c32", dstDir + "/syslinux/ldlinux.c32");
+        QFile::copy(":/unraid/syslinux/libcom32.c32", dstDir + "/syslinux/libcom32.c32");
+        QFile::copy(":/unraid/syslinux/libutil.c32", dstDir + "/syslinux/libutil.c32");
+        QFile::copy(":/unraid/syslinux/make_bootable_linux.sh", dstDir + "/syslinux/make_bootable_linux.sh");
+        QFile::copy(":/unraid/syslinux/make_bootable_mac.sh", dstDir + "/syslinux/make_bootable_mac.sh");
+        QFile::copy(":/unraid/syslinux/mboot.c32", dstDir + "/syslinux/mboot.c32");
+        QFile::copy(":/unraid/syslinux/mbr.bin", dstDir + "/syslinux/mbr.bin");
+        QFile::copy(":/unraid/syslinux/menu.c32", dstDir + "/syslinux/menu.c32");
+        QFile::copy(":/unraid/syslinux/syslinux", dstDir + "/syslinux/syslinux");
+        QFile::copy(":/unraid/syslinux/syslinux_linux", dstDir + "/syslinux/syslinux_linux");
+        QFile::copy(":/unraid/syslinux/syslinux.cfg", dstDir + "/syslinux/syslinux.cfg");
+        QFile::copy(":/unraid/syslinux/syslinux.cfg-", dstDir + "/syslinux/syslinux.cfg-");
+        QFile::copy(":/unraid/syslinux/syslinux.exe", dstDir + "/syslinux/syslinux.exe");
+        QFile::copy(":/unraid/make_bootable_linux", dstDir + "/make_bootable_linux");
+        QFile::copy(":/unraid/make_bootable_mac", dstDir + "/make_bootable_mac");
+        QFile::copy(":/unraid/make_bootable.bat", dstDir + "/make_bootable.bat");
+    }
+}
+
+void DownloadExtractThread::_runUnraidMakeBootableScript()
+{
+#ifdef Q_OS_WIN
+    QString program{"cmd.exe"};
+    QStringList args;
+    args << "/C" << "echo Y | make_bootable.bat";
+
+    int retcode = QProcess::execute(program, args);
+
+    if (retcode)
+    {
+        throw runtime_error("Error running make_bootable script");
+    }
+#endif
+}
+
+void DownloadExtractThread::_addLocaleToUnraidDynamixConfig(QString& dataText, const QString& unraidLangCode) 
+{
+    QDomDocument doc;
+    QString errorMsg;
+    int errorLine, errorColumn;
+
+    // Load the dataText as an XML document
+    if (!doc.setContent(dataText, &errorMsg, &errorLine, &errorColumn)) 
+    {
+        throw runtime_error("Error parsing XML at line" + errorLine + "column" + errorColumn + ":" + errorMsg);
+    }
+
+    // Find the <display> section
+    QDomElement root = doc.documentElement(); // Get the root element
+    QDomNodeList displaySections = root.elementsByTagName("display");
+
+    if (!displaySections.isEmpty()) 
+    {
+        QDomElement display = displaySections.at(0).toElement(); // Assuming only one <display> section
+
+        if (!display.isNull()) 
+        {
+            // Check if "locale" attribute exists
+            if (display.hasAttribute("locale")) 
+            {
+                display.setAttribute("locale", unraidLangCode);
+            } 
+            else 
+            {
+                // Add "locale" attribute if not present
+                display.setAttribute("locale", unraidLangCode);
+            }
+        }
+    } 
+    else 
+    {
+        // Add a new [display] section with the locale attribute
+        QDomElement newDisplay = doc.createElement("display");
+        newDisplay.setAttribute("locale", unraidLangCode);
+        root.appendChild(newDisplay);
+    }
+
+    // Convert the modified XML back to a string
+    QString newXml;
+    QTextStream stream(&newXml);
+    doc.save(stream, 4); // Indent with 4 spaces
+    dataText = newXml;
 }

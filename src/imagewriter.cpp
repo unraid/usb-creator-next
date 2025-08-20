@@ -34,6 +34,7 @@
 #include <QVersionNumber>
 #include <QtNetwork>
 #include <QDesktopServices>
+#include <QTemporaryFile>
 #ifndef QT_NO_WIDGETS
 #include <QFileDialog>
 #include <QApplication>
@@ -188,6 +189,7 @@ ImageWriter::ImageWriter(QObject *parent)
         {
             _currentLang = langname;
             _currentLangcode = currentlangcode;
+            _unraidLangcode = _generateUnraidLangcode(currentlangcode, langname);
         }
     }
     //_currentKeyboard = "us";
@@ -354,15 +356,24 @@ void ImageWriter::startWrite()
     if (_multipleFilesInZip)
     {
         static_cast<DownloadExtractThread *>(_thread)->enableMultipleFileExtraction();
-        QString label{""};
         if(_initFormat == "UNRAID") {
-            // if this is an unraid zip, the volume label needs to be UNRAID for the make bootable script to work as intended
-            label = "UNRAID";
+            // in order to properly propagate language selection to the unraid usb files themselves,
+            // we need to kick of a chain of events that starts with formatting the drive,
+            // which then kicks off a download of the available languages json,
+            // which then kicks off a download of the select language xml,
+            // which, if there is a zip file specified in that xml, then kicks off a download of that zip file,
+            // which then kicks of the download/extract of the actual unraid files
+            QString label{"UNRAID"}; // since this is an unraid zip, the volume label needs to be UNRAID for the make bootable script to work as intended
+            DriveFormatThread *dft = new DriveFormatThread(_dst.toLatin1(), label, this);
+            connect(dft, SIGNAL(error(QString)), SLOT(onError(QString)));
+            connect(dft, SIGNAL(success()), SLOT(onUnraidFormatComplete()));
+            dft->start();
+        } else {
+            DriveFormatThread *dft = new DriveFormatThread(_dst.toLatin1(), "", this);
+            connect(dft, SIGNAL(success()), _thread, SLOT(start()));
+            connect(dft, SIGNAL(error(QString)), SLOT(onError(QString)));
+            dft->start();
         }
-        DriveFormatThread *dft = new DriveFormatThread(_dst.toLatin1(), label, this);
-        connect(dft, SIGNAL(success()), _thread, SLOT(start()));
-        connect(dft, SIGNAL(error(QString)), SLOT(onError(QString)));
-        dft->start();
     }
     else
     {
@@ -1355,6 +1366,7 @@ void ImageWriter::changeLanguage(const QString &newLanguageName)
         replaceTranslator(trans);
         _currentLang = newLanguageName;
         _currentLangcode = langcode;
+        _unraidLangcode = _generateUnraidLangcode(_currentLangcode, _currentLang);
     }
     else
     {
@@ -1520,3 +1532,160 @@ bool ImageWriter::windowsBuild() {
     return false;
 #endif
 }
+
+QString ImageWriter::_generateUnraidLangcode(const QString& langcode, const QString& languageName)
+{
+    QString unraidLangcode = langcode + "_";
+
+    if (langcode == "en") {
+        unraidLangcode.append("US");
+    }
+    else if (langcode == "pt") {
+        if (languageName.contains("Brasil")) {
+            unraidLangcode.append("BR");
+        }
+        else {
+            unraidLangcode.append("PT");
+        }
+    }
+    else if (langcode == "sv") {
+        unraidLangcode.append("SE");
+    }
+    else if (langcode == "uk") {
+        unraidLangcode.append("UA");
+    }
+    else if (langcode == "zh") {
+        unraidLangcode.append("CN");
+    }
+    else {
+        unraidLangcode.append(langcode.toUpper());
+    }
+    return unraidLangcode;
+}
+
+QByteArray ImageWriter::_parseUnraidLangJson(const QByteArray& jsonFilePath, const QString& unraidLangCode)
+{
+    QByteArray jsonData = _readFileContents(jsonFilePath);
+    QJsonParseError parseError;
+    QJsonDocument jsonDoc = QJsonDocument::fromJson(jsonData, &parseError);
+
+    if (parseError.error != QJsonParseError::NoError) 
+    {
+        onError(parseError.errorString());
+    }
+
+    QJsonObject jsonObj = jsonDoc.object();
+
+    QJsonValue langVal = jsonObj.value(unraidLangCode);
+    QJsonObject langObj = langVal.toObject();
+
+    QJsonValue url = langObj.value("URL");
+    return url.toString().toUtf8();
+}
+
+QString ImageWriter::_parseUnraidLangXml(const QByteArray& xmlFilePath)
+{
+    QByteArray xmlData = _readFileContents(xmlFilePath);
+    QXmlStreamReader xml(xmlData);
+    QString found;
+
+    while (!xml.atEnd() && !xml.hasError())
+    {
+        QXmlStreamReader::TokenType token = xml.readNext();
+        if (token != QXmlStreamReader::StartElement) 
+        {
+            continue;
+        }
+        if (xml.name().compare("LanguageURL") != 0) 
+        {
+            continue;
+        }
+        xml.readNext();
+        if (xml.atEnd()) 
+        {
+            break;
+        }
+        if (xml.isCharacters() && (xml.text().compare("\n") != 0)) 
+        {
+            found.append(xml.text().toString());
+        }
+    }
+
+    return found;
+}
+
+QByteArray ImageWriter::_readFileContents(const QByteArray& filePath)
+{
+    QFile fileIn(filePath);
+    if(!fileIn.open(QIODevice::ReadOnly)) 
+    {
+        onError("Error opening " + filePath);
+    }
+    // remove excess null characters (they cause the qt json parser to fail)
+    QByteArray data = fileIn.readAll().replace('\0', "");
+    fileIn.close();
+    if(!fileIn.open(QIODevice::WriteOnly)) 
+    {
+        onError("Error opening " + filePath);
+    }
+    fileIn.write(data);
+    return data;
+}
+
+void ImageWriter::onUnraidFormatComplete()
+{
+    _unraidLangJsonTmpPath = _generateTempFilePath();
+    setSetting("imagecustomization/UNRAID_LANG_JSON", _unraidLangJsonTmpPath);
+    DownloadThread * dl_thread = new DownloadThread(_unraidLangJsonUrl, _unraidLangJsonTmpPath, "", this);
+    connect(dl_thread, SIGNAL(error(QString)), SLOT(onError(QString)));
+    connect(dl_thread, SIGNAL(success()), SLOT(onUnraidJsonDownloadComplete()));
+    dl_thread->start();
+}
+
+void ImageWriter::onUnraidJsonDownloadComplete()
+{
+    QByteArray xmlUrl = _parseUnraidLangJson(_unraidLangJsonTmpPath, _unraidLangcode);
+    _unraidLangXmlTmpPath = _generateTempFilePath();
+    setSetting("imagecustomization/UNRAID_LANG_XML", _unraidLangXmlTmpPath);
+    DownloadThread * dl_thread = new DownloadThread(xmlUrl, _unraidLangXmlTmpPath, "", this);
+    connect(dl_thread, SIGNAL(error(QString)), SLOT(onError(QString)));
+    connect(dl_thread, SIGNAL(success()), SLOT(onUnraidXmlDownloadComplete()));
+    dl_thread->start();
+}
+
+void ImageWriter::onUnraidXmlDownloadComplete()
+{
+    QString zipUrl = _parseUnraidLangXml(_unraidLangXmlTmpPath);
+    setSetting("imagecustomization/UNRAID_LANG_CODE", _unraidLangcode);
+    if(zipUrl.isEmpty())
+    {
+        // this has to be called again so getSavedCustomizationSettings returns the updated qvariantmap
+        _thread->setImageCustomization(_config, _cmdline, _firstrun, _cloudinit, _cloudinitNetwork, _initFormat, getSavedCustomizationSettings());
+        _thread->start();
+    }
+    else
+    {
+        _unraidLangZipTmpPath = _generateTempFilePath();
+        setSetting("imagecustomization/UNRAID_LANG_ZIP", _unraidLangZipTmpPath);
+        // this has to be called again so getSavedCustomizationSettings returns the updated qvariantmap
+        _thread->setImageCustomization(_config, _cmdline, _firstrun, _cloudinit, _cloudinitNetwork, _initFormat, getSavedCustomizationSettings());
+        DownloadThread * dl_thread = new DownloadThread(zipUrl.toUtf8(), _unraidLangZipTmpPath, "", this);
+        connect(dl_thread, SIGNAL(error(QString)), SLOT(onError(QString)));
+        connect(dl_thread, SIGNAL(success()), _thread, SLOT(start()));
+        dl_thread->start();
+    }
+}
+
+QByteArray ImageWriter::_generateTempFilePath(bool create)
+{
+    QString uuid = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    QString downloadDir = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
+    QByteArray tmpFilePath = (downloadDir + "/unraid-usb-creator-" + uuid + ".tmp").toUtf8();
+    if(create)
+    {
+        QFile tmpFile(tmpFilePath);
+        tmpFile.open(QIODevice::ReadWrite);
+    }
+    return tmpFilePath;
+}
+
