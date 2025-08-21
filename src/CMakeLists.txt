@@ -81,6 +81,7 @@ set(XZ_LZIP_DECODER OFF CACHE BOOL "" FORCE)
 set(XZ_ENABLE_SANDBOX OFF CACHE BOOL "" FORCE)
 set(XZ_BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 set(XZ_ENABLE_DOXYGEN OFF CACHE BOOL "" FORCE)
+set(XZ_NLS OFF CACHE BOOL "" FORCE)
 set(XZ_DECODERS
     lzma1
     lzma2
@@ -104,6 +105,7 @@ unset(XZ_LZIP_DECODER)
 unset(XZ_ENABLE_SANDBOX)
 unset(XZ_BUILD_SHARED_LIBS)
 unset(XZ_ENABLE_DOXYGEN)
+unset(XZ_NLS) 
 unset(CREATE_LZMA_SYMLINKS)
 unset(CREATE_XZ_SYMLINKS)
 set(LIBLZMA_FOUND true CACHE BOOL "" FORCE)
@@ -202,8 +204,8 @@ set(ZLIB_ROOT ${zlib_SOURCE_DIR} CACHE PATH "" FORCE)
 # On Windows with MinGW, zlib builds with .a extension, not .lib
 # Set the correct library path before find_package
 if (WIN32 AND CMAKE_COMPILER_IS_GNUCXX)
-    set(ZLIB_LIBRARY ${zlib_BINARY_DIR}/libzlibstatic.a CACHE FILEPATH "" FORCE)
-    set(ZLIB_LIBRARIES ${zlib_BINARY_DIR}/libzlibstatic.a CACHE STRING "" FORCE)
+    set(ZLIB_LIBRARY ${zlib_BINARY_DIR}/libzsd.a CACHE FILEPATH "" FORCE)
+    set(ZLIB_LIBRARIES ${zlib_BINARY_DIR}/libzsd.a CACHE STRING "" FORCE)
 else()
     set(ZLIB_LIBRARY ${zlib_BINARY_DIR}/libz.a CACHE FILEPATH "" FORCE)
     set(ZLIB_LIBRARIES ${zlib_BINARY_DIR}/libz.a CACHE STRING "" FORCE)
@@ -220,7 +222,7 @@ set(ZLIB_FOUND TRUE CACHE BOOL "" FORCE)
 add_library(ZLIB::ZLIB STATIC IMPORTED)
 if (WIN32 AND CMAKE_COMPILER_IS_GNUCXX)
     set_target_properties(ZLIB::ZLIB PROPERTIES
-        IMPORTED_LOCATION "${zlib_BINARY_DIR}/libzlibstatic.a"
+        IMPORTED_LOCATION "${zlib_BINARY_DIR}/libzsd.a"
         INTERFACE_INCLUDE_DIRECTORIES "${zlib_SOURCE_DIR};${zlib_BINARY_DIR}"
     )
     add_dependencies(ZLIB::ZLIB zlibstatic)
@@ -598,7 +600,7 @@ elseif (WIN32)
         windows/unraid-usb-creator.rc
         wlanapi_delayed.lib
     )
-    set(EXTRALIBS setupapi ${CMAKE_BINARY_DIR}/wlanapi_delayed.lib Bcrypt.dll)
+    set(EXTRALIBS setupapi ${CMAKE_BINARY_DIR}/wlanapi_delayed.lib bcrypt.dll)
 
 endif()
 
@@ -674,7 +676,7 @@ qt_add_lupdate(TS_FILES ${TRANSLATIONS} SOURCE_TARGETS ${PROJECT_NAME} OPTIONS -
 
 if (WIN32)
     # Adding WIN32 prevents a console window being opened on Windows
-    add_executable(${PROJECT_NAME} WIN32 ${SOURCES} ${HEADERS} ${DEPENDENCIES})
+    add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS} ${DEPENDENCIES})
 else()
     add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS} ${DEPENDENCIES})
 endif()
@@ -751,7 +753,7 @@ qt_add_qml_module(${PROJECT_NAME}
 # Because dependencies are typically not available by default on Windows, build bundled code
 if (WIN32)
     # Target Windows 10, in line with Qt requirements
-    add_definitions(-DWINVER=0x0A00 -D_WIN32_WINNT=0x0A00 -DNTDDI_VERION=0x0A000000)
+    add_definitions(-DWINVER=0x0A00 -D_WIN32_WINNT=0x0A00 -DNTDDI_VERSION=0x0A000000)
 
     # Strip debug symbols
     add_custom_command(TARGET ${PROJECT_NAME}
@@ -807,9 +809,15 @@ if (WIN32)
     endif(IMAGER_SIGNED_APP)
 
     # Windeploy
-    find_program(WINDEPLOYQT "windeployqt.exe" PATHS "${Qt6_ROOT}/bin")
-    if (NOT WINDEPLOYQT)
-        message(FATAL_ERROR "Unable to locate windeployqt.exe")
+    # find_program(WINDEPLOYQT "windeployqt.exe" PATHS "${Qt6_ROOT}/bin")
+    # if (NOT WINDEPLOYQT)
+    #     message(FATAL_ERROR "Unable to locate windeployqt.exe")
+    # endif()
+
+    # Mxedeploy for cross-compiling with MXE
+    find_program(MXEDEPLOYQT "mxedeployqt")
+    if (NOT MXEDEPLOYQT)
+        message(FATAL_ERROR "Unable to locate mxedeployqt")
     endif()
 	
     file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/deploy")
@@ -818,7 +826,7 @@ if (WIN32)
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy
             "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.exe"
-            "${CMAKE_SOURCE_DIR}/../license.txt" "${CMAKE_SOURCE_DIR}/windows/unraid-usb-creator.cmd"
+            "${CMAKE_SOURCE_DIR}/../license.txt" "${CMAKE_SOURCE_DIR}/windows/unraid-usb-creator-cli.cmd"
             "${CMAKE_BINARY_DIR}/deploy")
 
     # Inno Setup configuration
@@ -866,6 +874,21 @@ if (WIN32)
             @ONLY)
     endif()
 
+
+
+# Auto-detect MXE triplet root when cross-compiling
+if (NOT MINGW64_ROOT)
+    # e.g. i686-w64-mingw32.shared or x86_64-w64-mingw32.shared
+    execute_process(
+        COMMAND "${CMAKE_C_COMPILER}" -dumpmachine
+        OUTPUT_VARIABLE MXE_TRIPLET
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    if (MXE_TRIPLET)
+        set(MINGW64_ROOT "/opt/mxe/usr/${MXE_TRIPLET}" CACHE PATH "" FORCE)
+    endif()
+endif()
+
     add_custom_command(TARGET ${PROJECT_NAME}
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy
@@ -874,9 +897,16 @@ if (WIN32)
             "${MINGW64_ROOT}/bin/libwinpthread-1.dll"
             "${CMAKE_BINARY_DIR}/deploy")
 
+    # add_custom_command(TARGET ${PROJECT_NAME}
+    #     POST_BUILD
+    #     COMMAND "${WINDEPLOYQT}" --no-translations --qmldir "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_BINARY_DIR}/deploy/unraid-usb-creator.exe")
+
     add_custom_command(TARGET ${PROJECT_NAME}
-        POST_BUILD
-        COMMAND "${WINDEPLOYQT}" --no-translations --qmldir "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_BINARY_DIR}/deploy/unraid-usb-creator.exe")
+    POST_BUILD
+    COMMAND "${MXEDEPLOYQT}" "${CMAKE_BINARY_DIR}/deploy/" --qmlrootpath "${CMAKE_CURRENT_SOURCE_DIR}"  --mxetarget "x86_64-w64-mingw32.shared")
+
+
+
 
     # Remove excess files
     add_custom_command(TARGET ${PROJECT_NAME}

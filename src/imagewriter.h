@@ -241,11 +241,8 @@ protected:
     QSettings _settings;
     QMap<QString, QString> _translations;
     QTranslator *_trans;
-#ifdef Q_OS_WIN
-    QWinTaskbarButton *_taskbarButton;
-#endif
-    bool _guidValid;
 
+    bool _guidValid;
     void _parseCompressedFile();
     void _parseXZFile();
     QString _pubKeyFileName();

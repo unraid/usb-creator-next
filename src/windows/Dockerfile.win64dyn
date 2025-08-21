@@ -1,0 +1,107 @@
+FROM ubuntu:25.10
+ENTRYPOINT ["/bin/bash"]
+
+RUN \
+    export DEBIAN_FRONTEND=noninteractive && \
+    apt -y update && \
+    apt -y upgrade && \
+    apt -y install \
+    autoconf \
+    automake \
+    autopoint \
+    bash \
+    bison \
+    bzip2 \
+    flex \
+    g++ \
+    g++-multilib \
+    gettext \
+    git \
+    gperf \
+    intltool \
+    libc6-dev-i386 \
+    libclang-dev \
+    libgdk-pixbuf2.0-dev \
+    libltdl-dev \
+    libgl-dev \
+    libpcre2-dev \
+    libssl-dev \
+    libtool-bin \
+    libxml-parser-perl \
+    lzip \
+    make \
+    openssl \
+    p7zip-full \
+    patch \
+    perl \
+    python3 \
+    python3-mako \
+    python3-packaging \
+    python3-pkg-resources \
+    python3-setuptools \
+    python-is-python3 \
+    ruby \
+    sed \
+    sqlite3 \
+    unzip \
+    wget \
+    xz-utils \
+    && \
+    apt -y autoremove && \
+    apt -y autoclean && \
+    apt -y clean && \
+    rm -rf /var/lib/apt/lists/* && \
+    exit 0
+
+RUN \
+    cd /opt && \
+    git clone https://github.com/mxe/mxe.git && \
+    exit 0
+
+ENV PATH="${PATH}:/opt/mxe/usr/bin"
+
+# TODO --> Pin to a stable commit (instead of master) after things are fixed 
+# Update MXE to the latest/required version
+RUN git -C /opt/mxe fetch --all && \
+    git -C /opt/mxe checkout master && \
+    git -C /opt/mxe pull && \
+    grep -E '(_VERSION|_CHECKSUM)' /opt/mxe/src/qt/qt6/qt6-qtbase.mk
+
+RUN apt update
+
+# Installer for Windows
+RUN apt install nsis -y
+
+# Future Me, I'm pretty sure this line is all I need for dynamic QT6. This includes the other QT6 modules as well.
+RUN cd /opt/mxe && make --jobs=$(nproc) JOBS=$(nproc) MXE_TARGETS='x86_64-w64-mingw32.shared' qt6
+
+# Kept here just in case. 
+RUN cd /opt/mxe && make --jobs=$(nproc) JOBS=$(nproc) MXE_TARGETS='x86_64-w64-mingw32.shared' qt6-qtcharts
+RUN cd /opt/mxe && make --jobs=$(nproc) JOBS=$(nproc) MXE_TARGETS='x86_64-w64-mingw32.shared' qt6-qtdeclarative
+RUN cd /opt/mxe && make --jobs=$(nproc) JOBS=$(nproc) MXE_TARGETS='x86_64-w64-mingw32.shared' qt6-qtimageformats
+RUN cd /opt/mxe && make --jobs=$(nproc) JOBS=$(nproc) MXE_TARGETS='x86_64-w64-mingw32.shared' qt6-qtmultimedia
+RUN cd /opt/mxe && make --jobs=$(nproc) JOBS=$(nproc) MXE_TARGETS='x86_64-w64-mingw32.shared' qt6-qtscxml
+RUN cd /opt/mxe && make --jobs=$(nproc) JOBS=$(nproc) MXE_TARGETS='x86_64-w64-mingw32.shared' qt6-qtserialport
+RUN cd /opt/mxe && make --jobs=$(nproc) JOBS=$(nproc) MXE_TARGETS='x86_64-w64-mingw32.shared' qt6-qtservice
+RUN cd /opt/mxe && make --jobs=$(nproc) JOBS=$(nproc) MXE_TARGETS='x86_64-w64-mingw32.shared' qt6-qtsvg
+RUN cd /opt/mxe && make --jobs=$(nproc) JOBS=$(nproc) MXE_TARGETS='x86_64-w64-mingw32.shared' qt6-qttools
+RUN cd /opt/mxe && make --jobs=$(nproc) JOBS=$(nproc) MXE_TARGETS='x86_64-w64-mingw32.shared' qt6-qttranslations
+RUN cd /opt/mxe && make --jobs=$(nproc) JOBS=$(nproc) MXE_TARGETS='x86_64-w64-mingw32.shared' qt6-qtwebsockets
+RUN cd /opt/mxe && make --jobs=$(nproc) JOBS=$(nproc) MXE_TARGETS='x86_64-w64-mingw32.shared' qt6-qtbase
+
+RUN git clone https://github.com/saidinesh5/mxedeployqt.git
+
+ENV PATH="${PATH}:/opt/mxe/usr/x86_64-w64-mingw32.shared/qt6/bin:/mxedeployqt"
+
+# symlink connecting where the qmlimportscanner executable is to where mxedeployqt looks for binary executables
+# Adding it to path is not enough, as mxedeployqt does not look in the path for binary executables (I think?).
+RUN ln -sf /opt/mxe/usr/x86_64-pc-linux-gnu/qt6/libexec/qmlimportscanner \
+    /opt/mxe/usr/x86_64-w64-mingw32.shared/qt6/bin/qmlimportscanner
+
+RUN \
+    set -eux && \
+    echo $PATH && \
+    ln -s /opt/mxe/usr/bin/x86_64-w64-mingw32.shared-cmake /usr/local/bin/cmake && \
+    cmake --version && \
+    qmake --version && \
+    exit 0

@@ -19,7 +19,8 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 
-#define _WIN32_WINNT   0x0601
+// this was already defined in the CMakeLists.txt file. Commenting out to avoid duplicate definition errors.
+// #define _WIN32_WINNT   0x0601
 
 #include <windows.h>
 #include <winioctl.h>
@@ -617,15 +618,19 @@ bool GetDetailData(DeviceDescriptor* device,
 
 // BEGIN: FUNCTION ADDED FOR UNRAID USB CREATOR
 bool GetDeviceVidPidSerialNumber(HDEVINFO hDeviceInfo, PSP_DEVINFO_DATA deviceInfoData, DeviceDescriptor* deviceDescriptor) {
-    CHAR wbuffer[MAX_PATH];
+    WCHAR wbuffer[MAX_PATH];
     ZeroMemory(&wbuffer, sizeof(wbuffer));
 
     // we can get the serial number from an HDEVINFO opened with GUID_DEVICE_INTERFACE_DISK,
     // but not VID or PID - so, extract SN first, then loop through devices with GUID_DEVICE_INTERFACE_USB_DEVICE
     // to correlate all three
-    BOOL hasDeviceInstanceId = SetupDiGetDeviceInstanceId(hDeviceInfo, deviceInfoData, wbuffer, sizeof(wbuffer), NULL);
-    std::string deviceId = hasDeviceInstanceId ? std::string(wbuffer) : std::string("");
 
+    DWORD requiredChars = 0;
+    BOOL hasDeviceInstanceId = SetupDiGetDeviceInstanceIdW(hDeviceInfo, deviceInfoData, wbuffer, MAX_PATH, &requiredChars);
+    std::string deviceId = hasDeviceInstanceId ? WCharToUtf8String(wbuffer) : std::string("");
+
+
+    
     if(deviceId.empty()) {
         return false;
     }
@@ -633,7 +638,7 @@ bool GetDeviceVidPidSerialNumber(HDEVINFO hDeviceInfo, PSP_DEVINFO_DATA deviceIn
     ZeroMemory(&wbuffer, sizeof(wbuffer));
 
     HDEVINFO hInfo = NULL;
-    hInfo = SetupDiGetClassDevs(&GUID_DEVICE_INTERFACE_USB_DEVICE, NULL, NULL, DIGCF_PRESENT | DIGCF_INTERFACEDEVICE);
+    hInfo = SetupDiGetClassDevs(&GUID_DEVICE_INTERFACE_USB_DEVICE, NULL, NULL, DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
     if (hInfo == INVALID_HANDLE_VALUE) {
         return false;
     }
@@ -645,11 +650,11 @@ bool GetDeviceVidPidSerialNumber(HDEVINFO hDeviceInfo, PSP_DEVINFO_DATA deviceIn
     {
         DWORD nSize = 0;
 
-        if (!SetupDiGetDeviceInstanceId(hInfo, &DeviceInfoData, wbuffer, sizeof(wbuffer), &nSize)) {
+        if (!SetupDiGetDeviceInstanceIdW(hInfo, &DeviceInfoData, wbuffer, MAX_PATH, &nSize)) {
             continue;
         }
 
-        std::string deviceId_usb{wbuffer};
+        std::string deviceId_usb{WCharToUtf8String(wbuffer)};
         std::smatch vid_pid_sn_match;
         std::regex vid_pid_sn_regex("USB\\\\VID_([0-9A-Za-z]{4})(?:.*)&PID_([0-9A-Za-z]{4})(?:.*)\\\\([0-9A-Za-z]+)");
         if (std::regex_search(deviceId_usb, vid_pid_sn_match, vid_pid_sn_regex) && vid_pid_sn_match.size() == 4)
