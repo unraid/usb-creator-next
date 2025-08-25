@@ -8,9 +8,10 @@ import QtQuick.Controls 2.2
 import QtQuick.Controls.Material 2.2
 import RpiImager
 
+// Basically AI-generated this entire thing. Needs human revision.
 CheckBox {
     id: control
-    activeFocusOnTab: true
+    activeFocusOnTab: false
 
     Rectangle {
         // This rectangle serves as a high-contrast underline for focus
@@ -63,7 +64,7 @@ CheckBox {
         Text {
             anchors.centerIn: parent
             text: "✔"
-            font.pointSize: 18
+            font.pointSize: 12
             color: Style.unraidPrimaryBgColor
             visible: control.checked
             opacity: control.checked ? 1.0 : 0.0

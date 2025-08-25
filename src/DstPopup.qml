@@ -160,7 +160,7 @@ MainPopupBase {
             required property bool guidValid
 
             readonly property bool shouldHide: isSystem && filterSystemDrives.checked
-            readonly property bool unselectable: isReadOnly
+            readonly property bool unselectable: isReadOnly || isSystem
 
             enabled: !unselectable
             property bool hovered: false
@@ -253,7 +253,7 @@ MainPopupBase {
                         verticalAlignment: Text.AlignVCenter
                         Layout.fillWidth: true
                         font.family: Style.fontFamily
-                        font.pointSize: 16
+
                         color: dstitem.hovered ? Style.unraidPrimaryBgColor : Style.unraidTextColor
                         opacity: enabled ? 1.0 : 0.3
                         text: {
@@ -267,7 +267,7 @@ MainPopupBase {
                         verticalAlignment: Text.AlignVCenter
                         Layout.fillWidth: true
                         font.family: Style.fontFamily
-                        font.pointSize: 12
+                        font.weight: Font.Light
                         color: dstitem.hovered ? Style.unraidPrimaryBgColor : Style.unraidTextColor
                         opacity: enabled ? 1.0 : 0.3
                         text: {
@@ -290,7 +290,7 @@ MainPopupBase {
 
                             verticalAlignment: Text.AlignVCenter
                             font.family: Style.fontFamily
-                            font.pointSize: 12
+                            font.weight: Font.Light
                             color: dstitem.hovered ? Style.unraidPrimaryBgColor : Style.unraidTextColor
                             opacity: enabled ? 1.0 : 0.3
                             text: {

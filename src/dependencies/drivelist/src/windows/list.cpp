@@ -755,6 +755,31 @@ std::vector<DeviceDescriptor> ListStorageDevices() {
       device.error = "Couldn't get detail data";
     }
 
+    printf("[DRIVE] raw=%s device=%s desc=%s\n",
+      device.raw.c_str(),
+      device.device.c_str(),
+      device.description.c_str());
+    printf("        enumerator=%s busType=%s size=%llu blockSize=%u logicalBlockSize=%u\n",
+      device.enumerator.c_str(), device.busType.c_str(),
+      (unsigned long long) device.size, device.blockSize, device.logicalBlockSize);
+    printf("        flags: readOnly=%d system=%d removable=%d virtual=%d card=%d scsi=%d usb=%d uas=%d\n",
+      device.isReadOnly, device.isSystem, device.isRemovable, device.isVirtual,
+      device.isCard, device.isSCSI, device.isUSB, device.isUAS);
+    printf("        vid=%s pid=%s serial=%s\n",
+      device.vid.c_str(), device.pid.c_str(), device.serialNumber.c_str());
+    if (!device.mountpoints.empty()) {
+      printf("        mountpoints:");
+      for (const auto &mp : device.mountpoints) {
+        printf(" %s", mp.c_str());
+      }
+      printf("\n");
+    }
+    fflush(stdout);
+
+
+
+
+
     deviceList.push_back(device);
   }
 
