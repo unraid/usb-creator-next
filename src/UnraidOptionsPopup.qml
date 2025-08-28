@@ -228,7 +228,12 @@ Popup {
             Layout.alignment: Qt.AlignCenter | Qt.AlignBottom
             spacing: 10
 
+//  This part needs to be refactored to make validInputs a live binding instead.
             ImButton {
+                enabled: {
+                    popup.checkInputs();
+                    return popup.validInputs;
+                    }
                 text: qsTr("CONTINUE")
                 onClicked: {
                     popup.checkInputs();

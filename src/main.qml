@@ -816,7 +816,7 @@ ApplicationWindow {
             langbarRect.visible = false;
             writebutton.visible = false;
             writebutton.enabled = false;
-            cancelwritebutton.enabled = true;
+            cancelwritebutton.enabled = false;
             cancelwritebutton.visible = true;
             cancelverifybutton.enabled = true;
             progressText.text = qsTr("Preparing to write...");
@@ -935,8 +935,6 @@ ApplicationWindow {
             if (isCacheVerifying) {
                 isCacheVerifying = false;
                 skipcachebutton.visible = false;
-                cancelwritebutton.visible = true;
-                cancelwritebutton.enabled = true;
             }
 
             // Ensure progress bar is set to write color
@@ -944,6 +942,8 @@ ApplicationWindow {
             progressText.text = qsTr("Writing... %1%").arg(Math.floor(newPos * 100));
             progressBar.indeterminate = false;
             progressBar.value = newPos;
+            cancelwritebutton.visible = true;
+            cancelwritebutton.enabled = true;
         }
     }
 

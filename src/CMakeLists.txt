@@ -4,6 +4,7 @@
 cmake_minimum_required(VERSION 3.22)
 OPTION (ENABLE_CHECK_VERSION "Check for version updates" ON)
 OPTION (ENABLE_TELEMETRY "Enable sending telemetry" OFF)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # We use FetchContent_Populate() instead of FetchContent_MakeAvailable() to allow EXCLUDE_FROM_ALL
 # This prevents the dependencies from being built by default, which is our desired behavior
@@ -595,6 +596,8 @@ elseif (WIN32)
         windows/winwlancredentials.cpp
         windows/file_operations_windows.cpp
         windows/buffer_optimization_windows.cpp
+        windows/volume_locks.cpp
+        windows/volume_locks.h
     )
     set(DEPENDENCIES
         windows/unraid-usb-creator.rc
@@ -754,6 +757,18 @@ qt_add_qml_module(${PROJECT_NAME}
 if (WIN32)
     # Target Windows 10, in line with Qt requirements
     add_definitions(-DWINVER=0x0A00 -D_WIN32_WINNT=0x0A00 -DNTDDI_VERSION=0x0A000000)
+    
+    # See driveformatthread.cpp. Windows fallback requires fat32format.exe
+    # fat32format is built locally from src/dependencies/fat32format.
+    # fat32format relies on the std C/C++ libraries that are built by the main app. It dynamically links to them.
+    # copied fat32format.exe to the /deploy (directory that the installer uses) so it can be used by the app during runtime.
+    add_definitions(-DHAVE_FAT32FORMAT_FALLBACK)
+    add_subdirectory(dependencies/fat32format)
+    add_dependencies(${PROJECT_NAME} fat32format)
+    add_custom_command(TARGET ${PROJECT_NAME}
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy "$<TARGET_FILE:fat32format>" "${CMAKE_BINARY_DIR}/deploy")
+
 
     # Strip debug symbols
     add_custom_command(TARGET ${PROJECT_NAME}
