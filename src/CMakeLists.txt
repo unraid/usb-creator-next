@@ -205,8 +205,13 @@ set(ZLIB_ROOT ${zlib_SOURCE_DIR} CACHE PATH "" FORCE)
 # On Windows with MinGW, zlib builds with .a extension, not .lib
 # Set the correct library path before find_package
 if (WIN32 AND CMAKE_COMPILER_IS_GNUCXX)
-    set(ZLIB_LIBRARY ${zlib_BINARY_DIR}/libzsd.a CACHE FILEPATH "" FORCE)
-    set(ZLIB_LIBRARIES ${zlib_BINARY_DIR}/libzsd.a CACHE STRING "" FORCE)
+    if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+        set(ZLIB_LIBRARY ${zlib_BINARY_DIR}/libzsd.a CACHE FILEPATH "" FORCE)
+        set(ZLIB_LIBRARIES ${zlib_BINARY_DIR}/libzsd.a CACHE STRING "" FORCE)
+    else()
+        set(ZLIB_LIBRARY ${zlib_BINARY_DIR}/libzs.a CACHE FILEPATH "" FORCE)
+        set(ZLIB_LIBRARIES ${zlib_BINARY_DIR}/libzs.a CACHE STRING "" FORCE)
+    endif()
 else()
     set(ZLIB_LIBRARY ${zlib_BINARY_DIR}/libz.a CACHE FILEPATH "" FORCE)
     set(ZLIB_LIBRARIES ${zlib_BINARY_DIR}/libz.a CACHE STRING "" FORCE)
@@ -223,8 +228,11 @@ set(ZLIB_FOUND TRUE CACHE BOOL "" FORCE)
 add_library(ZLIB::ZLIB STATIC IMPORTED)
 if (WIN32 AND CMAKE_COMPILER_IS_GNUCXX)
     set_target_properties(ZLIB::ZLIB PROPERTIES
-        IMPORTED_LOCATION "${zlib_BINARY_DIR}/libzsd.a"
-        INTERFACE_INCLUDE_DIRECTORIES "${zlib_SOURCE_DIR};${zlib_BINARY_DIR}"
+        IMPORTED_LOCATION_DEBUG        "${zlib_BINARY_DIR}/libzsd.a"
+        IMPORTED_LOCATION_RELEASE      "${zlib_BINARY_DIR}/libzs.a"
+        IMPORTED_LOCATION_MINSIZEREL   "${zlib_BINARY_DIR}/libzs.a"
+        IMPORTED_LOCATION_RELWITHDEBINFO "${zlib_BINARY_DIR}/libzs.a"
+        INTERFACE_INCLUDE_DIRECTORIES  "${zlib_SOURCE_DIR};${zlib_BINARY_DIR}"
     )
     add_dependencies(ZLIB::ZLIB zlibstatic)
 else()
@@ -678,8 +686,12 @@ set(SOURCES ${SOURCES} ${CMAKE_CURRENT_BINARY_DIR}/translations.qrc ${QM_FILES})
 qt_add_lupdate(TS_FILES ${TRANSLATIONS} SOURCE_TARGETS ${PROJECT_NAME} OPTIONS -no-obsolete -locations none)
 
 if (WIN32)
-    # Adding WIN32 prevents a console window being opened on Windows
-    add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS} ${DEPENDENCIES})
+    # Use WIN32 to hide console for MinSizeRel/Release on Windows
+    if (CMAKE_BUILD_TYPE MATCHES "^(MinSizeRel|Release|RelWithDebInfo)$")
+        add_executable(${PROJECT_NAME} WIN32 ${SOURCES} ${HEADERS} ${DEPENDENCIES})
+    else()
+        add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS} ${DEPENDENCIES})
+    endif()
 else()
     add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS} ${DEPENDENCIES})
 endif()
@@ -921,15 +933,44 @@ endif()
     COMMAND "${MXEDEPLOYQT}" "${CMAKE_BINARY_DIR}/deploy/" --qmlrootpath "${CMAKE_CURRENT_SOURCE_DIR}"  --mxetarget "x86_64-w64-mingw32.shared")
 
 
-
-
-    # Remove excess files
+    # Remove excess files (for cross-compiling with MXE, which places everything in the plugins folder instead of the root level like windeployqt does)
     add_custom_command(TARGET ${PROJECT_NAME}
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E remove
             "${CMAKE_BINARY_DIR}/deploy/imageformats/qtiff.dll"
             "${CMAKE_BINARY_DIR}/deploy/imageformats/qwebp.dll"
             "${CMAKE_BINARY_DIR}/deploy/imageformats/qgif.dll")
+
+            add_custom_command(TARGET ${PROJECT_NAME}
+            POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E echo "Flattening plugin layout for NSIS"
+            # Ensure target dirs exist
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/deploy/platforms"
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/deploy/imageformats"
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/deploy/iconengines"
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/deploy/generic"
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/deploy/networkinformation"
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/deploy/platforminputcontexts"
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/deploy/styles"
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/deploy/sqldrivers"
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/deploy/tls"
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/deploy/qmllint"
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/deploy/qmltooling"
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/deploy/multimedia"
+            # Copy from mxedeployqt's plugins/* into root-level folders expected by NSIS
+            COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_BINARY_DIR}/deploy/plugins/platforms"             "${CMAKE_BINARY_DIR}/deploy/platforms"
+            COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_BINARY_DIR}/deploy/plugins/imageformats"          "${CMAKE_BINARY_DIR}/deploy/imageformats"
+            COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_BINARY_DIR}/deploy/plugins/iconengines"           "${CMAKE_BINARY_DIR}/deploy/iconengines"
+            COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_BINARY_DIR}/deploy/plugins/generic"               "${CMAKE_BINARY_DIR}/deploy/generic"
+            COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_BINARY_DIR}/deploy/plugins/networkinformation"    "${CMAKE_BINARY_DIR}/deploy/networkinformation"
+            COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_BINARY_DIR}/deploy/plugins/platforminputcontexts" "${CMAKE_BINARY_DIR}/deploy/platforminputcontexts"
+            COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_BINARY_DIR}/deploy/plugins/styles"                "${CMAKE_BINARY_DIR}/deploy/styles"
+            COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_BINARY_DIR}/deploy/plugins/sqldrivers"            "${CMAKE_BINARY_DIR}/deploy/sqldrivers"
+            COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_BINARY_DIR}/deploy/plugins/tls"                   "${CMAKE_BINARY_DIR}/deploy/tls"
+            COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_BINARY_DIR}/deploy/plugins/qmllint"               "${CMAKE_BINARY_DIR}/deploy/qmllint"
+            COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_BINARY_DIR}/deploy/plugins/qmltooling"            "${CMAKE_BINARY_DIR}/deploy/qmltooling"
+            COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_BINARY_DIR}/deploy/plugins/multimedia"            "${CMAKE_BINARY_DIR}/deploy/multimedia"
+        )        
 
 elseif(APPLE)
     find_library(Cocoa Cocoa)
