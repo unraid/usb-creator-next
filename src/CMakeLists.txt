@@ -4,6 +4,9 @@
 cmake_minimum_required(VERSION 3.22)
 OPTION (ENABLE_CHECK_VERSION "Check for version updates" ON)
 OPTION (ENABLE_TELEMETRY "Enable sending telemetry" OFF)
+
+# allows IDE to interpret code better
+# ex. if you're developing on mac, will gray out code for windows/linux
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # We use FetchContent_Populate() instead of FetchContent_MakeAvailable() to allow EXCLUDE_FROM_ALL
