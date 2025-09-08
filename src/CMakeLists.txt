@@ -933,7 +933,49 @@ endif()
     COMMAND "${MXEDEPLOYQT}" "${CMAKE_BINARY_DIR}/deploy/" --qmlrootpath "${CMAKE_CURRENT_SOURCE_DIR}"  --mxetarget "x86_64-w64-mingw32.shared")
 
 
-    # Remove excess files (for cross-compiling with MXE, which places everything in the plugins folder instead of the root level like windeployqt does)
+    # Generate a small script to move plugin folders up one level
+    file(WRITE "${CMAKE_BINARY_DIR}/flatten_plugins.cmake" "
+    set(_deploy \"${CMAKE_BINARY_DIR}/deploy\")
+    set(_dirs
+        platforms
+        imageformats
+        iconengines
+        generic
+        networkinformation
+        platforminputcontexts
+        styles
+        sqldrivers
+        tls
+        qmllint
+        qmltooling
+        multimedia
+    )
+
+    foreach(d IN LISTS _dirs)
+      if (EXISTS \"${CMAKE_BINARY_DIR}/deploy/plugins/${d}\")
+        if (EXISTS \"${CMAKE_BINARY_DIR}/deploy/${d}\")
+          file(REMOVE_RECURSE \"${CMAKE_BINARY_DIR}/deploy/${d}\")
+        endif()
+        file(RENAME \"${CMAKE_BINARY_DIR}/deploy/plugins/${d}\" \"${CMAKE_BINARY_DIR}/deploy/${d}\")
+      endif()
+    endforeach()
+    
+    if (EXISTS \"${CMAKE_BINARY_DIR}/deploy/plugins\")
+      file(GLOB _remnant \"${CMAKE_BINARY_DIR}/deploy/plugins/*\")
+      if (NOT _remnant)
+        file(REMOVE_RECURSE \"${CMAKE_BINARY_DIR}/deploy/plugins\")
+      endif()
+    endif()
+    ")
+
+    # Flatten plugin layout by moving folders (no duplicates)
+    add_custom_command(TARGET ${PROJECT_NAME}
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E echo "Flattening plugin layout for NSIS (moving directories)"
+        COMMAND ${CMAKE_COMMAND} -P "${CMAKE_BINARY_DIR}/flatten_plugins.cmake"
+    )
+
+    # Remove excess files after flattening (targets now at root-level)
     add_custom_command(TARGET ${PROJECT_NAME}
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E remove
@@ -941,36 +983,6 @@ endif()
             "${CMAKE_BINARY_DIR}/deploy/imageformats/qwebp.dll"
             "${CMAKE_BINARY_DIR}/deploy/imageformats/qgif.dll")
 
-            add_custom_command(TARGET ${PROJECT_NAME}
-            POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E echo "Flattening plugin layout for NSIS"
-            # Ensure target dirs exist
-            COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/deploy/platforms"
-            COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/deploy/imageformats"
-            COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/deploy/iconengines"
-            COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/deploy/generic"
-            COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/deploy/networkinformation"
-            COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/deploy/platforminputcontexts"
-            COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/deploy/styles"
-            COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/deploy/sqldrivers"
-            COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/deploy/tls"
-            COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/deploy/qmllint"
-            COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/deploy/qmltooling"
-            COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/deploy/multimedia"
-            # Copy from mxedeployqt's plugins/* into root-level folders expected by NSIS
-            COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_BINARY_DIR}/deploy/plugins/platforms"             "${CMAKE_BINARY_DIR}/deploy/platforms"
-            COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_BINARY_DIR}/deploy/plugins/imageformats"          "${CMAKE_BINARY_DIR}/deploy/imageformats"
-            COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_BINARY_DIR}/deploy/plugins/iconengines"           "${CMAKE_BINARY_DIR}/deploy/iconengines"
-            COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_BINARY_DIR}/deploy/plugins/generic"               "${CMAKE_BINARY_DIR}/deploy/generic"
-            COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_BINARY_DIR}/deploy/plugins/networkinformation"    "${CMAKE_BINARY_DIR}/deploy/networkinformation"
-            COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_BINARY_DIR}/deploy/plugins/platforminputcontexts" "${CMAKE_BINARY_DIR}/deploy/platforminputcontexts"
-            COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_BINARY_DIR}/deploy/plugins/styles"                "${CMAKE_BINARY_DIR}/deploy/styles"
-            COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_BINARY_DIR}/deploy/plugins/sqldrivers"            "${CMAKE_BINARY_DIR}/deploy/sqldrivers"
-            COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_BINARY_DIR}/deploy/plugins/tls"                   "${CMAKE_BINARY_DIR}/deploy/tls"
-            COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_BINARY_DIR}/deploy/plugins/qmllint"               "${CMAKE_BINARY_DIR}/deploy/qmllint"
-            COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_BINARY_DIR}/deploy/plugins/qmltooling"            "${CMAKE_BINARY_DIR}/deploy/qmltooling"
-            COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_BINARY_DIR}/deploy/plugins/multimedia"            "${CMAKE_BINARY_DIR}/deploy/multimedia"
-        )        
 
 elseif(APPLE)
     find_library(Cocoa Cocoa)
