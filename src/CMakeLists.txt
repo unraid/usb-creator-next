@@ -1121,9 +1121,20 @@ else()
     endif()
 
     install(TARGETS ${PROJECT_NAME} DESTINATION bin)
-    install(FILES icons/unraid128.png DESTINATION share/icons/hicolor/128x128/apps)
+    install(FILES icons/unraid128.png DESTINATION share/icons/hicolor/128x128/apps RENAME unraid.png)
+    install(FILES icons/unraid256.png DESTINATION share/icons/hicolor/256x256/apps RENAME unraid.png)
+    install(FILES icons/unraid512.png DESTINATION share/icons/hicolor/512x512/apps RENAME unraid.png)
+    install(FILES icons/unraid.svg DESTINATION share/icons/hicolor/scalable/apps RENAME unraid.svg)
+    install(FILES icons/unraid256.png DESTINATION . RENAME .DirIcon)
+
     install(FILES "${CMAKE_CURRENT_LIST_DIR}/../debian/com.limetech.unraid-usb-creator.desktop" DESTINATION share/applications)
     install(FILES "${CMAKE_CURRENT_LIST_DIR}/../debian/com.limetech.unraid-usb-creator.metainfo.xml" DESTINATION share/metainfo)
+
+
+
+
+
+
 endif()
 
 add_dependencies(${PROJECT_NAME} ZLIB::ZLIB)

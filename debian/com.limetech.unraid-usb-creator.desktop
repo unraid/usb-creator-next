@@ -4,6 +4,6 @@ Version=1.5
 Name=Unraid Usb Creator
 Comment=Tool for writing Unraid OS to USBs
 Icon=unraid
-Exec=/usr/bin/unraid-usb-creator %F
+Exec=unraid-usb-creator %F
 Categories=Utility;
 StartupNotify=false

@@ -1,5 +1,10 @@
 #!/bin/bash
-set -e
+LOGFILE="$PWD/build.log"
+: >"$LOGFILE" 
+
+exec > >(stdbuf -oL -eL tee -a "$LOGFILE") 2>&1
+
+set -x
 
 # Parse command line arguments
 ARCH=$(uname -m)  # Default to current architecture
@@ -217,13 +222,15 @@ echo "Creating AppDir..."
 make DESTDIR="$APPDIR" install
 cd ..
 
-# Copy the desktop file from debian directory
+# if doesn't exist, copy the desktop file from debian directory (should already have been created by cmake install commands in CMakeLists.txt)
 if [ ! -f "$APPDIR/usr/share/applications/com.limetech.unraid-usb-creator.desktop" ]; then
     mkdir -p "$APPDIR/usr/share/applications"
     cp "debian/com.limetech.unraid-usb-creator.desktop" "$APPDIR/usr/share/applications/"
-    # Update the Exec line to match the AppImage requirements
-    sed -i 's|Exec=.*|Exec=unraid-usb-creator|' "$APPDIR/usr/share/applications/com.limetech.unraid-usb-creator.desktop"
+    
 fi
+# Update the Exec & Icon lines to match the AppImage requirements
+sed -i 's|Exec=.*|Exec=unraid-usb-creator|' "$APPDIR/usr/share/applications/com.limetech.unraid-usb-creator.desktop"
+sed -i 's|^Icon=.*|Icon=unraid|' "$APPDIR/usr/share/applications/com.limetech.unraid-usb-creator.desktop"
 
 # Create the AppRun file if not created by the install process
 if [ ! -f "$APPDIR/AppRun" ]; then
@@ -249,6 +256,11 @@ export APPIMAGE_EXTRACT_AND_RUN=1
 export QMAKE="$QT_DIR/bin/qmake"
 # Set LD_LIBRARY_PATH to include Qt libraries
 export LD_LIBRARY_PATH="$QT_DIR/lib:$LD_LIBRARY_PATH"
+
+# normalize text files that AppImage validators read
+sed -i 's/\r$//' "$APPDIR/usr/share/applications/com.limetech.unraid-usb-creator.desktop"
+sed -i 's/\r$//' "$APPDIR/usr/share/metainfo/com.limetech.unraid-usb-creator.metainfo.xml"
+
 "$LINUXDEPLOY" --appdir="$APPDIR" --plugin=qt --exclude-library="libwayland-*"
 
 # Hook for removing files before AppImage creation
@@ -285,3 +297,9 @@ ln -s "$(basename "$OUTPUT_FILE")" "$SYMLINK_NAME"
 echo "Created symlink: $SYMLINK_NAME -> $(basename "$OUTPUT_FILE")"
 
 echo "Build completed successfully for $ARCH architecture." 
+
+# echo "Printing final directory contents:"
+# ls "$PWD"
+
+# echo "Contents of AppDir ($APPDIR):"
+# tree -L 5 "$APPDIR"

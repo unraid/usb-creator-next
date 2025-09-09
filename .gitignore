@@ -35,6 +35,8 @@ Releases
 *.appimagecraft*
 AppDir-*
 appimage-*
+.artifacts/
+tools-dir/
 
 
 # Qt related
