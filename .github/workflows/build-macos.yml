@@ -23,10 +23,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Install CMake
+      - name: Validate CMake
         run: |
-          brew update
-          brew install cmake
+          cmake --version
 
       # aqt get started --> https://aqtinstall.readthedocs.io/en/latest/index.html
       # aqt docs archives installation (what we use) --> https://aqtinstall.readthedocs.io/en/latest/getting_started.html#installing-a-subset-of-qt-archives-advanced
