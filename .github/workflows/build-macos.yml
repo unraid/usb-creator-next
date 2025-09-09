@@ -39,7 +39,7 @@ jobs:
           aqt install-qt mac desktop ${{ env.QT_VERSION }} clang_64 \
           --archives qtbase qtdeclarative qtsvg qttools icu \
           --outputdir "$HOME/Qt"
-      
+
       # QT is installed in --> "$HOME/Qt/${{ env.QT_VERSION }}/macos"
       - name: Configure & build using CMake
         env:
@@ -49,11 +49,10 @@ jobs:
             -DCMAKE_BUILD_TYPE="${{ env.BUILD_TYPE }}" \
             -DCMAKE_C_COMPILER=/usr/bin/clang \
             -DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
-            -DQt6_ROOT="$QT_DIR" \
-            -DQt6_DIR="$QT_DIR/lib/cmake/Qt${{env.QT_MAJOR_VERSION}}"
+            -DQt6_ROOT="${{env.QT_DIR}}" \
+            -DQt6_DIR="${{env.QT_DIR}}/lib/cmake/Qt${{env.QT_MAJOR_VERSION}}"
 
           cmake --build ../build
-
 
       # Setup keychain and certificates for signing & unlock keychain
       - name: Setup Keychain and Certificates
