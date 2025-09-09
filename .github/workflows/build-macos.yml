@@ -2,13 +2,15 @@ name: Build MacOS
 
 on:
   push:
-    branches: ["main"]
+    branches: ["main", "v1.9.6-rebase"]
   pull_request:
-    branches: ["main"]
+    branches: ["main", "v1.9.6-rebase"]
 
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
-  BUILD_TYPE: Release
+  BUILD_TYPE: MinSizeRel
+  QT_VERSION: "6.9.1"
+  QT_MAJOR_VERSION: "6"
 
 jobs:
   build:
@@ -21,42 +23,65 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      # Use Cmake < 4.0
-      - name: Setup CMake 3.31
-        uses: jwlawson/actions-setup-cmake@v2
-        with:
-          cmake-version: "3.31.x"
-
-      # Use Qt 5, not Qt 6
-      - name: Install Qt 5
+      - name: Install CMake
         run: |
           brew update
-          brew install qt@5
+          brew install cmake
 
-      - name: Configure CMake
-        run: cmake -S . -B ../build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DCMAKE_PREFIX_PATH="$(brew --prefix qt@5)"
+      # aqt get started --> https://aqtinstall.readthedocs.io/en/latest/index.html
+      # aqt docs archives installation (what we use) --> https://aqtinstall.readthedocs.io/en/latest/getting_started.html#installing-a-subset-of-qt-archives-advanced
+      - name: Install aqt-install
+        run: |
+          brew install aqtinstall
 
-      - name: Build
-        run: cmake --build ../build --config ${{ env.BUILD_TYPE }}
+      # Use Qt > 6.7, explicitly using clang_64, but that's default
+      - name: Install Qt ${{ env.QT_VERSION }}
+        run: |
+          aqt install-qt mac desktop ${{ env.QT_VERSION }} clang_64 \
+          --archives qtbase qtdeclarative qtsvg qttools icu \
+          --outputdir "$HOME/Qt"
+      
+      # QT is installed in --> "$HOME/Qt/${{ env.QT_VERSION }}/macos"
+      - name: Configure & build using CMake
+        env:
+          QT_DIR: "$HOME/Qt/${{ env.QT_VERSION }}/macos"
+        run: |
+          cmake -S . -B ../build \
+            -DCMAKE_BUILD_TYPE="${{ env.BUILD_TYPE }}" \
+            -DCMAKE_C_COMPILER=/usr/bin/clang \
+            -DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
+            -DQt6_ROOT="$QT_DIR" \
+            -DQt6_DIR="$QT_DIR/lib/cmake/Qt${{env.QT_MAJOR_VERSION}}"
 
-      # 5) Ad-hoc code sign (for CI purposes only)
-      - name: Ad-hoc Code Sign .app
+          cmake --build ../build
+
+
+      # Setup keychain and certificates for signing & unlock keychain
+      - name: Setup Keychain and Certificates
+        env:
+          APPLE_BUILD_CERTIFICATE_BASE64: ${{ secrets.APPLE_BUILD_CERTIFICATE_BASE64 }}
+          APPLE_BUILD_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_BUILD_CERTIFICATE_PASSWORD }}
+          APPLE_KEYCHAIN_PASSWORD: ${{ secrets.APPLE_KEYCHAIN_PASSWORD }}
+        run: |
+          chmod +x ../scripts/setup-keychain-mac.sh
+          ../scripts/setup-keychain-mac.sh
+
+        # Code sign the .app with proper certificate
+      - name: Code Sign .app
+        env:
+          APPLE_SIGNING_KEY_ID: ${{ secrets.APPLE_SIGNING_KEY_ID }}
+          APPLE_KEYCHAIN_PASSWORD: ${{ secrets.APPLE_KEYCHAIN_PASSWORD }}
         run: |
           CAPP="../build/unraid-usb-creator.app"
-          codesign --remove-signature "$CAPP"
-          codesign --force --deep --sign - "$CAPP"
+          codesign --deep --force --verify --verbose --sign "$APPLE_SIGNING_KEY_ID" --options runtime "$CAPP"
 
-      # 6) Remove quarantine attribute
       - name: Remove quarantine attribute
         run: sudo xattr -rc ../build/unraid-usb-creator.app
 
-      # 7) Install Homebrew create-dmg (shell‐script version)
       - name: Install create-dmg
         run: |
           brew update
           brew install create-dmg
-
-      # 8) Package the signed .app into a DMG that has "drag to Applications"
       - name: Create DMG with drag-to-Applications UI
         run: |
           # Make sure there's a Releases/ folder in the repo root
@@ -74,10 +99,18 @@ jobs:
             --app-drop-link 600 185 \
             "${{ github.workspace }}/Releases/unraid-usb-creator.dmg" \
             "${{ github.workspace }}/build/unraid-usb-creator.app"
+      - name: Notarize DMG
+        env:
+          APPLE_EMAIL_ADDRESS: ${{ secrets.APPLE_EMAIL_ADDRESS }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          cd "${{ github.workspace }}/Releases"
+          xcrun notarytool submit "unraid-usb-creator.dmg" --apple-id "$APPLE_EMAIL_ADDRESS" --password "$APPLE_APP_PASSWORD" --team-id "$APPLE_TEAM_ID" --wait
+          xcrun stapler staple "unraid-usb-creator.dmg"
 
       - name: Upload Mac DMG
         uses: actions/upload-artifact@v4
         with:
           name: UnraidInstallerMacOS
           path: Releases/unraid-usb-creator.dmg
-# Might need to use `codesign` to sign the app and everything related to that
