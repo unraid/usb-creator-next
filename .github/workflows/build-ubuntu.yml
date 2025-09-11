@@ -7,6 +7,7 @@ on:
     branches: ["main", "v1.9.6-rebase"]
 
 env:
+  # Build type is set in the create-appimage.sh script, not here.
   DEBIAN_FRONTEND: noninteractive
   QT_VERSION: "6.9.1"
 

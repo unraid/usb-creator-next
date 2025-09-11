@@ -28,10 +28,14 @@ cmake ../src -DQt6_DIR=/opt/mxe/usr/x86_64-w64-mingw32.shared/qt6/lib/cmake/Qt6 
 # build
 cmake --build . --parallel
 
-cd .. 
+# to run locally, the .exe with all of the required dependencies is in build/deploy. 
 
+#The executable will be called unraid-usb-creator.exe --> Make sure you're not trying to run the one in the build folder as that does not contain all of the required dependencies. 
+
+# make the installer (in the docker shell) with:
 makensis unraid-usb-creator.nsi
 
+# installer executable will be located in the build folder
 # example output file: unraid-usb-creator-1.9.6.exe
 
 ```
@@ -72,16 +76,6 @@ cmake \
     
 
 cmake --build . --parallel
-
-# to run locally, the .exe with all of the required dependencies is in build/deploy. 
-
-#The executable will be called unraid-usb-creator.exe --> again, make sure you're not trying to run the one in the build folder. 
-
-# make the installer (in the docker shell) with:
-makensis unraid-usb-creator.nsi
-
-# installer executable will be located in the build folder and will be called unraid-usb-creator-1.9.6.exe
-
 ```
 
 # Linux

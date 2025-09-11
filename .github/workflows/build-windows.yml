@@ -2,37 +2,41 @@ name: Build Windows
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main", "v1.9.6-rebase"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main", "v1.9.6-rebase"]
 
 env:
-  BUILD_TYPE: Release
+  # if you want to update the Qt version, you also need to change the Dockerfile.win64dyn file (the mxe environment) to match
+  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
+  BUILD_TYPE: MinSizeRel
 
 jobs:
-
   build:
     runs-on: ubuntu-latest
-    container: ghcr.io/unraid/usb-creator-next/usb-creator-mxe:latest
+    container: ghcr.io/ajit-mehrotra/unraid-usb-creator-mxe:latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Configure CMake
-      run: |
-        cmake src -B build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DQt5_DIR=/opt/mxe/usr/i686-w64-mingw32.shared/qt5/lib/cmake/Qt5
+      - name: Configure CMake
+        run: |
+          cmake -S src -B build \
+          -DQt6_DIR=/opt/mxe/usr/x86_64-w64-mingw32.shared/qt6/lib/cmake/Qt6 \
+          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+          -DCMAKE_MESSAGE_LOG_LEVEL=DEBUG
 
-    - name: Build
-      run: |
-        cmake --build build --config ${{env.BUILD_TYPE}}
-        
-    - name: Run NSIS
-      run: |
-        makensis build/unraid-usb-creator.nsi
-        
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: WindowsInstaller
-        path: build/unraid-usb-creator-*.exe
+      - name: Build
+        run: |
+          cmake --build build --config ${{env.BUILD_TYPE}} --verbose
+
+      - name: Run NSIS
+        run: |
+          makensis build/unraid-usb-creator.nsi
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: WindowsInstaller
+          path: build/unraid-usb-creator-*.exe
