@@ -1,6 +1,8 @@
 FROM ubuntu:25.10
 ENTRYPOINT ["/bin/bash"]
 
+# https://mxe.cc/#requirements 
+# for commit 8f384032d86533452673165d8c0efb4694b18d66
 RUN \
     export DEBIAN_FRONTEND=noninteractive && \
     apt -y update && \
@@ -60,11 +62,12 @@ RUN \
 
 ENV PATH="${PATH}:/opt/mxe/usr/bin"
 
-# TODO --> Pin to a stable commit (instead of master) after things are fixed 
+# Pinned to commit 8f384032d86533452673165d8c0efb4694b18d66 which is latest commit for Qt 6.9.1
 # Update MXE to the latest/required version
 RUN git -C /opt/mxe fetch --all && \
     git -C /opt/mxe checkout master && \
     git -C /opt/mxe pull && \
+    git -C /opt/mxe checkout 8f384032d86533452673165d8c0efb4694b18d66 && \
     grep -E '(_VERSION|_CHECKSUM)' /opt/mxe/src/qt/qt6/qt6-qtbase.mk
 
 RUN apt update
@@ -72,22 +75,11 @@ RUN apt update
 # Installer for Windows
 RUN apt install nsis -y
 
-# Future Me, I'm pretty sure this line is all I need for dynamic QT6. This includes the other QT6 modules as well.
-RUN cd /opt/mxe && make --jobs=$(nproc) JOBS=$(nproc) MXE_TARGETS='x86_64-w64-mingw32.shared' qt6
-
-# Kept here just in case. 
-RUN cd /opt/mxe && make --jobs=$(nproc) JOBS=$(nproc) MXE_TARGETS='x86_64-w64-mingw32.shared' qt6-qtcharts
+# Minimal Qt6 build. 
+RUN cd /opt/mxe && make --jobs=$(nproc) JOBS=$(nproc) MXE_TARGETS='x86_64-w64-mingw32.shared' qt6-qtbase
 RUN cd /opt/mxe && make --jobs=$(nproc) JOBS=$(nproc) MXE_TARGETS='x86_64-w64-mingw32.shared' qt6-qtdeclarative
-RUN cd /opt/mxe && make --jobs=$(nproc) JOBS=$(nproc) MXE_TARGETS='x86_64-w64-mingw32.shared' qt6-qtimageformats
-RUN cd /opt/mxe && make --jobs=$(nproc) JOBS=$(nproc) MXE_TARGETS='x86_64-w64-mingw32.shared' qt6-qtmultimedia
-RUN cd /opt/mxe && make --jobs=$(nproc) JOBS=$(nproc) MXE_TARGETS='x86_64-w64-mingw32.shared' qt6-qtscxml
-RUN cd /opt/mxe && make --jobs=$(nproc) JOBS=$(nproc) MXE_TARGETS='x86_64-w64-mingw32.shared' qt6-qtserialport
-RUN cd /opt/mxe && make --jobs=$(nproc) JOBS=$(nproc) MXE_TARGETS='x86_64-w64-mingw32.shared' qt6-qtservice
 RUN cd /opt/mxe && make --jobs=$(nproc) JOBS=$(nproc) MXE_TARGETS='x86_64-w64-mingw32.shared' qt6-qtsvg
 RUN cd /opt/mxe && make --jobs=$(nproc) JOBS=$(nproc) MXE_TARGETS='x86_64-w64-mingw32.shared' qt6-qttools
-RUN cd /opt/mxe && make --jobs=$(nproc) JOBS=$(nproc) MXE_TARGETS='x86_64-w64-mingw32.shared' qt6-qttranslations
-RUN cd /opt/mxe && make --jobs=$(nproc) JOBS=$(nproc) MXE_TARGETS='x86_64-w64-mingw32.shared' qt6-qtwebsockets
-RUN cd /opt/mxe && make --jobs=$(nproc) JOBS=$(nproc) MXE_TARGETS='x86_64-w64-mingw32.shared' qt6-qtbase
 
 RUN git clone https://github.com/saidinesh5/mxedeployqt.git
 

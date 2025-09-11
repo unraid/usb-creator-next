@@ -12,21 +12,27 @@ git switch v1.9.6-rebase
 # build docker image (skip if  built image)
 cd src/windows
 
-docker build --force-rm -f Dockerfile.win64dyn -t unraid/qt6-cross-compile:win64-6.9.1 .
+docker build --force-rm -f Dockerfile.win64dyn -t ghcr.io/ajit-mehrotra/unraid-usb-creator-mxe:latest .
 
 
 # run docker container
-docker run --rm -it   -v "E:\Unraid\usb-creator-next:/imager-tool"   -w //imager-tool   --name unraid-usb-creator   unraid/qt6-cross-compile:win64-6.9.1
+docker run --rm -it   -v "E:\Unraid\usb-creator-next:/imager-tool"   -w //imager-tool   --name unraid-usb-creator   ghcr.io/ajit-mehrotra/unraid-usb-creator-mxe:latest
 
 # setup build directory
 cd ../..
 mkdir build && cd build
 
 # configure --> change BUILD_TYPE to Debug or whatever you want.
-cmake ../src -DQt6_DIR=/opt/mxe/usr/x86_64-w64-mingw32.shared/qt6/lib/cmake/Qt6 -DCMAKE_BUILD_TYPE=Release -DIMAGER_SIGNED_APP=OFF -DIMAGER_NOTARIZE_APP=OFF -DCMAKE_MESSAGE_LOG_LEVEL=DEBUG
+cmake ../src -DQt6_DIR=/opt/mxe/usr/x86_64-w64-mingw32.shared/qt6/lib/cmake/Qt6 -DCMAKE_BUILD_TYPE=Release -DIMAGER_SIGNED_APP=OFF -DCMAKE_MESSAGE_LOG_LEVEL=DEBUG
 
 # build
 cmake --build . --parallel
+
+cd .. 
+
+makensis unraid-usb-creator.nsi
+
+# example output file: unraid-usb-creator-1.9.6.exe
 
 ```
 
@@ -103,7 +109,7 @@ git clone https://github.com/unraid/usb-creator-next.git
 git switch v1.9.6-rebase
 
 mkdir build && cd build
-
+cmake ../src -DQt6_DIR=/opt/mxe/usr/x86_64-w64-mingw32.shared/qt6/lib/cmake/Qt6 -DCMAKE_BUILD_TYPE=Release -DIMAGER_SIGNED_APP=OFF -DIMAGER_NOTARIZE_APP=OFF -DCMAKE_MESSAGE_LOG_LEVEL=DEBUG
 cmake \
   -S ../src \
   -B . \

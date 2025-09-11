@@ -10,6 +10,7 @@ obj-**
 .vscode
 .zed
 .qtcreator**
+.vs
 
 # Debian packaging
 debian/unraid-usb-creator/**

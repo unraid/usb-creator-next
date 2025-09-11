@@ -938,44 +938,43 @@ endif()
 
     # Generate a small script to move plugin folders up one level
     file(WRITE "${CMAKE_BINARY_DIR}/flatten_plugins.cmake" "
+    # Robust flattener: move each subdir of plugins/ up one level, then remove plugins/ if empty
     set(_deploy \"${CMAKE_BINARY_DIR}/deploy\")
-    set(_dirs
-        platforms
-        imageformats
-        iconengines
-        generic
-        networkinformation
-        platforminputcontexts
-        styles
-        sqldrivers
-        tls
-        qmllint
-        qmltooling
-        multimedia
-    )
+    set(_plugins \"${CMAKE_BINARY_DIR}/deploy/plugins\")
 
-    foreach(d IN LISTS _dirs)
-      if (EXISTS \"${CMAKE_BINARY_DIR}/deploy/plugins/${d}\")
-        if (EXISTS \"${CMAKE_BINARY_DIR}/deploy/${d}\")
-          file(REMOVE_RECURSE \"${CMAKE_BINARY_DIR}/deploy/${d}\")
+    if(NOT EXISTS \"\${_plugins}\")
+    message(STATUS \"No plugins directory to flatten: \${_plugins}\")
+    return()
+    endif()
+
+    # Enumerate *actual* subdirectories instead of hardcoding names
+    file(GLOB _subdirs LIST_DIRECTORIES true \"\${_plugins}/*\")
+
+    foreach(p IN LISTS _subdirs)
+    if(IS_DIRECTORY \"\${p}\")
+        get_filename_component(name \"\${p}\" NAME)
+        set(dst \"\${_deploy}/\${name}\")
+        if(EXISTS \"\${dst}\")
+        file(REMOVE_RECURSE \"\${dst}\")
         endif()
-        file(RENAME \"${CMAKE_BINARY_DIR}/deploy/plugins/${d}\" \"${CMAKE_BINARY_DIR}/deploy/${d}\")
-      endif()
+        file(RENAME \"\${p}\" \"\${dst}\")
+    endif()
     endforeach()
-    
-    if (EXISTS \"${CMAKE_BINARY_DIR}/deploy/plugins\")
-      file(GLOB _remnant \"${CMAKE_BINARY_DIR}/deploy/plugins/*\")
-      if (NOT _remnant)
-        file(REMOVE_RECURSE \"${CMAKE_BINARY_DIR}/deploy/plugins\")
-      endif()
+
+    # If plugins/ is empty (or contains only files), nuke it
+    file(GLOB _leftovers \"\${_plugins}/*\")
+    if(NOT _leftovers)
+    file(REMOVE_RECURSE \"\${_plugins}\")
     endif()
     ")
+
 
     # Flatten plugin layout by moving folders (no duplicates)
     add_custom_command(TARGET ${PROJECT_NAME}
         POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E echo "Flattening plugin layout for NSIS (moving directories)"
-        COMMAND ${CMAKE_COMMAND} -P "${CMAKE_BINARY_DIR}/flatten_plugins.cmake"
+        COMMAND "${CMAKE_COMMAND}" -E echo "Flattening plugin layout for NSIS"
+        COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_BINARY_DIR}/flatten_plugins.cmake"
+        VERBATIM
     )
 
     # Remove excess files after flattening (targets now at root-level)
