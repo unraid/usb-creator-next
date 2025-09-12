@@ -447,7 +447,7 @@ ApplicationWindow {
 
                     ImButton {
                         id: writebutton
-                        text: qsTr("Next")
+                        text: qsTr("NEXT")
                         Layout.bottomMargin: 25
                         Layout.minimumHeight: 40
                         Layout.preferredWidth: 200
