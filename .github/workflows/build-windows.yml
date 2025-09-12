@@ -35,8 +35,13 @@ jobs:
         run: |
           makensis build/unraid-usb-creator.nsi
 
+      - name: Prepare artifact
+        run: |
+          mkdir -p Releases
+          mv build/unraid-usb-creator-*.exe "Releases/Unraid USB Creator.exe"
+
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: WindowsInstaller
-          path: build/unraid-usb-creator-*.exe
+          name: Windows Installer (NSIS)
+          path: "Releases/Unraid USB Creator.exe"

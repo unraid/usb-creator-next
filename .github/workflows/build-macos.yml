@@ -107,8 +107,13 @@ jobs:
           xcrun notarytool submit "unraid-usb-creator.dmg" --apple-id "$APPLE_EMAIL_ADDRESS" --password "$APPLE_APP_PASSWORD" --team-id "$APPLE_TEAM_ID" --wait
           xcrun stapler staple "unraid-usb-creator.dmg"
 
+      - name: Prepare artifact
+        run: |
+          mv "${{ github.workspace }}/Releases/unraid-usb-creator.dmg" \
+             "${{ github.workspace }}/Releases/Unraid USB Creator.dmg"
+
       - name: Upload Mac DMG
         uses: actions/upload-artifact@v4
         with:
-          name: UnraidInstallerMacOS
-          path: Releases/unraid-usb-creator.dmg
+          name: macOS DMG
+          path: "Releases/Unraid USB Creator.dmg"

@@ -82,11 +82,18 @@ jobs:
           chmod +x ./create-appimage.sh
           ./create-appimage.sh --qt-root="$HOME/Qt/${{ env.QT_VERSION }}/gcc_64"
 
+      - name: Prepare artifact
+        run: |
+          mkdir -p Releases
+          APPIMG=$(ls Unraid_Usb_Creator-*-x86_64.AppImage)
+          mv "$APPIMG" "Releases/Unraid USB Creator.AppImage"
+          chmod +x "Releases/Unraid USB Creator.AppImage"
+
       - name: Upload AppImage artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Unraid_Usb_Creator-x86_64
-          path: Unraid_Usb_Creator-*-x86_64.AppImage
+          name: Linux AppImage
+          path: "Releases/Unraid USB Creator.AppImage"
           if-no-files-found: error
 
       - name: Upload create-appimage.sh build log
