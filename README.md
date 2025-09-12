@@ -11,12 +11,12 @@ git switch v1.9.6-rebase
 
 # build docker image (skip if  built image)
 cd src/windows
-
-docker build --force-rm -f Dockerfile.win64dyn -t ghcr.io/ajit-mehrotra/unraid-usb-creator-mxe:latest .
+docker build -f Dockerfile.win64dyn -t ghcr.io/ajit-mehrotra/unraid-usb-creator-mxe:latest .
 
 
 # run docker container
-docker run --rm -it   -v "E:\Unraid\usb-creator-next:/imager-tool"   -w //imager-tool   --name unraid-usb-creator   ghcr.io/ajit-mehrotra/unraid-usb-creator-mxe:latest
+# if you run into cmake permissions error, your hard drive might have an open handle. Temp workaround would be to not use a volume mount in the meantime or run (chkdsk). 
+docker run --rm -it -v "E:\Unraid\usb-creator-next:/imager-tool" -w /imager-tool --name unraid-creator ghcr.io/ajit-mehrotra/unraid-usb-creator-mxe:latest
 
 # setup build directory
 cd ../..

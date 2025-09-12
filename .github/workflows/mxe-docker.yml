@@ -25,5 +25,5 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           push: true
-          file: src/windows/Dockerfile.win32dyn
-          tags: ghcr.io/${{ github.repository }}/usb-creator-mxe:latest
+          file: src/windows/Dockerfile.win64dyn
+          tags: ghcr.io/${{ github.repository }}/qt6-mxe-env:latest
