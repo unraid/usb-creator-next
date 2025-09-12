@@ -2,7 +2,6 @@
  * SPDX-License-Identifier: Apache-2.0
  * Copyright (C) 2021 Raspberry Pi Ltd
  */
-
 pragma ComponentBehavior: Bound
 
 import QtQuick 2.15
@@ -280,30 +279,46 @@ MainPopupBase {
                             return txt;
                         }
                     }
+
                     RowLayout {
                         spacing: 4
                         Layout.fillWidth: true
                         Layout.alignment: Qt.AlignVCenter
 
+                        // Always show the GUID label if present
                         Text {
-                            textFormat: Text.StyledText
-
+                            textFormat: Text.PlainText
                             verticalAlignment: Text.AlignVCenter
                             font.family: Style.fontFamily
                             font.weight: Font.Light
                             color: dstitem.hovered ? Style.unraidPrimaryBgColor : Style.unraidTextColor
                             opacity: enabled ? 1.0 : 0.3
-                            text: {
-                                var txt = "";
-                                if (dstitem.guid != "") {
-                                    dstitem.guidValid ? txt += "GUID: %1".arg(dstitem.guid) : txt += "GUID: %1 <font color='red'>[BLACKLISTED]</font>".arg(dstitem.guid);
-                                } else {
-                                    txt += "<font color='red'>[MISSING GUID - Choose Another Flash Device]</font>";
-                                }
-
-                                return txt;
-                            }
+                            visible: dstitem.guid !== ""
+                            text: qsTr("GUID: %1").arg(dstitem.guid)
                         }
+
+                        Text {
+                            textFormat: Text.PlainText
+                            verticalAlignment: Text.AlignVCenter
+                            font.family: Style.fontFamily
+                            font.weight: Font.Light
+                            color: dstitem.hovered ? Style.unraidPrimaryBgColor : Style.unraidAccentColor
+                            opacity: enabled ? 1.0 : 0.3
+                            visible: dstitem.guid !== "" && !dstitem.guidValid
+                            text: qsTr("[BLACKLISTED]")
+                        }
+
+                        Text {
+                            textFormat: Text.PlainText
+                            verticalAlignment: Text.AlignVCenter
+                            font.family: Style.fontFamily
+                            font.weight: Font.Light
+                            color: dstitem.hovered ? Style.unraidPrimaryBgColor : Style.unraidAccentColor
+                            opacity: enabled ? 1.0 : 0.3
+                            visible: dstitem.guid === ""
+                            text: qsTr("[Missing device GUID. You may not be able to use this device to get an Unraid license or trial.]")
+                        }
+
                         ToolButton {
                             id: toolButton
                             icon.source: dstitem.hovered ? "unraid/icons/info_dark_gray.svg" : "unraid/icons/info_orange.svg"
@@ -317,7 +332,7 @@ MainPopupBase {
                             visible: dstitem.guid != "" && !dstitem.guidValid
                             hoverEnabled: true
                             ToolTip.visible: hovered
-                            ToolTip.text: "This USB device is blacklisted. You may not be able to use this device to get an Unraid license or trial."
+                            ToolTip.text: qsTr("This USB device is blacklisted. You may not be able to use this device to get an Unraid license or trial.")
                         }
                     }
                 }
