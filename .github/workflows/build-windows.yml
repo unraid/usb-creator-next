@@ -14,7 +14,7 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: ghcr.io/ajit-mehrotra/unraid-usb-creator-mxe:latest
+    container: ghcr.io/unraid/usb-creator-next/qt6-mxe-env:latest
 
     steps:
       - name: Checkout code
