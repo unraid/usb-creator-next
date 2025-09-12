@@ -1,35 +1,22 @@
+
 /*
  * SPDX-License-Identifier: Apache-2.0
  * Copyright (C) 2022 Raspberry Pi Ltd
  */
-
 import QtQuick 2.9
 import QtQuick.Controls 2.2
 import QtQuick.Controls.Material 2.2
 import RpiImager
 
-// Basically AI-generated this entire thing. Needs human revision.
 CheckBox {
     id: control
     activeFocusOnTab: false
 
-    Rectangle {
-        // This rectangle serves as a high-contrast underline for focus
-        anchors.left: control.contentItem.left
-        anchors.right: control.contentItem.right
-        anchors.top: control.contentItem.bottom
-        anchors.topMargin: 2
-        height: 2
-        color: Style.unraidAccentColor
-        visible: control.activeFocus
-    }
-
-    // Accessibility improvements
     Accessible.role: Accessible.CheckBox
     Accessible.name: text
-    Accessible.description: checked ? "checked" : "unchecked"
 
     Rectangle {
+        // This rectangle serves as a high-contrast underline for focus
         anchors.left: control.contentItem.left
         anchors.right: control.contentItem.right
         anchors.top: control.contentItem.bottom
@@ -61,19 +48,13 @@ CheckBox {
             }
         }
 
-        Text {
+        Image {
             anchors.centerIn: parent
-            text: "✔"
-            font.pointSize: 12
-            color: Style.unraidPrimaryBgColor
-            visible: control.checked
-            opacity: control.checked ? 1.0 : 0.0
-
-            Behavior on opacity {
-                NumberAnimation {
-                    duration: 150
-                }
-            }
+            source: "qrc:/qt/qml/RpiImager/icons/check.svg"
+            // render sharply regardless of DPI/scale
+            sourceSize.width: Math.round(parent.width * 0.72)
+            sourceSize.height: Math.round(parent.height * 0.72)
+            visible: control.checkState === Qt.Checked
         }
     }
 
@@ -81,7 +62,8 @@ CheckBox {
         text: control.text
         font: control.font
         opacity: enabled ? 1.0 : 0.3
-        color: control.hovered ? Qt.lighter(Style.unraidTextColor, 1.1) : Style.unraidTextColor
+        color: control.hovered ? Qt.lighter(Style.unraidTextColor,
+                                            1.1) : Style.unraidTextColor
         verticalAlignment: Text.AlignVCenter
         leftPadding: control.indicator.width + control.spacing
 

@@ -166,7 +166,8 @@ MainPopupBase {
 
             anchors.left: parent ? parent.left : undefined
             anchors.right: parent ? parent.right : undefined
-            height: shouldHide ? 0 : 81
+            // Dynamic height with minimum of 81, which is what it was before.
+            height: shouldHide ? 0 : Math.max(81, columnLayout.implicitHeight + 20)
             visible: !shouldHide
 
             Accessible.name: {
@@ -246,18 +247,30 @@ MainPopupBase {
                 }
 
                 ColumnLayout {
+                    id: columnLayout
+                    Text {
+                        textFormat: Text.StyledText
+                        verticalAlignment: Text.AlignVCenter
+                        Layout.fillWidth: true
+                        wrapMode: Text.WrapAnywhere
+                        font.family: Style.fontFamily
+                        color: dstitem.hovered ? Style.unraidPrimaryBgColor : Style.unraidTextColor
+                        opacity: enabled ? 1.0 : 0.3
+                        text: dstitem.description
+                    }
 
                     Text {
                         textFormat: Text.StyledText
                         verticalAlignment: Text.AlignVCenter
                         Layout.fillWidth: true
+                        wrapMode: Text.WrapAnywhere
                         font.family: Style.fontFamily
-
+                        font.weight: Font.Light
                         color: dstitem.hovered ? Style.unraidPrimaryBgColor : Style.unraidTextColor
                         opacity: enabled ? 1.0 : 0.3
                         text: {
                             var sizeStr = (dstitem.size / 1000000000).toFixed(1) + " " + qsTr("GB");
-                            return dstitem.description + " - " + sizeStr;
+                            return qsTr("Size: %1").arg(sizeStr);
                         }
                     }
 
@@ -265,6 +278,7 @@ MainPopupBase {
                         textFormat: Text.StyledText
                         verticalAlignment: Text.AlignVCenter
                         Layout.fillWidth: true
+                        wrapMode: Text.WordWrap
                         font.family: Style.fontFamily
                         font.weight: Font.Light
                         color: dstitem.hovered ? Style.unraidPrimaryBgColor : Style.unraidTextColor
@@ -313,6 +327,8 @@ MainPopupBase {
                             verticalAlignment: Text.AlignVCenter
                             font.family: Style.fontFamily
                             font.weight: Font.Light
+                            Layout.fillWidth: true
+                            wrapMode: Text.WordWrap
                             color: dstitem.hovered ? Style.unraidPrimaryBgColor : Style.unraidAccentColor
                             opacity: enabled ? 1.0 : 0.3
                             visible: dstitem.guid === ""

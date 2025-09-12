@@ -14,6 +14,7 @@
         <file>fonts/Roboto-Bold.ttf</file>
         <file>fonts/Roboto-Light.ttf</file>
         <file>fonts/Roboto-Regular.ttf</file>
+         <file>icons/check.svg</file>
         <file>icons/ic_chevron_left_40px_orange.svg</file>
         <file>icons/ic_chevron_right_40px_orange.svg</file>
         <file>icons/ic_sd_storage_40px_orange.svg</file>
