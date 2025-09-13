@@ -1,16 +1,15 @@
-
 /*
  * SPDX-License-Identifier: Apache-2.0
  * Copyright (C) 2022 Raspberry Pi Ltd
  */
-import QtQuick 2.9
-import QtQuick.Controls 2.2
-import QtQuick.Controls.Material 2.2
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Controls.Material
 import RpiImager
 
 CheckBox {
     id: control
-    activeFocusOnTab: false
+    activeFocusOnTab: true
 
     Accessible.role: Accessible.CheckBox
     Accessible.name: text
@@ -23,7 +22,7 @@ CheckBox {
         anchors.topMargin: 2
         height: 2
         color: Style.unraidAccentColor
-        visible: control.activeFocus
+        visible: control.activeFocus && (control.focusReason === Qt.TabFocusReason || control.focusReason === Qt.BacktabFocusReason)
     }
 
     indicator: Rectangle {
@@ -62,8 +61,7 @@ CheckBox {
         text: control.text
         font: control.font
         opacity: enabled ? 1.0 : 0.3
-        color: control.hovered ? Qt.lighter(Style.unraidTextColor,
-                                            1.1) : Style.unraidTextColor
+        color: control.hovered ? Qt.lighter(Style.unraidTextColor, 1.1) : Style.unraidTextColor
         verticalAlignment: Text.AlignVCenter
         leftPadding: control.indicator.width + control.spacing
 

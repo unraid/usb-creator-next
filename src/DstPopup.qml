@@ -89,10 +89,10 @@ MainPopupBase {
 
         Keys.onPressed: event => {
             if (event.key === Qt.Key_Backtab || (event.key === Qt.Key_Tab && event.modifiers & Qt.ShiftModifier)) {
-                root.getPreviousFocusableElement(dstlist).forceActiveFocus();
+                root.getPreviousFocusableElement(dstlist).forceActiveFocus(Qt.BacktabFocusReason);
                 event.accepted = true;
             } else if (event.key === Qt.Key_Tab) {
-                root.getNextFocusableElement(dstlist).forceActiveFocus();
+                root.getNextFocusableElement(dstlist).forceActiveFocus(Qt.TabFocusReason);
                 event.accepted = true;
             } else {
                 // Allow default up/down arrow processing
@@ -129,10 +129,10 @@ MainPopupBase {
 
             Keys.onPressed: event => {
                 if (event.key === Qt.Key_Backtab || (event.key === Qt.Key_Tab && event.modifiers & Qt.ShiftModifier)) {
-                    root.getPreviousFocusableElement(filterSystemDrives).forceActiveFocus();
+                    root.getPreviousFocusableElement(filterSystemDrives).forceActiveFocus(Qt.BacktabFocusReason);
                     event.accepted = true;
                 } else if (event.key === Qt.Key_Tab) {
-                    root.getNextFocusableElement(filterSystemDrives).forceActiveFocus();
+                    root.getNextFocusableElement(filterSystemDrives).forceActiveFocus(Qt.TabFocusReason);
                     event.accepted = true;
                 }
             }
