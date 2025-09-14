@@ -294,6 +294,7 @@ MainPopupBase {
                         }
                     }
 
+                    // didn't abstract tooltip into separate component because it's only been used twice so far.
                     RowLayout {
                         spacing: 4
                         Layout.fillWidth: true
@@ -322,21 +323,8 @@ MainPopupBase {
                             text: qsTr("[BLACKLISTED]")
                         }
 
-                        Text {
-                            textFormat: Text.PlainText
-                            verticalAlignment: Text.AlignVCenter
-                            font.family: Style.fontFamily
-                            font.weight: Font.Light
-                            Layout.fillWidth: true
-                            wrapMode: Text.WordWrap
-                            color: dstitem.hovered ? Style.unraidPrimaryBgColor : Style.unraidAccentColor
-                            opacity: enabled ? 1.0 : 0.3
-                            visible: dstitem.guid === ""
-                            text: qsTr("[Missing device GUID. You may not be able to use this device to get an Unraid license or trial.]")
-                        }
-
                         ToolButton {
-                            id: toolButton
+                            id: blackListedToolButton
                             icon.source: dstitem.hovered ? "unraid/icons/info_dark_gray.svg" : "unraid/icons/info_orange.svg"
                             icon.color: "transparent"
                             icon.width: 16
@@ -350,6 +338,36 @@ MainPopupBase {
                             ToolTip.visible: hovered
                             ToolTip.text: qsTr("This USB device is blacklisted. You may not be able to use this device to get an Unraid license or trial.")
                         }
+
+                        Text {
+                            textFormat: Text.PlainText
+                            verticalAlignment: Text.AlignVCenter
+                            font.family: Style.fontFamily
+                            font.weight: Font.Light
+                            wrapMode: Text.WordWrap
+                            color: dstitem.hovered ? Style.unraidPrimaryBgColor : Style.unraidAccentColor
+                            opacity: enabled ? 1.0 : 0.3
+                            visible: dstitem.guid === ""
+                            text: qsTr("[MISSING DEVICE GUID]")
+                        }
+
+                        ToolButton {
+                            id: missingToolButton
+                            icon.source: dstitem.hovered ? "unraid/icons/info_dark_gray.svg" : "unraid/icons/info_orange.svg"
+                            icon.color: "transparent"
+                            icon.width: 16
+                            icon.height: 16
+                            Layout.alignment: Qt.AlignVCenter
+                            padding: 0
+                            implicitWidth: icon.width
+                            implicitHeight: icon.height
+                            visible: dstitem.guid === ""
+                            hoverEnabled: true
+                            ToolTip.visible: hovered
+                            ToolTip.text: qsTr("Cannot identify this device (GUID missing). You may not be able to use this device to get an Unraid license or trial.")
+                        }
+
+
                     }
                 }
             }
