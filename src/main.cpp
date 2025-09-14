@@ -164,8 +164,8 @@ int main(int argc, char *argv[])
 
 #ifdef Q_OS_WIN
     // QT_QUICK_BACKEND must be set to software for MXE crosscompile
-    qputenv("QT_QUICK_BACKEND", "software");
-    qputenv("QT_QPA_PLATFORM", "windows:darkmode=1");
+    // qputenv("QT_QUICK_BACKEND", "software");
+    // qputenv("QT_QPA_PLATFORM", "windows:darkmode=1");
 #endif
 #ifdef QT_NO_WIDGETS
     if (!handleDri())
