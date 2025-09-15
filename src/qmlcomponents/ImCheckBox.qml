@@ -5,7 +5,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Controls.Material
-import RpiImager
+import UnraidImager
 
 CheckBox {
     id: control
@@ -49,7 +49,7 @@ CheckBox {
 
         Image {
             anchors.centerIn: parent
-            source: "qrc:/qt/qml/RpiImager/icons/check.svg"
+            source: "qrc:/qt/qml/UnraidImager/icons/check.svg"
             // render sharply regardless of DPI/scale
             sourceSize.width: Math.round(parent.width * 0.72)
             sourceSize.height: Math.round(parent.height * 0.72)

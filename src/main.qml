@@ -10,7 +10,7 @@ import QtQuick.Layouts 1.0
 import QtQuick.Controls.Material 2.2
 import "qmlcomponents"
 
-import RpiImager
+import UnraidImager
 
 ApplicationWindow {
     id: window

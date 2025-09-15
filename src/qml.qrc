@@ -9,7 +9,7 @@
     </qresource>
 
     <!-- Resources used by QML: -->
-    <qresource prefix="/qt/qml/RpiImager">
+    <qresource prefix="/qt/qml/UnraidImager">
         <file>icons/unraid.ico</file>
         <file>fonts/Roboto-Bold.ttf</file>
         <file>fonts/Roboto-Light.ttf</file>

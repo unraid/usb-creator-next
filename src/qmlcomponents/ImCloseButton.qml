@@ -1,4 +1,3 @@
-
 /*
  * SPDX-License-Identifier: Apache-2.0
  * Copyright (C) 2020 Raspberry Pi Ltd
@@ -7,7 +6,7 @@
 import QtQuick 2.9
 import QtQuick.Layouts 1.0
 
-import RpiImager
+import UnraidImager
 
 Text {
     id: root

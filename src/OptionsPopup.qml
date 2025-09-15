@@ -10,7 +10,7 @@ import QtQuick.Controls.Material 2.2
 import QtQuick.Window 2.15
 import "qmlcomponents"
 
-import RpiImager
+import UnraidImager
 
 Window {
     id: popup
@@ -48,7 +48,7 @@ Window {
     property string cloudinitnetwork
 
     signal saveSettingsSignal(var settings)
-    signal continueSignal()
+    signal continueSignal
 
     Shortcut {
         sequence: "Esc"
@@ -82,7 +82,7 @@ Window {
                 // Services tab - need to find a reliable way to access Add SSH Key button
                 // For now, just focus the second radio button as it's always accessible
                 remoteAccessTab.radioPubKeyAuthentication.forceActiveFocus();
-            // } else if (bar.currentIndex === 2) {
+                // } else if (bar.currentIndex === 2) {
                 //     Options tab - focus telemetry checkbox (last element)
                 //     optionsTab.chkTelemtry.forceActiveFocus()
             }
@@ -429,10 +429,10 @@ Window {
             generalTab.fieldWifiPassword.forceActiveFocus();
             return;
         }
-        
+
         if (generalTab.chkWifi.checked && generalTab.fieldWifiCountry.indicateError) {
-            generalTab.fieldWifiCountry.forceActiveFocus()
-            return
+            generalTab.fieldWifiCountry.forceActiveFocus();
+            return;
         }
     }
 
