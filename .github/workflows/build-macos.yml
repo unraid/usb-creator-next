@@ -76,6 +76,9 @@ jobs:
       - name: Remove quarantine attribute
         run: sudo xattr -rc ../build/unraid-usb-creator.app
 
+      - name: Rename .app for DMG
+        run: mv "../build/unraid-usb-creator.app" "../build/Unraid USB Creator.app"
+
       - name: Install create-dmg
         run: |
           brew update
@@ -86,17 +89,19 @@ jobs:
           mkdir -p "${{ github.workspace }}/Releases"
 
           # Create a “drag-to-Applications” DMG:
+          # make sure background is 72 dpi  
           create-dmg \
             --volname "Unraid Installer" \
             --volicon "${{ github.workspace }}/src/icons/unraid.icns" \
-            --background "${{ github.workspace }}/src/icons/UN-logotype-gradient.png" \
+            --background "${{ github.workspace }}/src/mac/unraid-dmg-bg-72dpi.png" \
             --window-pos 200 120 \
             --window-size 800 400 \
-            --icon "unraid-usb-creator.app" 200 190 \
-            --hide-extension "unraid-usb-creator.app" \
-            --app-drop-link 600 185 \
-            "${{ github.workspace }}/Releases/unraid-usb-creator.dmg" \
-            "${{ github.workspace }}/build/unraid-usb-creator.app"
+            --icon "Unraid USB Creator.app" 205 210 \
+            --hide-extension "Unraid USB Creator.app" \
+            --app-drop-link 595 210 \
+            "${{ github.workspace }}/Releases/Unraid USB Creator.dmg" \
+            "${{ github.workspace }}/build/Unraid USB Creator.app"
+
       - name: Notarize DMG
         env:
           APPLE_EMAIL_ADDRESS: ${{ secrets.APPLE_EMAIL_ADDRESS }}
@@ -104,13 +109,8 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           cd "${{ github.workspace }}/Releases"
-          xcrun notarytool submit "unraid-usb-creator.dmg" --apple-id "$APPLE_EMAIL_ADDRESS" --password "$APPLE_APP_PASSWORD" --team-id "$APPLE_TEAM_ID" --wait
-          xcrun stapler staple "unraid-usb-creator.dmg"
-
-      - name: Prepare artifact
-        run: |
-          mv "${{ github.workspace }}/Releases/unraid-usb-creator.dmg" \
-             "${{ github.workspace }}/Releases/Unraid USB Creator.dmg"
+          xcrun notarytool submit "Unraid USB Creator.dmg" --apple-id "$APPLE_EMAIL_ADDRESS" --password "$APPLE_APP_PASSWORD" --team-id "$APPLE_TEAM_ID" --wait
+          xcrun stapler staple "Unraid USB Creator.dmg"
 
       - name: Upload Mac DMG
         uses: actions/upload-artifact@v4
