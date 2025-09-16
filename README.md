@@ -66,13 +66,7 @@ git switch v1.9.6-rebase
 
 mkdir build && cd build
 
-cmake \                   
-    -DCMAKE_C_COMPILER=/usr/bin/clang \
-    -DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
-    -DQt6_ROOT="/Users/ajitmehrotra/Qt/6.9.1/macos" \
-    -DCMAKE_BUILD_TYPE=Debug \
-    -S ../src \
-    -B .
+cmake -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DQt6_ROOT="/Users/ajitmehrotra/Qt/6.9.1/macos" -DCMAKE_BUILD_TYPE=Debug -S ../src -B .
     
 
 cmake --build . --parallel
@@ -103,7 +97,7 @@ git clone https://github.com/unraid/usb-creator-next.git
 git switch v1.9.6-rebase
 
 mkdir build && cd build
-cmake ../src -DQt6_DIR=/opt/mxe/usr/x86_64-w64-mingw32.shared/qt6/lib/cmake/Qt6 -DCMAKE_BUILD_TYPE=Release -DIMAGER_SIGNED_APP=OFF -DIMAGER_NOTARIZE_APP=OFF -DCMAKE_MESSAGE_LOG_LEVEL=DEBUG
+
 cmake \
   -S ../src \
   -B . \

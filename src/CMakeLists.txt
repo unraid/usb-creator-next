@@ -758,12 +758,12 @@ set(IMAGER_QML_CPP_TYPES
 )
 
 qt_add_qml_module(${PROJECT_NAME}
-    URI RpiImager
+    URI UnraidImager
     VERSION 1.0
     QML_FILES ${IMAGER_QML_FILES}
     SOURCES ${IMAGER_QML_CPP_TYPES}
     NO_CACHEGEN
-    OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/RpiImager
+    OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/UnraidImager
     DEPENDENCIES QtQuick
     NO_PLUGIN
 )
@@ -1055,12 +1055,21 @@ elseif(APPLE)
         message(FATAL_ERROR "Unable to locate macdeployqt")
     endif()
 
-    # Deploy Qt dependencies as part of the main build
     add_custom_command(TARGET ${PROJECT_NAME}
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E echo "Deploying Qt dependencies..."
-        COMMAND "${MACDEPLOYQT}" "${APP_BUNDLE_PATH}" -qmldir="${CMAKE_CURRENT_SOURCE_DIR}" -always-overwrite
+
+        # -appstore-compliant doesn't do anything for some reason (and docs say -feature-appstore-compliant which isn't an option anymore)
+        COMMAND "${MACDEPLOYQT}" "${APP_BUNDLE_PATH}" -qmldir="${CMAKE_CURRENT_SOURCE_DIR}" -always-overwrite 
         COMMENT "Deploying Qt dependencies"
+    )
+
+    add_custom_command(TARGET ${PROJECT_NAME}
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E echo "Removing Qt SQL drivers (sqldrivers) from app bundle..."
+        COMMAND ${CMAKE_COMMAND} -E remove_directory "${APP_BUNDLE_PATH}/Contents/PlugIns/sqldrivers"
+        COMMENT "Pruning disallowed/unused Qt Plugins for App Store compliance"
+        VERBATIM
     )
 
     # Create explicit DMG target (similar to inno_installer on Windows)
