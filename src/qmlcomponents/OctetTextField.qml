@@ -24,6 +24,13 @@ TextField {
     selectByMouse: true
     maximumLength: 3
 
+
+    property string errorText: "Enter a number between %1 and %2".arg(minValue).arg(maxValue)
+
+    ToolTip.visible: enabled && !acceptableInput && (focus || hovered)
+    ToolTip.text: errorText
+    ToolTip.delay: 0
+
     validator: IntValidator {
         bottom: octetField.minValue
         top: octetField.maxValue
