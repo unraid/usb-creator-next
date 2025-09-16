@@ -51,7 +51,10 @@ TextField {
             }
             height: 1
             opacity: octetField.enabled ? 1.0 : 0.3
-            color: octetField.enabled ? (octetField.hovered ? "#ffffff" : (octetField.focus && (octetField.focusReason === Qt.BacktabFocusReason || Qt.MouseFocusReason || Qt.TabFocusReason) ? Style.unraidAccentColor : "#bdbdbd")) : "#bdbdbd"
+            color: octetField.enabled
+                   ? (octetField.focus ? Style.unraidAccentColor
+                      : (octetField.hovered ? "#ffffff" : "#bdbdbd"))
+                   : "#bdbdbd"
         }
     }
 

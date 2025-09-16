@@ -24,7 +24,7 @@ Popup {
     required property ImageWriter imageWriter
     property bool initialized: false
     property bool hasSavedSettings: false
-    property bool validInputs: false
+    property bool validInputs: fieldServername.acceptableInput && ipAddressField.acceptableInput && gatewayField.acceptableInput && dnsField.acceptableInput
 
     signal saveSettingsSignal(var settings)
     signal continueSignal
@@ -230,10 +230,7 @@ Popup {
 
 //  This part needs to be refactored to make validInputs a live binding instead.
             ImButton {
-                enabled: {
-                    popup.checkInputs();
-                    return popup.validInputs;
-                    }
+                enabled: popup.validInputs
                 text: qsTr("CONTINUE")
                 onClicked: {
                     popup.checkInputs();
