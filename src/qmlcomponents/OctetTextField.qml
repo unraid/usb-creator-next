@@ -22,6 +22,7 @@ TextField {
     Layout.preferredHeight: textMetrics.width
     horizontalAlignment: TextInput.AlignHCenter
     selectByMouse: true
+    maximumLength: 3
 
     validator: IntValidator {
         bottom: octetField.minValue
@@ -35,6 +36,7 @@ TextField {
         font: octetField.font
         text: "255"
     }
+
 
     // Custom background with underline
     background: Rectangle {
@@ -52,4 +54,6 @@ TextField {
             color: octetField.enabled ? (octetField.hovered ? "#ffffff" : (octetField.focus && (octetField.focusReason === Qt.BacktabFocusReason || Qt.MouseFocusReason || Qt.TabFocusReason) ? Style.unraidAccentColor : "#bdbdbd")) : "#bdbdbd"
         }
     }
+
+
 }

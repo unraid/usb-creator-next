@@ -265,19 +265,15 @@ Popup {
     function checkInputs() {
         validInputs = false;
         if (!fieldServername.acceptableInput) {
-            fieldServername.forceActiveFocus();
             return;
         }
         if (!ipAddressField.acceptableInput) {
-            ipAddressField.forceActiveFocus();
             return;
         }
         if (!gatewayField.acceptableInput) {
-            gatewayField.forceActiveFocus();
             return;
         }
         if (!dnsField.acceptableInput) {
-            dnsField.forceActiveFocus();
             return;
         }
         validInputs = true;

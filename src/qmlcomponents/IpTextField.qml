@@ -25,6 +25,11 @@ RowLayout {
     OctetTextField {
         id: fieldIpAddress1
         enabled: parent.enabled
+        onTextChanged:{
+            if (acceptableInput && text.length === maximumLength) {
+                fieldIpAddress2.forceActiveFocus();
+            }
+        }
     }
     Text {
         text: "."
@@ -35,6 +40,11 @@ RowLayout {
     OctetTextField {
         id: fieldIpAddress2
         enabled: parent.enabled
+        onTextChanged:{
+            if (acceptableInput && text.length === maximumLength) {
+                fieldIpAddress3.forceActiveFocus();
+            }
+        }
     }
     Text {
         text: "."
@@ -44,6 +54,11 @@ RowLayout {
     OctetTextField {
         id: fieldIpAddress3
         enabled: parent.enabled
+        onTextChanged:{
+            if (acceptableInput && text.length === maximumLength) {
+                fieldIpAddress4.forceActiveFocus();
+            }
+        }
     }
     Text {
         text: "."
@@ -55,15 +70,5 @@ RowLayout {
         enabled: parent.enabled
     }
 
-    function forceActiveFocus() {
-        if (!fieldIpAddress1.acceptableInput) {
-            fieldIpAddress1.forceActiveFocus();
-        } else if (!fieldIpAddress2.acceptableInput) {
-            fieldIpAddress2.forceActiveFocus();
-        } else if (!fieldIpAddress3.acceptableInput) {
-            fieldIpAddress3.forceActiveFocus();
-        } else if (!fieldIpAddress4.acceptableInput) {
-            fieldIpAddress4.forceActiveFocus();
-        }
-    }
+   
 }
