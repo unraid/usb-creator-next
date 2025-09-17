@@ -57,10 +57,12 @@ public:
 
     virtual void run()
     {
+        qDebug() << "_extractThreadClass::run() started, isImage:" << _de->isImage();
         if (_de->isImage())
             _de->extractImageRun();
         else
             _de->extractMultiFileRun();
+        qDebug() << "_extractThreadClass::run() finished";
     }
 
 protected:
@@ -80,7 +82,9 @@ DownloadExtractThread::DownloadExtractThread(const QByteArray &url, const QByteA
       _lastEmittedDlNow(0),
       _lastLocalVerifyNow(0)
 {
+    qDebug() << "DownloadExtractThread constructor, creating _extractThread";
     _extractThread = new _extractThreadClass(this);
+    qDebug() << "DownloadExtractThread constructor, _extractThread created:" << _extractThread;
     size_t pageSize = getSystemPageSize();
     _abuf[0] = (char *)qMallocAligned(_abufsize, pageSize);
     _abuf[1] = (char *)qMallocAligned(_abufsize, pageSize);
@@ -90,15 +94,47 @@ DownloadExtractThread::DownloadExtractThread(const QByteArray &url, const QByteA
 
 DownloadExtractThread::~DownloadExtractThread()
 {
-    _cancelled = true;
+    qDebug() << "DownloadExtractThread destructor called, thread running:" << _extractThread->isRunning();
 
+    _cancelled = true;
     _cancelExtract();
+    qDebug() << "About to wait for _extractThread, isRunning:" << _extractThread->isRunning();
+
     if (!_extractThread->wait(10000))
     {
+        qDebug() << "Thread didn't finish in 10s, terminating";
         _extractThread->terminate();
+        qDebug() << "Waiting for thread to terminate";
+        _extractThread->wait();
+        qDebug() << "Thread terminated";
     }
+
+    // Add cross-platform disk cleanup when cancelled
+    qDebug() << "DownloadExtractThread destructor, checking if eject needed";
+    qDebug() << "_cancelled:" << _cancelled << ", _filename:" << _filename;
+    if (!_filename.isEmpty() && _cancelled)
+    {
+        qDebug() << "Ejecting disk on cancellation:" << _filename;
+
+#ifdef Q_OS_DARWIN
+        QThread::sleep(1);
+        _filename.replace("/dev/rdisk", "/dev/disk");
+#endif
+        eject_disk(_filename.constData()); // Works on macOS, stubs on Linux/Windows
+
+#ifdef Q_OS_LINUX
+#ifndef QT_NO_DBUS
+        /* mountutils only implemented unmount and not eject on Linux. Do so through udisks2 */
+        UDisks2Api udisks;
+        udisks.ejectDrive(_filename); // Proper Linux ejection
+#endif
+#endif
+    }
+
+    qDebug() << "Thread finished, freeing buffers";
     qFreeAligned(_abuf[0]);
     qFreeAligned(_abuf[1]);
+    qDebug() << "Buffers freed, DownloadExtractThread destructor finished";
 }
 
 void DownloadExtractThread::_emitProgressUpdate()
@@ -181,17 +217,21 @@ void DownloadExtractThread::_onDownloadError(const QString &msg)
 
 void DownloadExtractThread::_cancelExtract()
 {
+    qDebug() << "DownloadExtractThread::_cancelExtract() called";
     std::unique_lock<std::mutex> lock(_queueMutex);
     _queue.clear();
     _queue.push_back(QByteArray());
     lock.unlock();
     _cv.notify_all();
+    qDebug() << "DownloadExtractThread::_cancelExtract() finished";
 }
 
 void DownloadExtractThread::cancelDownload()
 {
+    qDebug() << "DownloadExtractThread::cancelDownload() called";
     DownloadThread::cancelDownload();
     _cancelExtract();
+    qDebug() << "DownloadExtractThread::cancelDownload() finished";
 }
 
 // Raise exception on libarchive errors
@@ -446,8 +486,17 @@ void DownloadExtractThread::extractMultiFileRun()
 
         if (_initFormat == "UNRAID")
         {
+
+            // Check for cancellation before starting post-processing
+            qDebug() << "DownloadExtractThread::extractMultiFileRun() checking for cancellation";
+            if (_cancelled)
+                return;
+
             if (_allNetworkSettingsPresent() && _imgWriterSettings["static"].toBool())
             {
+
+                if (_cancelled)
+                    return; // Check before file operations
                 QFile fileNetwork(folder + "/config/network.cfg");
                 if (fileNetwork.exists())
                 {
@@ -469,6 +518,9 @@ void DownloadExtractThread::extractMultiFileRun()
                     fileNetwork.close();
                 }
             }
+
+            if (_cancelled)
+                return; // Check before server name processing
             if (_imgWriterSettings.contains("servername"))
             {
                 QFile fileIdent(folder + "/config/ident.cfg");
@@ -489,6 +541,8 @@ void DownloadExtractThread::extractMultiFileRun()
                 }
             }
 
+            if (_cancelled)
+                return; // Check before file operations
             // restore make bootable scripts and/or syslinux, if necessary
             QDir dirTarget(folder);
             if (dirTarget.mkdir("syslinux"))
@@ -511,10 +565,16 @@ void DownloadExtractThread::extractMultiFileRun()
                 QFile::copy(":/unraid/make_bootable.bat", folder + "/make_bootable.bat");
             }
 
+            if (_cancelled)
+                return; // Check before running make_bootable script
+
 #ifdef Q_OS_WIN
             QString program{"cmd.exe"};
             QStringList args;
             args << "/C" << "echo Y | make_bootable.bat";
+
+            if (_cancelled)
+                return; // Final check before execution
 
             int retcode = QProcess::execute(program, args);
 

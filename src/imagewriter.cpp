@@ -535,8 +535,10 @@ void ImageWriter::startWrite()
 /* Cancel write */
 void ImageWriter::cancelWrite()
 {
+    qDebug() << "ImageWriter::cancelWrite() called, _thread:" << _thread;
     if (_waitingForCacheVerification)
     {
+        qDebug() << "Waiting for cache verification, skipping...";
         // If we're waiting for cache verification, treat this as skip cache verification
         skipCacheVerification();
         return;
@@ -544,12 +546,14 @@ void ImageWriter::cancelWrite()
 
     if (_thread)
     {
+        qDebug() << "Connecting to thread finished signal and calling cancelDownload";
         connect(_thread, SIGNAL(finished()), SLOT(onCancelled()));
         _thread->cancelDownload();
     }
 
     if (!_thread || !_thread->isRunning())
     {
+        qDebug() << "Thread not running, emitting cancelled immediately";
         emit cancelled();
     }
 }
@@ -584,11 +588,14 @@ void ImageWriter::skipCacheVerification()
 
 void ImageWriter::onCancelled()
 {
+    qDebug() << "ImageWriter::onCancelled() called, sender:" << sender();
     sender()->deleteLater();
     if (sender() == _thread)
     {
+        qDebug() << "Setting _thread to nullptr.";
         _thread = nullptr;
     }
+    qDebug() << "Emitting cancelled signal.";
     emit cancelled();
 }
 
