@@ -22,6 +22,7 @@
 #include <QDebug>
 #include <QtConcurrent/qtconcurrentrun.h>
 #include <QElapsedTimer>
+#include <QRegularExpression>
 
 #ifdef Q_OS_WIN
 #include <windows.h>
@@ -111,7 +112,7 @@ DownloadExtractThread::~DownloadExtractThread()
 
     // Add cross-platform disk cleanup when cancelled
     qDebug() << "DownloadExtractThread destructor, checking if eject needed";
-    qDebug() << "_cancelled:" << _cancelled << ", _filename:" << _filename;
+    qDebug() << "_cancelled:" << _cancelled << ", _ejectEnabled:" << _ejectEnabled << ", _filename:" << _filename;
     if (!_filename.isEmpty() && _cancelled)
     {
         qDebug() << "Ejecting disk on cancellation:" << _filename;
@@ -492,7 +493,9 @@ void DownloadExtractThread::extractMultiFileRun()
             if (_cancelled)
                 return;
 
-            if (_allNetworkSettingsPresent() && _imgWriterSettings["static"].toBool())
+            qDebug() << "AllNetworkSettingsPresent:" << _allNetworkSettingsPresent();
+
+            if (_allNetworkSettingsPresent())
             {
 
                 if (_cancelled)
@@ -500,22 +503,38 @@ void DownloadExtractThread::extractMultiFileRun()
                 QFile fileNetwork(folder + "/config/network.cfg");
                 if (fileNetwork.exists())
                 {
-                    fileNetwork.open(QIODevice::ReadOnly);
-                    QString dataText = fileNetwork.readAll();
-                    fileNetwork.close();
+                    qDebug() << "USE_DHCP:" << _imgWriterSettings["dhcp"].toString();
+                    qDebug() << "Static IP:" << _imgWriterSettings["static"].toString();
+                    qDebug() << "IPADDR:" << _imgWriterSettings["ipaddr"].toString();
+                    qDebug() << "NETMASK:" << _imgWriterSettings["netmask"].toString();
+                    qDebug() << "GATEWAY:" << _imgWriterSettings["gateway"].toString();
+                    qDebug() << "DNS_SERVER1:" << _imgWriterSettings["dns"].toString();
+                    
+                    if(fileNetwork.open(QIODevice::ReadOnly)){
+                       
+                        QString dataText = QString::fromUtf8(fileNetwork.readAll());
+                        fileNetwork.close();
+                        // qDebug() << "dataText - before - network.cfg:" << dataText;
+                    
+                        const bool useDhcp =_imgWriterSettings["dhcp"].toBool();
 
-                    dataText.replace("USE_DHCP=\"yes\"", "USE_DHCP=\"no\"");
-                    dataText.replace("IPADDR=", "IPADDR=\"" + _imgWriterSettings["ipaddr"].toString() + "\"");
-                    dataText.replace("NETMASK=", "NETMASK=\"" + _imgWriterSettings["netmask"].toString() + "\"");
-                    dataText.replace("GATEWAY=", "GATEWAY=\"" + _imgWriterSettings["gateway"].toString() + "\"");
-                    dataText.append("DNS_SERVER1=\"" + _imgWriterSettings["dns"].toString() + "\"\r\n");
-
-                    if (fileNetwork.open(QFile::WriteOnly | QFile::Truncate))
-                    {
-                        QTextStream out(&fileNetwork);
-                        out << dataText;
+                        _setOrAddKey(dataText, "USE_DHCP",   useDhcp ? "yes" : "no");
+                        _setOrAddKey(dataText, "IPADDR", _imgWriterSettings["ipaddr"].toString(), !useDhcp);
+                        _setOrAddKey(dataText, "NETMASK", _imgWriterSettings["netmask"].toString(), !useDhcp);
+                        _setOrAddKey(dataText, "GATEWAY", _imgWriterSettings["gateway"].toString(), !useDhcp);
+                        if(useDhcp){
+                            _removeKey(dataText, "DNS_SERVER1");
+                        }else{
+                            _setOrAddKey(dataText, "DNS_SERVER1", _imgWriterSettings["dns"].toString());
+                        }
+                        
+                        if (fileNetwork.open(QFile::WriteOnly | QFile::Truncate))
+                        {
+                            fileNetwork.write(dataText.toUtf8());
+                        }
+                        fileNetwork.close();
+                        qDebug() << "dataText - after - network.cfg:" << dataText;
                     }
-                    fileNetwork.close();
                 }
             }
 
@@ -526,18 +545,21 @@ void DownloadExtractThread::extractMultiFileRun()
                 QFile fileIdent(folder + "/config/ident.cfg");
                 if (fileIdent.exists())
                 {
-                    fileIdent.open(QIODevice::ReadOnly);
-                    QString dataText = fileIdent.readAll();
-                    fileIdent.close();
-
-                    dataText.replace("NAME=\"Tower\"", "NAME=\"" + _imgWriterSettings["servername"].toString() + "\"");
-
-                    if (fileIdent.open(QFile::WriteOnly | QFile::Truncate))
-                    {
-                        QTextStream out(&fileIdent);
-                        out << dataText;
+                    if(fileIdent.open(QIODevice::ReadOnly)){
+                        
+                        QString dataText = QString::fromUtf8(fileIdent.readAll());
+                        fileIdent.close();
+                        // qDebug() << "dataText - before - ident.cfg:" << dataText;
+                        
+                        // Replace-or-insert server name
+                        _setOrAddKey(dataText, "NAME", _imgWriterSettings["servername"].toString());
+                        if (fileIdent.open(QFile::WriteOnly | QFile::Truncate))
+                        {
+                            fileIdent.write(dataText.toUtf8());
+                        }
+                        fileIdent.close();
+                        qDebug() << "dataText - after - ident.cfg:" << dataText;
                     }
-                    fileIdent.close();
                 }
             }
 
@@ -783,4 +805,33 @@ bool DownloadExtractThread::_verify()
     }
 
     return false;
+}
+
+// Helper utilities for safe key=value editing without duplicates
+QString DownloadExtractThread::_detectEOL(const QString &text)
+{
+    return text.contains("\r\n") ? QString("\r\n") : QString("\n");
+}
+
+void DownloadExtractThread::_setOrAddKey(QString &text, const QString &key, const QString &value, bool quoteValue)
+{
+    const QString line = quoteValue ? QString("%1=\"%2\"").arg(key, value)
+                                    : QString("%1=%2").arg(key, value);
+    QRegularExpression re(QString("^%1=.*$").arg(QRegularExpression::escape(key)),
+                          QRegularExpression::MultilineOption);
+    if (re.match(text).hasMatch()) {
+        text.replace(re, line);
+    } else {
+        const QString eol = _detectEOL(text);
+        if (!text.isEmpty() && !text.endsWith("\n") && !text.endsWith("\r"))
+            text.append(eol);
+        text.append(line + eol);
+    }
+}
+
+void DownloadExtractThread::_removeKey(QString &text, const QString &key)
+{
+    QRegularExpression re(QString("^%1=.*(?:\\r?\\n)?").arg(QRegularExpression::escape(key)),
+                          QRegularExpression::MultilineOption);
+    text.remove(re);
 }

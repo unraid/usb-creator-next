@@ -228,7 +228,6 @@ Popup {
             Layout.alignment: Qt.AlignCenter | Qt.AlignBottom
             spacing: 10
 
-//  This part needs to be refactored to make validInputs a live binding instead.
             ImButton {
                 enabled: popup.validInputs
                 text: qsTr("CONTINUE")
@@ -277,15 +276,26 @@ Popup {
     }
 
     function applySettings() {
+
         var settings = {};
         settings.dhcp = radioDhcp.checked;
         settings.static = radioStaticIp.checked;
-        settings.ipaddr = ipAddressField.fullAddress;
-        settings.gateway = gatewayField.fullAddress;
-        settings.dns = dnsField.fullAddress;
-        settings.netmask = fieldNetmask.currentText;
         settings.servername = fieldServername.text;
 
+
+        if (settings.dhcp) {
+            // must do this because otherwise the ip addresses will be set to "..." --> ip address logic in IpTextField.qml
+            // probably a better way to do this, but this is the current way
+            settings.ipaddr  = "";
+            settings.netmask = "";
+            settings.gateway = "";
+            settings.dns     = "";
+        } else {
+            settings.ipaddr  = ipAddressField.fullAddress;
+            settings.netmask = fieldNetmask.currentText;
+            settings.gateway = gatewayField.fullAddress;
+            settings.dns     = dnsField.fullAddress;
+        }
         saveSettingsSignal(settings);
     }
 }

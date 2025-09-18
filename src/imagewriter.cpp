@@ -350,6 +350,7 @@ void ImageWriter::startWrite()
     if (!readyToWrite())
         return;
 
+    // This is for only erasing drives (formatting as FAT32)
     if (_src.toString() == "internal://format")
     {
         // For formatting operations, skip all cache operations since we don't need cached files

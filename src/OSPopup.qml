@@ -363,6 +363,7 @@ MainPopupBase {
                 osswipeview.incrementCurrentIndex();
             }
         } else if (d.url === "") {
+            console.log("Selected OS: " + d.name + ", User provided zip file");
             if (!root.imageWriter.isEmbeddedMode()) {
                 root.imageWriter.openFileDialog();
             } else {

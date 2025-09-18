@@ -67,6 +67,10 @@ protected:
 
     static ssize_t _archive_read(struct archive *a, void *client_data, const void **buff);
     static int _archive_close(struct archive *a, void *client_data);
+
+    static void _setOrAddKey(QString &text, const QString &key, const QString &value, bool quoteValue = true);
+    static QString _detectEOL(const QString &text);
+    static void _removeKey(QString &text, const QString &key);
 };
 
 #endif // DOWNLOADEXTRACTTHREAD_H
