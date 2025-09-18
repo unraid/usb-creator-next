@@ -112,6 +112,7 @@ MainPopupBase {
         }
     }
 
+    // this is the checkbox for excluding system drives from the list
     RowLayout {
         id: filterRow
         anchors {
@@ -126,6 +127,7 @@ MainPopupBase {
             id: filterSystemDrives
             checked: true
             text: qsTr("Exclude System Drives")
+            visible: false
 
             Keys.onPressed: event => {
                 if (event.key === Qt.Key_Backtab || (event.key === Qt.Key_Tab && event.modifiers & Qt.ShiftModifier)) {
@@ -158,7 +160,7 @@ MainPopupBase {
             required property string guid
             required property bool guidValid
 
-            readonly property bool shouldHide: isSystem && filterSystemDrives.checked
+            readonly property bool shouldHide: (!isUsb) || (isSystem && filterSystemDrives.checked)
             readonly property bool unselectable: isReadOnly || isSystem
 
             enabled: !unselectable
@@ -366,8 +368,6 @@ MainPopupBase {
                             ToolTip.visible: hovered
                             ToolTip.text: qsTr("Cannot identify this device (GUID missing). You may not be able to use this device to get an Unraid license or trial.")
                         }
-
-
                     }
                 }
             }

@@ -817,7 +817,7 @@ ApplicationWindow {
             writebutton.visible = false;
             writebutton.enabled = false;
             cancelwritebutton.enabled = false;
-            cancelwritebutton.visible = true;
+            cancelwritebutton.visible = false;
             cancelverifybutton.enabled = true;
             progressText.text = qsTr("Preparing to write...");
             progressText.visible = true;
@@ -942,8 +942,8 @@ ApplicationWindow {
             progressText.text = qsTr("Writing... %1%").arg(Math.floor(newPos * 100));
             progressBar.indeterminate = false;
             progressBar.value = newPos;
-            cancelwritebutton.visible = true;
-            cancelwritebutton.enabled = true;
+            cancelwritebutton.visible = false;
+            cancelwritebutton.enabled = false;
         }
     }
 
@@ -1011,9 +1011,7 @@ ApplicationWindow {
         } else {
             msgpopup.text = qsTr("<b>%1</b> has been written to <b>%2</b>.").arg(osbutton.text).arg(dstbutton.text);
             if (imageWriter.getInitFormat() === "UNRAID") {
-                if (!imageWriter.windowsBuild()) {
-                    msgpopup.text += qsTr("<br><br>If you would like to enable legacy boot (bios), helpful for old hardware, please run the 'make_bootable_(mac/linux/windows)' script from this computer, located in the main folder of the UNRAID flash drive.");
-                }
+                msgpopup.text += qsTr("<br><br>If you would like to enable legacy boot (bios), helpful for old hardware, please run the 'make_bootable_(mac/linux/windows)' script from this computer, located in the main folder of the UNRAID flash drive.");
                 msgpopup.installGuideButton = true;
             }
         }
@@ -1078,8 +1076,8 @@ ApplicationWindow {
         progressBar.value = 0;
 
         // Show appropriate buttons for write phase
-        cancelwritebutton.visible = true;
-        cancelwritebutton.enabled = true;
+        cancelwritebutton.visible = false;
+        cancelwritebutton.enabled = false;
     }
 
     Timer {
