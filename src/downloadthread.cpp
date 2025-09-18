@@ -25,6 +25,7 @@
 #include <QFuture>
 #include <QtConcurrent/qtconcurrentrun.h>
 #include <QtNetwork/QNetworkProxy>
+#include <new>
 
 #ifdef Q_OS_LINUX
 #include <sys/ioctl.h>
@@ -369,6 +370,17 @@ void DownloadThread::run()
     curl_easy_setopt(_c, CURLOPT_CONNECTTIMEOUT, 30);
     curl_easy_setopt(_c, CURLOPT_LOW_SPEED_TIME, 60);
     curl_easy_setopt(_c, CURLOPT_LOW_SPEED_LIMIT, 100);
+
+#ifdef CURLOPT_TCP_KEEPALIVE
+    curl_easy_setopt(_c, CURLOPT_TCP_KEEPALIVE, 1L);
+#endif
+#ifdef CURLOPT_TCP_KEEPIDLE
+    curl_easy_setopt(_c, CURLOPT_TCP_KEEPIDLE, 60L);
+#endif
+#ifdef CURLOPT_TCP_KEEPINTVL
+    curl_easy_setopt(_c, CURLOPT_TCP_KEEPINTVL, 60L);
+#endif
+
     if (_inputBufferSize)
         curl_easy_setopt(_c, CURLOPT_BUFFERSIZE, _inputBufferSize);
 
@@ -410,7 +422,11 @@ void DownloadThread::run()
 
     emit preparationStatusUpdate(tr("Starting download"));
     _timer.start();
-    CURLcode ret = curl_easy_perform(_c);
+
+    bool retryFromStartOnce = false;
+    
+    attempt_download:
+        CURLcode ret = curl_easy_perform(_c);
 
     /* Deal with badly configured HTTP servers that terminate the connection quickly
        if connections stalls for some seconds while kernel commits buffers to slow SD card.
@@ -435,10 +451,31 @@ void DownloadThread::run()
         _lastFailureOffset = _lastDlNow;
         curl_easy_setopt(_c, CURLOPT_RESUME_FROM_LARGE, _startOffset);
 
+        qDebug() << "Resuming with HTTP range from offset:" << (qulonglong)_startOffset;
         ret = curl_easy_perform(_c);
     }
 
+
+/* One-time fallback: if ranged request failed (e.g. server returned 200/no ranges),
+       restart from offset 0 without resume. */
+       if (ret == CURLE_RANGE_ERROR && !retryFromStartOnce)
+       {
+           qDebug() << "Range resume failed (server may not support byte ranges)."
+                    << "Falling back to full restart once from offset 0.";
+           retryFromStartOnce = true;
+   
+           _resetForFullRestart();
+   
+           /* Disable resume for the next attempt */
+           curl_easy_setopt(_c, CURLOPT_RESUME_FROM_LARGE, 0);
+   
+           goto attempt_download;
+       }
+   
+
     curl_easy_cleanup(_c);
+
+
 
     switch (ret)
     {
@@ -470,6 +507,41 @@ void DownloadThread::run()
 
             _onDownloadError(tr("Error downloading: %1").arg(errorMsg));
     }
+}
+
+void DownloadThread::_resetForFullRestart()
+{
+    qDebug() << "Resetting state for full restart";
+
+    /* Reset progress and offsets */
+    _startOffset = 0;
+    _lastDlNow = 0;
+    _lastDlTotal = 0;
+    _lastFailureOffset = 0;
+    _bytesWritten = 0;
+
+    /* Reset first-block handling so we properly skip writing the first block again */
+    if (_firstBlock)
+    {
+        qFreeAligned(_firstBlock);
+        _firstBlock = nullptr;
+        _firstBlockSize = 0;
+    }
+
+    /* Seek device/file back to start; subsequent writes will overwrite */
+    if (_file.isOpen())
+        _file.seek(0);
+
+    /* Reset cache file position and hash if caching is enabled */
+    if (_cacheEnabled && _cachefile.isOpen())
+        _cachefile.seek(0);
+
+    /* Reinitialize hashes */
+    _writehash.~AcceleratedCryptographicHash();
+    new (&_writehash) AcceleratedCryptographicHash(OSLIST_HASH_ALGORITHM);
+
+    _cachehash.~AcceleratedCryptographicHash();
+    new (&_cachehash) AcceleratedCryptographicHash(OSLIST_HASH_ALGORITHM);
 }
 
 size_t DownloadThread::_writeData(const char *buf, size_t len)

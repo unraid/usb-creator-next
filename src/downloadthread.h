@@ -155,6 +155,7 @@ protected:
     void _closeFiles();
     QByteArray _fileGetContentsTrimmed(const QString &filename);
     bool _customizeImage();
+    void _resetForFullRestart();
 
     /*
      * libcurl callbacks
