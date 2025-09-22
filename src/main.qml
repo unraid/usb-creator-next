@@ -996,6 +996,15 @@ ApplicationWindow {
     function onError(msg) {
         msgpopup.title = qsTr("Error");
         msgpopup.text = msg;
+
+        msgpopup.continueButton = true;
+        msgpopup.installGuideButton = false;
+
+        //rpi-settings buttons
+        msgpopup.yesButton = false;
+        msgpopup.noButton = false;
+        msgpopup.quitButton = false;
+
         msgpopup.open();
         resetWriteButton();
     }
