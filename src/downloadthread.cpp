@@ -456,7 +456,7 @@ attempt_download:
 
     /* max 16 seconds - added just in case in the future we change it to keep
       trying until success*/
-    int backoffSeconds = std::min(1 << maxRetryAttempts, 16);
+    int backoffSeconds = std::min(1 << retryFromStartCount, 16);
 
     qDebug() << "Range resume failed (server response:" << httpCode
              << "). Falling back to full restart from offset 0. Attempt"
