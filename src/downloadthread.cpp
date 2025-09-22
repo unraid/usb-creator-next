@@ -412,7 +412,7 @@ void DownloadThread::run() {
   _timer.start();
 
   int retryFromStartCount = 0;
-  const int maxRetryFromStartCount = 3;
+  const int maxRetryAttempts = 3;
 
 attempt_download:
   CURLcode ret = curl_easy_perform(_c);
@@ -452,15 +452,15 @@ attempt_download:
   /* One-time fallback: if ranged request failed (e.g. server returned 200/no
      ranges), restart from offset 0 without resume. */
   if (_shouldRetryFromStart(ret, httpCode) &&
-      retryFromStartCount < maxRetryFromStartCount) {
+      retryFromStartCount < maxRetryAttempts) {
 
     /* max 16 seconds - added just in case in the future we change it to keep
       trying until success*/
-    int backoffSeconds = std::min(1 << retryFromStartCount, 16);
+    int backoffSeconds = std::min(1 << maxRetryAttempts, 16);
 
     qDebug() << "Range resume failed (server response:" << httpCode
              << "). Falling back to full restart from offset 0. Attempt"
-             << (retryFromStartCount + 1) << "of" << maxRetryFromStart
+             << (retryFromStartCount + 1) << "of" << maxRetryAttempts
              << ". Waiting" << backoffSeconds << "seconds before retry.";
 
     ++retryFromStartCount;
