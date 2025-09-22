@@ -4,25 +4,25 @@
  */
 
 #include "downloadextractthread.h"
-#include "config.h"
 #include "buffer_optimization.h"
+#include "config.h"
 #include "dependencies/drivelist/src/drivelist.hpp"
 #include "dependencies/mountutils/src/mountutils.hpp"
-#include <iostream>
+#include <QDebug>
+#include <QDir>
+#include <QElapsedTimer>
+#include <QProcess>
+#include <QRegularExpression>
+#include <QTemporaryDir>
+#include <QtConcurrent/qtconcurrentrun.h>
 #include <archive.h>
 #include <archive_entry.h>
+#include <fcntl.h>
+#include <iostream>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <string.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <QDir>
-#include <QProcess>
-#include <QTemporaryDir>
-#include <QDebug>
-#include <QtConcurrent/qtconcurrentrun.h>
-#include <QElapsedTimer>
-#include <QRegularExpression>
 
 #ifdef Q_OS_WIN
 #include <windows.h>
@@ -35,749 +35,814 @@ using namespace std;
 const int DownloadExtractThread::MAX_QUEUE_SIZE = 128;
 
 // Get system page size
-static size_t getSystemPageSize()
-{
+static size_t getSystemPageSize() {
 #ifdef Q_OS_WIN
-    SYSTEM_INFO si;
-    GetSystemInfo(&si);
-    return si.dwPageSize;
+  SYSTEM_INFO si;
+  GetSystemInfo(&si);
+  return si.dwPageSize;
 #else
-    return sysconf(_SC_PAGESIZE);
+  return sysconf(_SC_PAGESIZE);
 #endif
 }
 
-// Note: Buffer optimization logic moved to centralized buffer_optimization module
+// Note: Buffer optimization logic moved to centralized buffer_optimization
+// module
 
-class _extractThreadClass : public QThread
-{
+class _extractThreadClass : public QThread {
 public:
-    _extractThreadClass(DownloadExtractThread *parent)
-        : QThread(parent), _de(parent)
-    {
-    }
+  _extractThreadClass(DownloadExtractThread *parent)
+      : QThread(parent), _de(parent) {}
 
-    virtual void run()
-    {
-        if (_de->isImage())
-            _de->extractImageRun();
-        else
-            _de->extractMultiFileRun();
-    }
+  virtual void run() {
+    if (_de->isImage())
+      _de->extractImageRun();
+    else
+      _de->extractMultiFileRun();
+  }
 
 protected:
-    DownloadExtractThread *_de;
+  DownloadExtractThread *_de;
 };
 
-DownloadExtractThread::DownloadExtractThread(const QByteArray &url, const QByteArray &localfilename, const QByteArray &expectedHash, QObject *parent)
+DownloadExtractThread::DownloadExtractThread(const QByteArray &url,
+                                             const QByteArray &localfilename,
+                                             const QByteArray &expectedHash,
+                                             QObject *parent)
     : DownloadThread(url, localfilename, expectedHash, parent),
-      _abufsize(getOptimalWriteBufferSize()),
-      _ethreadStarted(false),
-      _isImage(true),
-      _inputHash(OSLIST_HASH_ALGORITHM),
-      _activeBuf(0),
-      _writeThreadStarted(false),
-      _progressStarted(false),
-      _lastProgressTime(0),
-      _lastEmittedDlNow(0),
-      _lastLocalVerifyNow(0)
-{
-    _extractThread = new _extractThreadClass(this);
-    size_t pageSize = getSystemPageSize();
-    _abuf[0] = (char *)qMallocAligned(_abufsize, pageSize);
-    _abuf[1] = (char *)qMallocAligned(_abufsize, pageSize);
+      _abufsize(getOptimalWriteBufferSize()), _ethreadStarted(false),
+      _isImage(true), _inputHash(OSLIST_HASH_ALGORITHM), _activeBuf(0),
+      _writeThreadStarted(false), _progressStarted(false), _lastProgressTime(0),
+      _lastEmittedDlNow(0), _lastLocalVerifyNow(0), _needsCleanup(false) {
+  _extractThread = new _extractThreadClass(this);
+  size_t pageSize = getSystemPageSize();
+  _abuf[0] = (char *)qMallocAligned(_abufsize, pageSize);
+  _abuf[1] = (char *)qMallocAligned(_abufsize, pageSize);
 
-    qDebug() << "Using buffer size:" << _abufsize << "bytes with page size:" << pageSize << "bytes";
+  qDebug() << "Using buffer size:" << _abufsize
+           << "bytes with page size:" << pageSize << "bytes";
 }
 
-DownloadExtractThread::~DownloadExtractThread()
-{
-    _cancelled = true;
+DownloadExtractThread::~DownloadExtractThread() {
+  _cancelled = true;
 
-    _cancelExtract();
-    if (!_extractThread->wait(10000))
-    {
-        _extractThread->terminate();
-    }
-    qFreeAligned(_abuf[0]);
-    qFreeAligned(_abuf[1]);
+  _cancelExtract();
+  if (!_extractThread->wait(10000)) {
+    _extractThread->terminate();
+  }
+  qFreeAligned(_abuf[0]);
+  qFreeAligned(_abuf[1]);
 }
 
-void DownloadExtractThread::_emitProgressUpdate()
-{
-    static QElapsedTimer timer;
-    bool firstProgressUpdate = false;
-    if (!_progressStarted)
-    {
-        _progressStarted = true;
-        firstProgressUpdate = true;
-        timer.start();
-        qDebug() << "Started progress updates after successful drive opening";
-    }
+void DownloadExtractThread::_emitProgressUpdate() {
+  static QElapsedTimer timer;
+  bool firstProgressUpdate = false;
+  if (!_progressStarted) {
+    _progressStarted = true;
+    firstProgressUpdate = true;
+    timer.start();
+    qDebug() << "Started progress updates after successful drive opening";
+  }
 
-    // Only emit progress updates every 100ms to avoid flooding (but always emit the first one)
-    qint64 currentTime = timer.elapsed();
-    if (!firstProgressUpdate && currentTime - _lastProgressTime < PROGRESS_UPDATE_INTERVAL)
-    {
-        return;
-    }
-    _lastProgressTime = currentTime;
+  // Only emit progress updates every 100ms to avoid flooding (but always emit
+  // the first one)
+  qint64 currentTime = timer.elapsed();
+  if (!firstProgressUpdate &&
+      currentTime - _lastProgressTime < PROGRESS_UPDATE_INTERVAL) {
+    return;
+  }
+  _lastProgressTime = currentTime;
 
-    quint64 currentDlNow = this->dlNow();
-    quint64 currentDlTotal = this->dlTotal();
-    quint64 currentVerifyNow = this->verifyNow();
-    quint64 currentVerifyTotal = this->verifyTotal();
+  quint64 currentDlNow = this->dlNow();
+  quint64 currentDlTotal = this->dlTotal();
+  quint64 currentVerifyNow = this->verifyNow();
+  quint64 currentVerifyTotal = this->verifyTotal();
 
-    // Only emit signals if values have changed
-    if (currentDlNow != _lastEmittedDlNow || (currentDlTotal > 0 && _lastEmittedDlNow == 0))
-    {
-        _lastEmittedDlNow = currentDlNow;
-        emit downloadProgressChanged(currentDlNow, currentDlTotal);
-    }
+  // Only emit signals if values have changed
+  if (currentDlNow != _lastEmittedDlNow ||
+      (currentDlTotal > 0 && _lastEmittedDlNow == 0)) {
+    _lastEmittedDlNow = currentDlNow;
+    emit downloadProgressChanged(currentDlNow, currentDlTotal);
+  }
 
-    if (currentVerifyNow != _lastLocalVerifyNow || (currentVerifyTotal > 0 && _lastLocalVerifyNow == 0))
-    {
-        _lastLocalVerifyNow = currentVerifyNow;
-        emit verifyProgressChanged(currentVerifyNow, currentVerifyTotal);
-    }
+  if (currentVerifyNow != _lastLocalVerifyNow ||
+      (currentVerifyTotal > 0 && _lastLocalVerifyNow == 0)) {
+    _lastLocalVerifyNow = currentVerifyNow;
+    emit verifyProgressChanged(currentVerifyNow, currentVerifyTotal);
+  }
 }
 
-size_t DownloadExtractThread::_writeData(const char *buf, size_t len)
-{
-    if (_cancelled)
-        return 0;
+size_t DownloadExtractThread::_writeData(const char *buf, size_t len) {
+  if (_cancelled)
+    return 0;
 
-    // Emit progress updates when data starts flowing
-    _emitProgressUpdate();
+  // Emit progress updates when data starts flowing
+  _emitProgressUpdate();
 
-    _writeCache(buf, len);
+  _writeCache(buf, len);
 
-    if (!_ethreadStarted)
-    {
-        // Extract thread is started when first data comes in
-        _ethreadStarted = true;
-        _extractThread->start();
-        msleep(100);
-    }
+  if (!_ethreadStarted) {
+    // Extract thread is started when first data comes in
+    _ethreadStarted = true;
+    _extractThread->start();
+    msleep(100);
+    _restartInProgress = false;
+  }
 
-    if (!_isImage)
-    {
-        _inputHash.addData(buf, len);
-    }
+  if (!_isImage) {
+    _inputHash.addData(buf, len);
+  }
 
-    _pushQueue(buf, len);
+  _pushQueue(buf, len);
 
-    return len;
+  return len;
 }
 
-void DownloadExtractThread::_onDownloadSuccess()
-{
-    _pushQueue("", 0);
+void DownloadExtractThread::_onDownloadSuccess() { _pushQueue("", 0); }
+
+void DownloadExtractThread::_onDownloadError(const QString &msg) {
+  DownloadThread::_onDownloadError(msg);
+  _cancelExtract();
 }
 
-void DownloadExtractThread::_onDownloadError(const QString &msg)
-{
-    DownloadThread::_onDownloadError(msg);
-    _cancelExtract();
+void DownloadExtractThread::_cancelExtract() {
+  std::unique_lock<std::mutex> lock(_queueMutex);
+  _queue.clear();
+  _queue.push_back(QByteArray());
+  lock.unlock();
+  _cv.notify_all();
 }
 
-void DownloadExtractThread::_cancelExtract()
-{
-    std::unique_lock<std::mutex> lock(_queueMutex);
-    _queue.clear();
-    _queue.push_back(QByteArray());
-    lock.unlock();
-    _cv.notify_all();
-}
-
-void DownloadExtractThread::cancelDownload()
-{
-    DownloadThread::cancelDownload();
-    _cancelExtract();
+void DownloadExtractThread::cancelDownload() {
+  DownloadThread::cancelDownload();
+  _cancelExtract();
 }
 
 // Raise exception on libarchive errors
-static inline void _checkResult(int r, struct archive *a)
-{
-    if (r < ARCHIVE_OK)
-        // Warning
-        qDebug() << archive_error_string(a);
-    if (r < ARCHIVE_WARN)
-        // Fatal
-        throw runtime_error(archive_error_string(a));
+static inline void _checkResult(int r, struct archive *a) {
+  if (r < ARCHIVE_OK)
+    // Warning
+    qDebug() << archive_error_string(a);
+  if (r < ARCHIVE_WARN)
+    // Fatal
+    throw runtime_error(archive_error_string(a));
 }
 
 // libarchive thread
-void DownloadExtractThread::extractImageRun()
-{
-    struct archive *a = archive_read_new();
-    struct archive_entry *entry;
-    int r;
+void DownloadExtractThread::extractImageRun() {
+  struct archive *a = archive_read_new();
+  struct archive_entry *entry;
+  int r;
 
-    archive_read_support_filter_all(a);
-    archive_read_support_format_all(a);
-    archive_read_support_format_raw(a); // for .gz and such
-    archive_read_open(a, this, NULL, &DownloadExtractThread::_archive_read, &DownloadExtractThread::_archive_close);
+  archive_read_support_filter_all(a);
+  archive_read_support_format_all(a);
+  archive_read_support_format_raw(a); // for .gz and such
+  archive_read_open(a, this, NULL, &DownloadExtractThread::_archive_read,
+                    &DownloadExtractThread::_archive_close);
 
-    try
-    {
-        r = archive_read_next_header(a, &entry);
-        _checkResult(r, a);
+  try {
+    r = archive_read_next_header(a, &entry);
+    _checkResult(r, a);
 
-        while (true)
-        {
-            ssize_t size = archive_read_data(a, _abuf[_activeBuf], _abufsize);
-            if (size < 0)
-                throw runtime_error(archive_error_string(a));
-            if (size == 0)
-                break;
-            if (size % 512 != 0)
-            {
-                size_t paddingBytes = 512 - (size % 512);
-                qDebug() << "Image is NOT a valid disk image, as its length is not a multiple of the sector size of 512 bytes long";
-                qDebug() << "Last write() would be" << size << "bytes, but padding to" << size + paddingBytes << "bytes";
-                memset(_abuf[_activeBuf] + size, 0, paddingBytes);
-                size += paddingBytes;
-            }
+    while (true) {
+      ssize_t size = archive_read_data(a, _abuf[_activeBuf], _abufsize);
+      if (size < 0)
+        throw runtime_error(archive_error_string(a));
+      if (size == 0)
+        break;
+      if (size % 512 != 0) {
+        size_t paddingBytes = 512 - (size % 512);
+        qDebug() << "Image is NOT a valid disk image, as its length is not a "
+                    "multiple of the sector size of 512 bytes long";
+        qDebug() << "Last write() would be" << size << "bytes, but padding to"
+                 << size + paddingBytes << "bytes";
+        memset(_abuf[_activeBuf] + size, 0, paddingBytes);
+        size += paddingBytes;
+      }
 
-            // Emit progress updates during extraction
-            _emitProgressUpdate();
+      // Emit progress updates during extraction
+      _emitProgressUpdate();
 
-            if (_writeThreadStarted)
-            {
-                // if (_writeFile(_abuf, size) != (size_t) size)
-                if (!_writeFuture.result())
-                {
-                    if (!_cancelled)
-                    {
-                        _onWriteError();
-                    }
-                    archive_read_free(a);
-                    return;
-                }
-            }
+      if (_writeThreadStarted) {
+        // if (_writeFile(_abuf, size) != (size_t) size)
+        if (!_writeFuture.result()) {
+          if (!_cancelled) {
+            _onWriteError();
+          }
+          archive_read_free(a);
+          return;
+        }
+      }
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-            _writeFuture = QtConcurrent::run(&DownloadThread::_writeFile, static_cast<DownloadThread *>(this), _abuf[_activeBuf], size);
+      _writeFuture = QtConcurrent::run(&DownloadThread::_writeFile,
+                                       static_cast<DownloadThread *>(this),
+                                       _abuf[_activeBuf], size);
 #else
-            _writeFuture = QtConcurrent::run(static_cast<DownloadThread *>(this), &DownloadThread::_writeFile, _abuf[_activeBuf], size);
+      _writeFuture = QtConcurrent::run(static_cast<DownloadThread *>(this),
+                                       &DownloadThread::_writeFile,
+                                       _abuf[_activeBuf], size);
 #endif
-            _activeBuf = _activeBuf ? 0 : 1;
-            _writeThreadStarted = true;
-        }
-
-        if (_writeThreadStarted)
-            _writeFuture.waitForFinished();
-        _writeComplete();
-    }
-    catch (exception &e)
-    {
-        if (!_cancelled)
-        {
-            // Fatal error
-            DownloadThread::cancelDownload();
-            emit error(tr("Error extracting archive: %1").arg(e.what()));
-        }
+      _activeBuf = _activeBuf ? 0 : 1;
+      _writeThreadStarted = true;
     }
 
-    archive_read_free(a);
+    if (_writeThreadStarted)
+      _writeFuture.waitForFinished();
+    _writeComplete();
+  } catch (exception &e) {
+    if (!_cancelled && !_restartInProgress) {
+      // Fatal error
+      DownloadThread::cancelDownload();
+      emit error(tr("Error extracting archive: %1").arg(e.what()));
+    }
+  }
+
+  archive_read_free(a);
 }
 
 #ifdef Q_OS_LINUX
 /* Returns true if folder lives on a different device than parent directory */
-inline bool isMountPoint(const QString &folder)
-{
-    struct stat statFolder, statParent;
-    QFileInfo fi(folder);
-    QByteArray folderAscii = folder.toLatin1();
-    QByteArray parentDir = fi.dir().path().toLatin1();
+inline bool isMountPoint(const QString &folder) {
+  struct stat statFolder, statParent;
+  QFileInfo fi(folder);
+  QByteArray folderAscii = folder.toLatin1();
+  QByteArray parentDir = fi.dir().path().toLatin1();
 
-    if (::stat(folderAscii.constData(), &statFolder) == -1 || ::stat(parentDir.constData(), &statParent) == -1)
-    {
-        return false;
-    }
+  if (::stat(folderAscii.constData(), &statFolder) == -1 ||
+      ::stat(parentDir.constData(), &statParent) == -1) {
+    return false;
+  }
 
-    return (statFolder.st_dev != statParent.st_dev);
+  return (statFolder.st_dev != statParent.st_dev);
 }
 #endif
 
-void DownloadExtractThread::extractMultiFileRun()
-{
-    QString folder;
-    QStringList filesExtracted, dirExtracted;
-    QByteArray devlower = _filename.toLower();
+void DownloadExtractThread::extractMultiFileRun() {
+  QString folder;
+  QByteArray devlower = _filename.toLower();
 
-    /* See if OS auto-mounted the device */
-    for (int tries = 0; tries < 3; tries++)
-    {
-        QThread::sleep(1);
-        auto l = Drivelist::ListStorageDevices();
-        for (const auto &i : l)
-        {
-            if (QByteArray::fromStdString(i.device).toLower() == devlower && i.mountpoints.size() == 1)
-            {
-                folder = QByteArray::fromStdString(i.mountpoints.front());
-                break;
-            }
-        }
+  _needsCleanup = true;
+
+  /* See if OS auto-mounted the device */
+  for (int tries = 0; tries < 3; tries++) {
+    QThread::sleep(1);
+    auto l = Drivelist::ListStorageDevices();
+    for (const auto &i : l) {
+      if (QByteArray::fromStdString(i.device).toLower() == devlower &&
+          i.mountpoints.size() == 1) {
+        folder = QByteArray::fromStdString(i.mountpoints.front());
+        break;
+      }
     }
+  }
 
 #ifdef Q_OS_LINUX
-    bool manualmount = false;
+  bool manualmount = false;
 
-    if (folder.isEmpty())
-    {
-        /* Manually mount folder */
-        QTemporaryDir td;
-        QStringList args;
-        folder = td.path();
-        QByteArray fatpartition = _filename;
-        if (isdigit(fatpartition.at(fatpartition.length() - 1)))
-            fatpartition += "p1";
-        else
-            fatpartition += "1";
-        args << "-t" << "vfat" << fatpartition << folder;
+  if (folder.isEmpty()) {
+    /* Manually mount folder */
+    QTemporaryDir td;
+    QStringList args;
+    folder = td.path();
+    QByteArray fatpartition = _filename;
+    if (isdigit(fatpartition.at(fatpartition.length() - 1)))
+      fatpartition += "p1";
+    else
+      fatpartition += "1";
+    args << "-t" << "vfat" << fatpartition << folder;
 
-        if (QProcess::execute("mount", args) != 0)
-        {
-            emit error(tr("Error mounting FAT32 partition"));
-            return;
-        }
-        td.setAutoRemove(false);
-        manualmount = true;
+    if (QProcess::execute("mount", args) != 0) {
+      emit error(tr("Error mounting FAT32 partition"));
+      return;
     }
+    td.setAutoRemove(false);
+    manualmount = true;
+  }
 
-    /* When run under some container environments -even when udisks2 said
-       it completed mounting the fs- we may have to wait a bit more
-       until mountpoint is available in sandbox which lags behind */
-    for (int tries = 0; tries < 3; tries++)
-    {
-        if (isMountPoint(folder))
-            break;
-        QThread::sleep(1);
-    }
+  /* When run under some container environments -even when udisks2 said
+     it completed mounting the fs- we may have to wait a bit more
+     until mountpoint is available in sandbox which lags behind */
+  for (int tries = 0; tries < 3; tries++) {
+    if (isMountPoint(folder))
+      break;
+    QThread::sleep(1);
+  }
 #endif
 
-    if (folder.isEmpty())
-    {
-        emit error(tr("Operating system did not mount FAT32 partition"));
-        return;
-    }
+  if (folder.isEmpty()) {
+    emit error(tr("Operating system did not mount FAT32 partition"));
+    return;
+  }
 
-    QString currentDir = QDir::currentPath();
+  _extractionFolder = folder; // Store for cleanup
 
-    if (!QDir::setCurrent(folder))
-    {
-        DownloadThread::cancelDownload();
-        emit error(tr("Error changing to directory '%1'").arg(folder));
-        return;
-    }
+  QString currentDir = QDir::currentPath();
 
-    // Now create libarchive handles after all early returns are handled
-    struct archive *a = archive_read_new();
-    struct archive *ext = archive_write_disk_new();
-    struct archive_entry *entry;
-    /* Extra safety checks: do not allow existing files to be overwritten (SD card should be formatted by previous step),
-     * do not allow absolute paths, do not allow insecure symlinks, no special permissions */
-    int r, flags = ARCHIVE_EXTRACT_TIME | ARCHIVE_EXTRACT_SECURE_NOABSOLUTEPATHS | ARCHIVE_EXTRACT_SECURE_NODOTDOT | ARCHIVE_EXTRACT_SECURE_SYMLINKS | ARCHIVE_EXTRACT_NO_OVERWRITE
-        /*ARCHIVE_EXTRACT_PERM | ARCHIVE_EXTRACT_ACL | ARCHIVE_EXTRACT_FFLAGS | ARCHIVE_EXTRACT_XATTR*/;
+  if (!QDir::setCurrent(folder)) {
+    DownloadThread::cancelDownload();
+    emit error(tr("Error changing to directory '%1'").arg(folder));
+    return;
+  }
+
+  // Now create libarchive handles after all early returns are handled
+  struct archive *a = archive_read_new();
+  struct archive *ext = archive_write_disk_new();
+  struct archive_entry *entry;
+  /* Extra safety checks: do not allow existing files to be overwritten (SD card
+   * should be formatted by previous step), do not allow absolute paths, do not
+   * allow insecure symlinks, no special permissions */
+  int r, flags = ARCHIVE_EXTRACT_TIME | ARCHIVE_EXTRACT_SECURE_NOABSOLUTEPATHS |
+                 ARCHIVE_EXTRACT_SECURE_NODOTDOT |
+                 ARCHIVE_EXTRACT_SECURE_SYMLINKS | ARCHIVE_EXTRACT_NO_OVERWRITE
+      /*ARCHIVE_EXTRACT_PERM | ARCHIVE_EXTRACT_ACL | ARCHIVE_EXTRACT_FFLAGS |
+         ARCHIVE_EXTRACT_XATTR*/
+      ;
 #ifndef Q_OS_WIN
-    if (::getuid() == 0)
-        flags |= ARCHIVE_EXTRACT_OWNER;
+  if (::getuid() == 0)
+    flags |= ARCHIVE_EXTRACT_OWNER;
 #endif
 
-    archive_read_support_filter_all(a);
-    archive_read_support_format_all(a);
-    archive_write_disk_set_options(ext, flags);
-    archive_read_open(a, this, NULL, &DownloadExtractThread::_archive_read, &DownloadExtractThread::_archive_close);
+  archive_read_support_filter_all(a);
+  archive_read_support_format_all(a);
+  archive_write_disk_set_options(ext, flags);
+  archive_read_open(a, this, NULL, &DownloadExtractThread::_archive_read,
+                    &DownloadExtractThread::_archive_close);
 
-    try
-    {
-        while ((r = archive_read_next_header(a, &entry)) != ARCHIVE_EOF)
-        {
-            _checkResult(r, a);
-            r = archive_write_header(ext, entry);
-            if (r < ARCHIVE_OK)
-                qDebug() << archive_error_string(ext);
-            else if (archive_entry_size(entry) > 0)
-            {
-                // checkResult(copyData(a, ext), a);
-                const void *buff;
-                size_t size;
-                int64_t offset;
-                QString filename = QString::fromWCharArray(archive_entry_pathname_w(entry));
+  try {
+    while ((r = archive_read_next_header(a, &entry)) != ARCHIVE_EOF) {
+      _checkResult(r, a);
+      r = archive_write_header(ext, entry);
+      if (r < ARCHIVE_OK)
+        qDebug() << archive_error_string(ext);
+      else if (archive_entry_size(entry) > 0) {
+        // checkResult(copyData(a, ext), a);
+        const void *buff;
+        size_t size;
+        int64_t offset;
+        QString filename =
+            QString::fromWCharArray(archive_entry_pathname_w(entry));
 
-                if (archive_entry_filetype(entry) == AE_IFDIR) // Empty directory
-                    dirExtracted.append(filename);
-                else
-                    filesExtracted.append(filename);
-
-                while ((r = archive_read_data_block(a, &buff, &size, &offset)) != ARCHIVE_EOF)
-                {
-                    _checkResult(r, a);
-                    _checkResult(archive_write_data_block(ext, buff, size, offset), ext);
-                    _bytesWritten += size;
-                }
-            }
-            _checkResult(archive_write_finish_entry(ext), ext);
+        if (archive_entry_filetype(entry) == AE_IFDIR) {
+          _extractedDirs.append(filename);
+        } else {
+          _extractedFiles.append(filename);
         }
-
-        QByteArray computedHash = _inputHash.result().toHex();
-        qDebug() << "Hash of compressed multi-file zip:" << computedHash;
-        if (!_expectedHash.isEmpty() && _expectedHash != computedHash)
-        {
-            qDebug() << "Mismatch with expected hash:" << _expectedHash;
-            throw runtime_error("Download corrupt. SHA256 does not match");
+        // Track for cleanup
+        while ((r = archive_read_data_block(a, &buff, &size, &offset)) !=
+               ARCHIVE_EOF) {
+          _checkResult(r, a);
+          _checkResult(archive_write_data_block(ext, buff, size, offset), ext);
+          _bytesWritten += size;
         }
-        if (_cacheEnabled && _expectedHash == computedHash)
-        {
-            _cachefile.close();
+      }
+      _checkResult(archive_write_finish_entry(ext), ext);
+    }
 
-            // Get both hashes: compressed cache file and uncompressed image data
-            QByteArray cacheFileHash = _cachehash.result().toHex();
+    // Success - no cleanup needed
+    _needsCleanup = false;
 
-            qDebug() << "Cache file created:";
-            qDebug() << "  Image hash (uncompressed):" << computedHash;
-            qDebug() << "  Cache file hash (compressed):" << cacheFileHash;
+    QByteArray computedHash = _inputHash.result().toHex();
+    qDebug() << "Hash of compressed multi-file zip:" << computedHash;
+    if (!_expectedHash.isEmpty() && _expectedHash != computedHash) {
+      qDebug() << "Mismatch with expected hash:" << _expectedHash;
+      throw runtime_error("Download corrupt. SHA256 does not match");
+    }
+    if (_cacheEnabled && _expectedHash == computedHash) {
+      _cachefile.close();
 
-            // Emit both hashes for proper cache verification
-            emit cacheFileHashUpdated(cacheFileHash, computedHash);
-            // Keep old signal for backward compatibility
-            emit cacheFileUpdated(computedHash);
+      // Get both hashes: compressed cache file and uncompressed image data
+      QByteArray cacheFileHash = _cachehash.result().toHex();
+
+      qDebug() << "Cache file created:";
+      qDebug() << "  Image hash (uncompressed):" << computedHash;
+      qDebug() << "  Cache file hash (compressed):" << cacheFileHash;
+
+      // Emit both hashes for proper cache verification
+      emit cacheFileHashUpdated(cacheFileHash, computedHash);
+      // Keep old signal for backward compatibility
+      emit cacheFileUpdated(computedHash);
+    }
+
+    if (_initFormat == "UNRAID") {
+
+      // Check for cancellation before starting post-processing
+      qDebug() << "DownloadExtractThread::extractMultiFileRun() checking for "
+                  "cancellation";
+      if (_cancelled)
+        return;
+
+      qDebug() << "AllNetworkSettingsPresent:" << _allNetworkSettingsPresent();
+
+      if (_allNetworkSettingsPresent()) {
+        QFile fileNetwork(folder + "/config/network.cfg");
+        if (fileNetwork.exists()) {
+          qDebug() << "USE_DHCP:" << _imgWriterSettings["dhcp"].toString();
+          qDebug() << "Static IP:" << _imgWriterSettings["static"].toString();
+          qDebug() << "IPADDR:" << _imgWriterSettings["ipaddr"].toString();
+          qDebug() << "NETMASK:" << _imgWriterSettings["netmask"].toString();
+          qDebug() << "GATEWAY:" << _imgWriterSettings["gateway"].toString();
+          qDebug() << "DNS_SERVER1:" << _imgWriterSettings["dns"].toString();
+
+          if (fileNetwork.open(QIODevice::ReadOnly)) {
+
+            QString dataText = QString::fromUtf8(fileNetwork.readAll());
+            fileNetwork.close();
+            // qDebug() << "dataText - before - network.cfg:" << dataText;
+
+            const bool useDhcp = _imgWriterSettings["dhcp"].toBool();
+
+            _setOrAddKey(dataText, "USE_DHCP", useDhcp ? "yes" : "no");
+            _setOrAddKey(dataText, "IPADDR",
+                         _imgWriterSettings["ipaddr"].toString(), !useDhcp);
+            _setOrAddKey(dataText, "NETMASK",
+                         _imgWriterSettings["netmask"].toString(), !useDhcp);
+            _setOrAddKey(dataText, "GATEWAY",
+                         _imgWriterSettings["gateway"].toString(), !useDhcp);
+            if (useDhcp) {
+              _removeKey(dataText, "DNS_SERVER1");
+            } else {
+              _setOrAddKey(dataText, "DNS_SERVER1",
+                           _imgWriterSettings["dns"].toString());
+            }
+
+            if (fileNetwork.open(QFile::WriteOnly | QFile::Truncate)) {
+              fileNetwork.write(dataText.toUtf8());
+            }
+            fileNetwork.close();
+            qDebug() << "dataText - after - network.cfg:" << dataText;
+          }
         }
+      }
+      if (_imgWriterSettings.contains("servername")) {
+        QFile fileIdent(folder + "/config/ident.cfg");
+        if (fileIdent.exists()) {
+          if (fileIdent.open(QIODevice::ReadOnly)) {
 
-        if (_initFormat == "UNRAID")
-        {
+            QString dataText = QString::fromUtf8(fileIdent.readAll());
+            fileIdent.close();
+            // qDebug() << "dataText - before - ident.cfg:" << dataText;
 
-            // Check for cancellation before starting post-processing
-            qDebug() << "DownloadExtractThread::extractMultiFileRun() checking for cancellation";
-            if (_cancelled)
-                return;
-
-            qDebug() << "AllNetworkSettingsPresent:" << _allNetworkSettingsPresent();
-
-            if (_allNetworkSettingsPresent())
-            {
-                QFile fileNetwork(folder + "/config/network.cfg");
-                if (fileNetwork.exists())
-                {
-                    qDebug() << "USE_DHCP:" << _imgWriterSettings["dhcp"].toString();
-                    qDebug() << "Static IP:" << _imgWriterSettings["static"].toString();
-                    qDebug() << "IPADDR:" << _imgWriterSettings["ipaddr"].toString();
-                    qDebug() << "NETMASK:" << _imgWriterSettings["netmask"].toString();
-                    qDebug() << "GATEWAY:" << _imgWriterSettings["gateway"].toString();
-                    qDebug() << "DNS_SERVER1:" << _imgWriterSettings["dns"].toString();
-                    
-                    if(fileNetwork.open(QIODevice::ReadOnly)){
-                       
-                        QString dataText = QString::fromUtf8(fileNetwork.readAll());
-                        fileNetwork.close();
-                        // qDebug() << "dataText - before - network.cfg:" << dataText;
-                    
-                        const bool useDhcp =_imgWriterSettings["dhcp"].toBool();
-
-                        _setOrAddKey(dataText, "USE_DHCP",   useDhcp ? "yes" : "no");
-                        _setOrAddKey(dataText, "IPADDR", _imgWriterSettings["ipaddr"].toString(), !useDhcp);
-                        _setOrAddKey(dataText, "NETMASK", _imgWriterSettings["netmask"].toString(), !useDhcp);
-                        _setOrAddKey(dataText, "GATEWAY", _imgWriterSettings["gateway"].toString(), !useDhcp);
-                        if(useDhcp){
-                            _removeKey(dataText, "DNS_SERVER1");
-                        }else{
-                            _setOrAddKey(dataText, "DNS_SERVER1", _imgWriterSettings["dns"].toString());
-                        }
-                        
-                        if (fileNetwork.open(QFile::WriteOnly | QFile::Truncate))
-                        {
-                            fileNetwork.write(dataText.toUtf8());
-                        }
-                        fileNetwork.close();
-                        qDebug() << "dataText - after - network.cfg:" << dataText;
-                    }
-                }
+            // Replace-or-insert server name
+            _setOrAddKey(dataText, "NAME",
+                         _imgWriterSettings["servername"].toString());
+            if (fileIdent.open(QFile::WriteOnly | QFile::Truncate)) {
+              fileIdent.write(dataText.toUtf8());
             }
-            if (_imgWriterSettings.contains("servername"))
-            {
-                QFile fileIdent(folder + "/config/ident.cfg");
-                if (fileIdent.exists())
-                {
-                    if(fileIdent.open(QIODevice::ReadOnly)){
-                        
-                        QString dataText = QString::fromUtf8(fileIdent.readAll());
-                        fileIdent.close();
-                        // qDebug() << "dataText - before - ident.cfg:" << dataText;
-                        
-                        // Replace-or-insert server name
-                        _setOrAddKey(dataText, "NAME", _imgWriterSettings["servername"].toString());
-                        if (fileIdent.open(QFile::WriteOnly | QFile::Truncate))
-                        {
-                            fileIdent.write(dataText.toUtf8());
-                        }
-                        fileIdent.close();
-                        qDebug() << "dataText - after - ident.cfg:" << dataText;
-                    }
-                }
-            }
+            fileIdent.close();
+            qDebug() << "dataText - after - ident.cfg:" << dataText;
+          }
+        }
+      }
 
-            // restore make bootable scripts and/or syslinux, if necessary
-            QDir dirTarget(folder);
-            if (dirTarget.mkdir("syslinux"))
-            {
-                QFile::copy(":/unraid/syslinux/ldlinux.c32", folder + "/syslinux/ldlinux.c32");
-                QFile::copy(":/unraid/syslinux/libcom32.c32", folder + "/syslinux/libcom32.c32");
-                QFile::copy(":/unraid/syslinux/libutil.c32", folder + "/syslinux/libutil.c32");
-                QFile::copy(":/unraid/syslinux/make_bootable_linux.sh", folder + "/syslinux/make_bootable_linux.sh");
-                QFile::copy(":/unraid/syslinux/make_bootable_mac.sh", folder + "/syslinux/make_bootable_mac.sh");
-                QFile::copy(":/unraid/syslinux/mboot.c32", folder + "/syslinux/mboot.c32");
-                QFile::copy(":/unraid/syslinux/mbr.bin", folder + "/syslinux/mbr.bin");
-                QFile::copy(":/unraid/syslinux/menu.c32", folder + "/syslinux/menu.c32");
-                QFile::copy(":/unraid/syslinux/syslinux", folder + "/syslinux/syslinux");
-                QFile::copy(":/unraid/syslinux/syslinux_linux", folder + "/syslinux/syslinux_linux");
-                QFile::copy(":/unraid/syslinux/syslinux.cfg", folder + "/syslinux/syslinux.cfg");
-                QFile::copy(":/unraid/syslinux/syslinux.cfg-", folder + "/syslinux/syslinux.cfg-");
-                QFile::copy(":/unraid/syslinux/syslinux.exe", folder + "/syslinux/syslinux.exe");
-                QFile::copy(":/unraid/make_bootable_linux", folder + "/make_bootable_linux");
-                QFile::copy(":/unraid/make_bootable_mac", folder + "/make_bootable_mac");
-                QFile::copy(":/unraid/make_bootable.bat", folder + "/make_bootable.bat");
-            }
+      // restore make bootable scripts and/or syslinux, if necessary
+      QDir dirTarget(folder);
+      if (dirTarget.mkdir("syslinux")) {
+        QFile::copy(":/unraid/syslinux/ldlinux.c32",
+                    folder + "/syslinux/ldlinux.c32");
+        QFile::copy(":/unraid/syslinux/libcom32.c32",
+                    folder + "/syslinux/libcom32.c32");
+        QFile::copy(":/unraid/syslinux/libutil.c32",
+                    folder + "/syslinux/libutil.c32");
+        QFile::copy(":/unraid/syslinux/make_bootable_linux.sh",
+                    folder + "/syslinux/make_bootable_linux.sh");
+        QFile::copy(":/unraid/syslinux/make_bootable_mac.sh",
+                    folder + "/syslinux/make_bootable_mac.sh");
+        QFile::copy(":/unraid/syslinux/mboot.c32",
+                    folder + "/syslinux/mboot.c32");
+        QFile::copy(":/unraid/syslinux/mbr.bin", folder + "/syslinux/mbr.bin");
+        QFile::copy(":/unraid/syslinux/menu.c32",
+                    folder + "/syslinux/menu.c32");
+        QFile::copy(":/unraid/syslinux/syslinux",
+                    folder + "/syslinux/syslinux");
+        QFile::copy(":/unraid/syslinux/syslinux_linux",
+                    folder + "/syslinux/syslinux_linux");
+        QFile::copy(":/unraid/syslinux/syslinux.cfg",
+                    folder + "/syslinux/syslinux.cfg");
+        QFile::copy(":/unraid/syslinux/syslinux.cfg-",
+                    folder + "/syslinux/syslinux.cfg-");
+        QFile::copy(":/unraid/syslinux/syslinux.exe",
+                    folder + "/syslinux/syslinux.exe");
+        QFile::copy(":/unraid/make_bootable_linux",
+                    folder + "/make_bootable_linux");
+        QFile::copy(":/unraid/make_bootable_mac",
+                    folder + "/make_bootable_mac");
+        QFile::copy(":/unraid/make_bootable.bat",
+                    folder + "/make_bootable.bat");
+      }
 
 #ifdef Q_OS_WIN
-            QString program{"cmd.exe"};
-            QStringList args;
-            args << "/C" << "echo Y | make_bootable.bat";
+      QString program{"cmd.exe"};
+      QStringList args;
+      args << "/C" << "echo Y | make_bootable.bat";
 
-            int retcode = QProcess::execute(program, args);
+      int retcode = QProcess::execute(program, args);
 
-            if (retcode)
-            {
-                throw runtime_error("Error running make_bootable script");
-            }
+      if (retcode) {
+        throw runtime_error("Error running make_bootable script");
+      }
 #endif
-        }
-        emit success();
     }
-    catch (exception &e)
-    {
-        if (_cachefile.isOpen())
-            _cachefile.remove();
+    emit success();
+  } catch (exception &e) {
+    if (_cachefile.isOpen())
+      _cachefile.remove();
 
-        qDebug() << "Deleting extracted files";
-        for (const auto &filename : filesExtracted)
-        {
-            QFileInfo fi(filename);
-            QString path = fi.path();
-            if (!path.isEmpty() && path != "." && !dirExtracted.contains(path))
-                dirExtracted.append(path);
+    qDebug() << "Deleting extracted files";
+    for (const auto &filename : _extractedFiles) {
+      QFileInfo fi(filename);
+      QString path = fi.path();
+      if (!path.isEmpty() && path != "." && !_extractedDirs.contains(path))
+        _extractedDirs.append(path);
 
-            QFile::remove(filename);
-        }
-        for (int idx = dirExtracted.count() - 1; idx >= 0; idx--)
-        {
-            QDir d;
-            d.rmdir(dirExtracted[idx]);
-        }
-        qDebug() << filesExtracted << dirExtracted;
-
-        if (!_cancelled)
-        {
-            /* Fatal error */
-            DownloadThread::cancelDownload();
-            emit error(tr("Error extracting archive: %1").arg(e.what()));
-        }
+      QFile::remove(filename);
     }
-
-    // Ensure proper cleanup sequence
-
-    // 1. Close libarchive handles properly (this should flush any pending writes)
-    if (archive_write_close(ext) != ARCHIVE_OK)
-    {
-        qDebug() << "Warning: Failed to properly close archive write handle";
+    for (int idx = _extractedDirs.count() - 1; idx >= 0; idx--) {
+      QDir d;
+      d.rmdir(_extractedDirs[idx]);
     }
-    archive_read_free(a);
-    archive_write_free(ext);
+    qDebug() << _extractedFiles << _extractedDirs;
 
-    // 2. Change back to original directory BEFORE sync to avoid holding references
-    QDir::setCurrent(currentDir);
+    // restartInProgress will prevent fatal error from being emitted when we
+    // force EOF before it actually happens. the forced EOF will trigger an
+    // exception in _checkResult(r, a) this is done in order to force a full
+    // restart of the download and extraction process. Then the download thread
+    // restarts the download; _writeData() starts a new extract thread
+    if (!_cancelled && !_restartInProgress) {
+      /* Fatal error */
+      DownloadThread::cancelDownload();
+      emit error(tr("Error extracting archive: %1").arg(e.what()));
+    }
+  }
 
-    // 3. Force filesystem sync to ensure all writes are committed
+  // Ensure proper cleanup sequence
+
+  // 1. Close libarchive handles properly (this should flush any pending writes)
+  if (archive_write_close(ext) != ARCHIVE_OK) {
+    qDebug() << "Warning: Failed to properly close archive write handle";
+  }
+  archive_read_free(a);
+  archive_write_free(ext);
+
+  // 2. Change back to original directory BEFORE sync to avoid holding
+  // references
+  QDir::setCurrent(currentDir);
+
+  // 3. Force filesystem sync to ensure all writes are committed
 #ifdef Q_OS_LINUX
-    sync(); // Force all cached writes to be flushed to disk
-    qDebug() << "Filesystem sync completed";
+  sync(); // Force all cached writes to be flushed to disk
+  qDebug() << "Filesystem sync completed";
 #endif
 
 #ifdef Q_OS_LINUX
-    if (manualmount)
-    {
-        QStringList args;
-        args << folder;
-        int umountResult = QProcess::execute("umount", args);
-        QDir d;
-        bool rmResult = d.rmdir(folder);
-        qDebug() << "Manual cleanup: umount result:" << umountResult << ", rmdir result:" << rmResult << ", folder:" << folder;
-    }
+  if (manualmount) {
+    QStringList args;
+    args << folder;
+    int umountResult = QProcess::execute("umount", args);
+    QDir d;
+    bool rmResult = d.rmdir(folder);
+    qDebug() << "Manual cleanup: umount result:" << umountResult
+             << ", rmdir result:" << rmResult << ", folder:" << folder;
+  }
 #endif
 
-    // Give the filesystem a moment to settle after sync before ejecting
-    QThread::msleep(500);
+  // Give the filesystem a moment to settle after sync before ejecting
+  QThread::msleep(500);
 
-    // honestly, not sure previously this is commented out for unraid, but I'm keeping it that way, I guess.
-    // eject_disk(_filename.constData());
+  // honestly, not sure previously this is commented out for unraid, but I'm
+  // keeping it that way, I guess. eject_disk(_filename.constData());
 }
 
-ssize_t DownloadExtractThread::_on_read(struct archive *, const void **buff)
-{
-    _buf = _popQueue();
-    *buff = _buf.data();
-    return _buf.size();
+ssize_t DownloadExtractThread::_on_read(struct archive *, const void **buff) {
+  _buf = _popQueue();
+  *buff = _buf.data();
+  return _buf.size();
 }
 
-int DownloadExtractThread::_on_close(struct archive *)
-{
-    return 0;
-}
+int DownloadExtractThread::_on_close(struct archive *) { return 0; }
 
 // static callback functions that call object oriented equivalents
-ssize_t DownloadExtractThread::_archive_read(struct archive *a, void *client_data, const void **buff)
-{
-    return qobject_cast<DownloadExtractThread *>((QObject *)client_data)->_on_read(a, buff);
+ssize_t DownloadExtractThread::_archive_read(struct archive *a,
+                                             void *client_data,
+                                             const void **buff) {
+  return qobject_cast<DownloadExtractThread *>((QObject *)client_data)
+      ->_on_read(a, buff);
 }
 
-int DownloadExtractThread::_archive_close(struct archive *a, void *client_data)
-{
-    return qobject_cast<DownloadExtractThread *>((QObject *)client_data)->_on_close(a);
+int DownloadExtractThread::_archive_close(struct archive *a,
+                                          void *client_data) {
+  return qobject_cast<DownloadExtractThread *>((QObject *)client_data)
+      ->_on_close(a);
 }
 
-bool DownloadExtractThread::isImage()
-{
-    return _isImage;
-}
+bool DownloadExtractThread::isImage() { return _isImage; }
 
-void DownloadExtractThread::enableMultipleFileExtraction()
-{
-    _isImage = false;
-}
+void DownloadExtractThread::enableMultipleFileExtraction() { _isImage = false; }
 
 // Synchronized queue using monitor consumer/producer pattern
-QByteArray DownloadExtractThread::_popQueue()
-{
-    std::unique_lock<std::mutex> lock(_queueMutex);
+QByteArray DownloadExtractThread::_popQueue() {
+  std::unique_lock<std::mutex> lock(_queueMutex);
 
-    _cv.wait(lock, [this]
-             { return _queue.size() != 0; });
+  _cv.wait(lock, [this] { return _queue.size() != 0; });
 
-    QByteArray result = _queue.front();
-    _queue.pop_front();
+  QByteArray result = _queue.front();
+  _queue.pop_front();
 
-    // Always notify waiting pushers that space is available
-    lock.unlock();
-    _cv.notify_one();
+  // Always notify waiting pushers that space is available
+  lock.unlock();
+  _cv.notify_one();
 
-    return result;
+  return result;
 }
 
-void DownloadExtractThread::_pushQueue(const char *data, size_t len)
-{
-    std::unique_lock<std::mutex> lock(_queueMutex);
+void DownloadExtractThread::_pushQueue(const char *data, size_t len) {
+  std::unique_lock<std::mutex> lock(_queueMutex);
 
-    _cv.wait(lock, [this]
-             { return _queue.size() != MAX_QUEUE_SIZE; });
+  _cv.wait(lock, [this] { return _queue.size() != MAX_QUEUE_SIZE; });
 
-    _queue.emplace_back(data, len);
+  _queue.emplace_back(data, len);
 
-    // Always notify waiting poppers that data is available
-    lock.unlock();
-    _cv.notify_one();
+  // Always notify waiting poppers that data is available
+  lock.unlock();
+  _cv.notify_one();
 }
 
-bool DownloadExtractThread::_verify()
-{
-    qDebug() << "DownloadExtractThread::_verify() called (child class implementation with progress updates)";
-    _lastVerifyNow = 0;
-    _verifyTotal = _file.pos();
+bool DownloadExtractThread::_verify() {
+  qDebug() << "DownloadExtractThread::_verify() called (child class "
+              "implementation with progress updates)";
+  _lastVerifyNow = 0;
+  _verifyTotal = _file.pos();
 
-    // Use adaptive buffer size based on file size for optimal verification performance
-    size_t verifyBufferSize = getAdaptiveVerifyBufferSize(_verifyTotal);
-    char *verifyBuf = (char *)qMallocAligned(verifyBufferSize, 4096);
+  // Use adaptive buffer size based on file size for optimal verification
+  // performance
+  size_t verifyBufferSize = getAdaptiveVerifyBufferSize(_verifyTotal);
+  char *verifyBuf = (char *)qMallocAligned(verifyBufferSize, 4096);
 
-    QElapsedTimer t1;
-    t1.start();
+  QElapsedTimer t1;
+  t1.start();
 
-    qDebug() << "Post-write verification using" << verifyBufferSize / 1024 << "KB buffer for"
-             << _verifyTotal / (1024 * 1024) << "MB image";
+  qDebug() << "Post-write verification using" << verifyBufferSize / 1024
+           << "KB buffer for" << _verifyTotal / (1024 * 1024) << "MB image";
 
 #ifdef Q_OS_LINUX
-    /* Make sure we are reading from the drive and not from cache */
-    posix_fadvise(_file.handle(), 0, 0, POSIX_FADV_DONTNEED);
+  /* Make sure we are reading from the drive and not from cache */
+  posix_fadvise(_file.handle(), 0, 0, POSIX_FADV_DONTNEED);
 #endif
 
-    if (!_firstBlock)
-    {
-        _file.seek(0);
-    }
-    else
-    {
-        _verifyhash.addData(_firstBlock, _firstBlockSize);
-        _file.seek(_firstBlockSize);
-        _lastVerifyNow += _firstBlockSize;
-    }
+  if (!_firstBlock) {
+    _file.seek(0);
+  } else {
+    _verifyhash.addData(_firstBlock, _firstBlockSize);
+    _file.seek(_firstBlockSize);
+    _lastVerifyNow += _firstBlockSize;
+  }
 
-    while (_verifyEnabled && _lastVerifyNow < _verifyTotal && !_cancelled)
-    {
-        qint64 lenRead = _file.read(verifyBuf, qMin((qint64)verifyBufferSize, (qint64)(_verifyTotal - _lastVerifyNow)));
-        if (lenRead == -1)
-        {
-            DownloadThread::_onDownloadError(tr("Error reading from storage.<br>"
-                                                "SD card may be broken."));
-            qFreeAligned(verifyBuf);
-            return false;
-        }
-
-        _verifyhash.addData(verifyBuf, lenRead);
-        _lastVerifyNow += lenRead;
-
-        // Emit progress updates during verification
-        _emitProgressUpdate();
-    }
-    qFreeAligned(verifyBuf);
-
-    qDebug() << "Verify hash:" << _verifyhash.result().toHex();
-    qDebug() << "Verify done in" << t1.elapsed() / 1000.0 << "seconds";
-
-    if (_verifyhash.result() == _writehash.result() || !_verifyEnabled || _cancelled)
-    {
-        return true;
-    }
-    else
-    {
-        DownloadThread::_onDownloadError(tr("Verifying write failed. Contents of SD card is different from what was written to it."));
+  while (_verifyEnabled && _lastVerifyNow < _verifyTotal && !_cancelled) {
+    qint64 lenRead =
+        _file.read(verifyBuf, qMin((qint64)verifyBufferSize,
+                                   (qint64)(_verifyTotal - _lastVerifyNow)));
+    if (lenRead == -1) {
+      DownloadThread::_onDownloadError(tr("Error reading from storage.<br>"
+                                          "SD card may be broken."));
+      qFreeAligned(verifyBuf);
+      return false;
     }
 
-    return false;
+    _verifyhash.addData(verifyBuf, lenRead);
+    _lastVerifyNow += lenRead;
+
+    // Emit progress updates during verification
+    _emitProgressUpdate();
+  }
+  qFreeAligned(verifyBuf);
+
+  qDebug() << "Verify hash:" << _verifyhash.result().toHex();
+  qDebug() << "Verify done in" << t1.elapsed() / 1000.0 << "seconds";
+
+  if (_verifyhash.result() == _writehash.result() || !_verifyEnabled ||
+      _cancelled) {
+    return true;
+  } else {
+    DownloadThread::_onDownloadError(
+        tr("Verifying write failed. Contents of SD card is different from what "
+           "was written to it."));
+  }
+
+  return false;
+}
+
+void DownloadExtractThread::_resetForFullRestart() {
+  qDebug() << "DownloadExtractThread::_resetForFullRestart() called";
+
+  _restartInProgress = true;
+
+  _cancelExtract();
+
+  if (_extractThread && _extractThread->isRunning()) {
+    _extractThread->wait();
+  }
+
+  // Clean up extracted files for multi-file extractions
+  if (!_isImage && _needsCleanup) {
+    _cleanupExtractedFiles();
+  }
+
+  // Clear extract queue
+  {
+    std::unique_lock<std::mutex> lock(_queueMutex);
+    _queue.clear();
+  }
+
+  _ethreadStarted = false;
+  _writeThreadStarted = false;
+  _progressStarted = false;
+
+  _lastProgressTime = 0;
+  _lastEmittedDlNow = 0;
+  _lastLocalVerifyNow = 0;
+
+  _activeBuf = 0;
+
+  // Reset input hash used for multi-file zip integrity tracking
+  _writehash.~AcceleratedCryptographicHash();
+  new (&_writehash) AcceleratedCryptographicHash(OSLIST_HASH_ALGORITHM);
+
+  // Reset extraction tracking
+  _extractedFiles.clear();
+  _extractedDirs.clear();
+  _extractionFolder.clear();
+  _needsCleanup = false;
+
+  DownloadThread::_resetForFullRestart(); // file seek to 0, hashes, offsets,
+                                          // cache
+}
+
+// Add this new method:
+void DownloadExtractThread::_cleanupExtractedFiles() {
+  if (_extractionFolder.isEmpty()) {
+    qDebug() << "No extraction folder set, skipping cleanup";
+    return;
+  }
+
+  qDebug() << "Cleaning up extracted files from failed download";
+
+  // Save current directory
+  QString currentDir = QDir::currentPath();
+
+  // Change to extraction folder
+  if (!QDir::setCurrent(_extractionFolder)) {
+    qDebug() << "Failed to change to extraction folder for cleanup:"
+             << _extractionFolder;
+    return;
+  }
+
+  // Remove files
+  for (const auto &filename : _extractedFiles) {
+    if (QFile::exists(filename)) {
+      qDebug() << "Removing extracted file:" << filename;
+      QFile::remove(filename);
+    }
+  }
+
+  // Remove directories (in reverse order)
+  for (int idx = _extractedDirs.count() - 1; idx >= 0; idx--) {
+    QDir d;
+    if (d.exists(_extractedDirs[idx])) {
+      qDebug() << "Removing extracted directory:" << _extractedDirs[idx];
+      d.rmdir(_extractedDirs[idx]);
+    }
+  }
+
+  // Restore original directory
+  QDir::setCurrent(currentDir);
+
+  qDebug() << "Cleanup completed";
 }
 
 // Helper utilities for safe key=value editing without duplicates
-QString DownloadExtractThread::_detectEOL(const QString &text)
-{
-    return text.contains("\r\n") ? QString("\r\n") : QString("\n");
+QString DownloadExtractThread::_detectEOL(const QString &text) {
+  return text.contains("\r\n") ? QString("\r\n") : QString("\n");
 }
 
-void DownloadExtractThread::_setOrAddKey(QString &text, const QString &key, const QString &value, bool quoteValue)
-{
-    const QString line = quoteValue ? QString("%1=\"%2\"").arg(key, value)
-                                    : QString("%1=%2").arg(key, value);
-    QRegularExpression re(QString("^%1=.*$").arg(QRegularExpression::escape(key)),
-                          QRegularExpression::MultilineOption);
-    if (re.match(text).hasMatch()) {
-        text.replace(re, line);
-    } else {
-        const QString eol = _detectEOL(text);
-        if (!text.isEmpty() && !text.endsWith("\n") && !text.endsWith("\r"))
-            text.append(eol);
-        text.append(line + eol);
-    }
+void DownloadExtractThread::_setOrAddKey(QString &text, const QString &key,
+                                         const QString &value,
+                                         bool quoteValue) {
+  const QString line = quoteValue ? QString("%1=\"%2\"").arg(key, value)
+                                  : QString("%1=%2").arg(key, value);
+  QRegularExpression re(QString("^%1=.*$").arg(QRegularExpression::escape(key)),
+                        QRegularExpression::MultilineOption);
+  if (re.match(text).hasMatch()) {
+    text.replace(re, line);
+  } else {
+    const QString eol = _detectEOL(text);
+    if (!text.isEmpty() && !text.endsWith("\n") && !text.endsWith("\r"))
+      text.append(eol);
+    text.append(line + eol);
+  }
 }
 
-void DownloadExtractThread::_removeKey(QString &text, const QString &key)
-{
-    QRegularExpression re(QString("^%1=.*(?:\\r?\\n)?").arg(QRegularExpression::escape(key)),
-                          QRegularExpression::MultilineOption);
-    text.remove(re);
+void DownloadExtractThread::_removeKey(QString &text, const QString &key) {
+  QRegularExpression re(
+      QString("^%1=.*(?:\\r?\\n)?").arg(QRegularExpression::escape(key)),
+      QRegularExpression::MultilineOption);
+  text.remove(re);
 }
