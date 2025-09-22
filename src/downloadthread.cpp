@@ -328,9 +328,6 @@ bool DownloadThread::_openAndPrepareDevice() {
 
 void DownloadThread::run() {
 
-  // static bool firstRun = true;
-  // bool forceResumeTest = true; // Set this to true for testing
-
   if (isImage() && !_openAndPrepareDevice()) {
     return;
   }
@@ -414,45 +411,13 @@ void DownloadThread::run() {
   emit preparationStatusUpdate(tr("Starting download"));
   _timer.start();
 
-  bool retryFromStartOnce = false;
+  int retryFromStartCount = 0;
+  const int maxRetryFromStartCount = 3;
 
 attempt_download:
   CURLcode ret = curl_easy_perform(_c);
   long httpCode = 0;
   curl_easy_getinfo(_c, CURLINFO_RESPONSE_CODE, &httpCode);
-
-  // qDebug() << "ret:" << ret;
-  // qDebug() << "httpCode:" << httpCode;
-  // qDebug() << "startOffset:" << _startOffset;
-  // qDebug() << "lastDlNow:" << _lastDlNow;
-  // qDebug() << "lastFailureOffset:" << _lastFailureOffset;
-  // qDebug() << "forceResumeTest:" << forceResumeTest;
-  // qDebug() << "firstRun:" << firstRun;
-
-  // // FORCE RESUME TESTING (TEMPORARY)
-  // // startOffset won't be 0 because we're already running it once with ret =
-  // curl_easy_perform(_c) if (forceResumeTest && firstRun && ret == CURLE_OK &&
-  // _startOffset == 0) {
-  //   firstRun = false;
-  //   qDebug() << "*** FORCING RESUME TEST ***";
-  //   qDebug()
-  //       << "Original download succeeded, now simulating range request
-  //       failure";
-
-  //   // Simulate that we need to resume from some position
-  //   _startOffset = _lastDlNow / 3; // Pretend we got 1/3 of the way
-  //   _lastFailureOffset = _startOffset;
-
-  //   // Force a range request that will be rejected
-  //   curl_easy_setopt(_c, CURLOPT_RESUME_FROM_LARGE, _startOffset);
-
-  //   qDebug() << "Making range request from offset:" << _startOffset;
-  //   ret = curl_easy_perform(_c);
-  //   curl_easy_getinfo(_c, CURLINFO_RESPONSE_CODE, &httpCode);
-
-  //   qDebug() << "Range request result - CURLcode:" << ret
-  //            << "HTTP:" << httpCode;
-  // }
 
   /* Deal with badly configured HTTP servers that terminate the connection
      quickly if connections stalls for some seconds while kernel commits buffers
@@ -481,18 +446,31 @@ attempt_download:
     ret = curl_easy_perform(_c);
   }
 
+  // another scuffed way to test would be to use a vpn far away. That would also
+  // trigger this.
+
   /* One-time fallback: if ranged request failed (e.g. server returned 200/no
      ranges), restart from offset 0 without resume. */
-  if (_shouldRetryFromStart(ret, httpCode) && !retryFromStartOnce) {
-    qDebug() << "Range resume failed (server response:" << httpCode
-             << "). Falling back to full restart from offset 0.";
+  if (_shouldRetryFromStart(ret, httpCode) &&
+      retryFromStartCount < maxRetryFromStartCount) {
 
-    retryFromStartOnce = true;
+    /* max 16 seconds - added just in case in the future we change it to keep
+      trying until success*/
+    int backoffSeconds = std::min(1 << retryFromStartCount, 16);
+
+    qDebug() << "Range resume failed (server response:" << httpCode
+             << "). Falling back to full restart from offset 0. Attempt"
+             << (retryFromStartCount + 1) << "of" << maxRetryFromStart
+             << ". Waiting" << backoffSeconds << "seconds before retry.";
+
+    ++retryFromStartCount;
 
     this->_resetForFullRestart();
-
-    /* Disable resume for the next attempt */
+    /* Disable resume for the next attempt*/
     curl_easy_setopt(_c, CURLOPT_RESUME_FROM_LARGE, 0);
+
+    // exponential backoff
+    ::sleep(backoffSeconds);
 
     goto attempt_download;
   }
