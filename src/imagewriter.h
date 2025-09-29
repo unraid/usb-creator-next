@@ -47,7 +47,7 @@ public:
     Q_INVOKABLE void setSrc(const QUrl &url, quint64 downloadLen = 0, quint64 extrLen = 0, QByteArray expectedHash = "", bool multifilesinzip = false, QString parentcategory = "", QString osname = "", QByteArray initFormat = "");
 
     /* Set device to write to */
-    Q_INVOKABLE void setDst(const QString &device, quint64 deviceSize = 0);
+    Q_INVOKABLE void setDst(const QString &device, bool guidValid, quint64 deviceSize = 0);
 
     /* Set verification enabled */
     Q_INVOKABLE void setVerifyEnabled(bool verify);
@@ -172,6 +172,11 @@ public:
     void replaceTranslator(QTranslator *trans);
     QString detectPiKeyboard();
     Q_INVOKABLE bool hasMouse();
+    Q_INVOKABLE QString getInitFormat();
+    Q_INVOKABLE QString getDstDevice();
+    Q_INVOKABLE bool getDstGuidValid();
+    Q_INVOKABLE bool openUrl(const QString &url);
+    Q_INVOKABLE bool windowsBuild();
 
 signals:
     /* We are emiting signals with QVariant as parameters because QML likes it that way */
@@ -209,7 +214,7 @@ protected slots:
 
 private:
     // Cache management
-    CacheManager* _cacheManager;
+    CacheManager *_cacheManager;
     bool _waitingForCacheVerification;
 
     // Recursively walk all the entries with subitems and, for any which
@@ -234,9 +239,10 @@ protected:
     DownloadThread *_thread;
     bool _verifyEnabled, _multipleFilesInZip, _embeddedMode, _online;
     QSettings _settings;
-    QMap<QString,QString> _translations;
+    QMap<QString, QString> _translations;
     QTranslator *_trans;
 
+    bool _guidValid;
     void _parseCompressedFile();
     void _parseXZFile();
     QString _pubKeyFileName();

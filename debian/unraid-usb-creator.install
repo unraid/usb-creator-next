@@ -1,0 +1,8 @@
+#!/usr/bin/dh-exec
+
+unraid-usb-creator-aarch64.AppImage => /usr/bin/unraid-usb-creator
+
+debian/unraid.png /usr/share/icons/hicolor/128x128/apps/
+
+debian/com.limetech.unraid-usb-creator.desktop /usr/share/applications/
+debian/com.limetech.unraid-usb-creator.metainfo.xml /usr/share/metainfo/

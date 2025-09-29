@@ -18,7 +18,7 @@ public:
     explicit UDisks2Api(QObject *parent = nullptr);
     int authOpen(const QString &device, const QString &mode = "rw");
     void ejectDrive(const QString &device);
-    bool formatDrive(const QString &device, bool mountAfterwards = true);
+    bool formatDrive(const QString &device, bool mountAfterwards = true, const QString &label = QString());
     QString mountDevice(const QString &device);
     void unmountDrive(const QString &device);
     QByteArrayList mountPoints(const QString &partitionDevice);

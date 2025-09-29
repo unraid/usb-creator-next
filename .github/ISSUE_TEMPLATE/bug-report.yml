@@ -24,16 +24,8 @@ body:
       label: Version
       description: What version of our software are you running?
       options:
-        - 1.9.6 (Default)
-        - 1.9.5
-        - 1.9.4
-        - 1.9.0
-        - 1.8.5
-        - 1.8.4
-        - 1.8.3
-        - 1.8.2
-        - 1.8.1
-        - < 1.8.0
+        - 1.1.0 (Default)
+        - 1.0.1
       default: 0
     validations:
       required: true
@@ -63,7 +55,7 @@ body:
     attributes:
       label: Selected OS
       description: Which OS did you select to write? (For custom images, just write 'Custom')
-      placeholder: ex Raspberry Pi OS Bookworm 64-bit, Ubuntu 23.10, LibreELEC 
+      placeholder: ex Raspberry Pi OS Bookworm 64-bit, Ubuntu 23.10, LibreELEC
     validations:
       required: true
   - type: dropdown

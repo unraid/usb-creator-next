@@ -4,10 +4,13 @@
  */
 
 #include "drivelistmodel.h"
-#include "config.h"
 #include "dependencies/drivelist/src/drivelist.hpp"
 #include <QSet>
 #include <QDebug>
+#include <QUrl>
+#include "unraidguidvalidator.h"
+
+#include <string>
 
 DriveListModel::DriveListModel(QObject *parent)
     : QAbstractListModel(parent)
@@ -20,8 +23,9 @@ DriveListModel::DriveListModel(QObject *parent)
         {isScsiRole, "isScsi"},
         {isReadOnlyRole, "isReadOnly"},
         {isSystemRole, "isSystem"},
-        {mountpointsRole, "mountpoints"}
-    };
+        {mountpointsRole, "mountpoints"},
+        {guidRole, "guid"},
+        {guidValidRole, "guidValid"}};
 
     // Enumerate drives in seperate thread, but process results in UI thread
     connect(&_thread, SIGNAL(newDriveList(std::vector<Drivelist::DeviceDescriptor>)), SLOT(processDriveList(std::vector<Drivelist::DeviceDescriptor>)));
@@ -46,7 +50,8 @@ QVariant DriveListModel::data(const QModelIndex &index, int role) const
     QByteArray propertyName = _rolenames.value(role);
     if (propertyName.isEmpty())
         return QVariant();
-    else {
+    else
+    {
         auto it = _drivelist.cbegin();
         std::advance(it, row);
         return it.value()->property(propertyName);
@@ -57,12 +62,15 @@ void DriveListModel::processDriveList(std::vector<Drivelist::DeviceDescriptor> l
 {
     bool changes = false;
     QSet<QString> drivesInNewList;
+    QLocale locale;
 
-    for (auto &i: l)
+    UnraidGuidValidator unraidGuidValidator;
+
+    for (auto &i : l)
     {
         // Convert STL vector<string> to Qt QStringList
         QStringList mountpoints;
-        for (auto &s: i.mountpoints)
+        for (auto &s : i.mountpoints)
         {
             mountpoints.append(QString::fromStdString(s));
         }
@@ -84,7 +92,7 @@ void DriveListModel::processDriveList(std::vector<Drivelist::DeviceDescriptor> l
             continue;
 #endif
 
-        QString deviceNamePlusSize = QString::fromStdString(i.device)+":"+QString::number(i.size);
+        QString deviceNamePlusSize = QString::fromStdString(i.device) + ":" + QString::number(i.size);
         if (i.isReadOnly)
             deviceNamePlusSize += "ro";
         drivesInNewList.insert(deviceNamePlusSize);
@@ -98,13 +106,14 @@ void DriveListModel::processDriveList(std::vector<Drivelist::DeviceDescriptor> l
                 changes = true;
             }
 
-            _drivelist[deviceNamePlusSize] = new DriveListItem(QString::fromStdString(i.device), QString::fromStdString(i.description), i.size, i.isUSB, i.isSCSI, i.isReadOnly, i.isSystem, mountpoints, this);
+            auto result = unraidGuidValidator.checkDevice(i);
+            _drivelist[deviceNamePlusSize] = new DriveListItem(QString::fromStdString(i.device), QString::fromStdString(i.description), i.size, result.guid, result.guidValid, i.isUSB, i.isSCSI, i.isReadOnly, i.isSystem, mountpoints, this);
         }
     }
 
     // Look for drives removed
     QStringList drivesInOldList = _drivelist.keys();
-    for (auto &device: drivesInOldList)
+    for (auto &device : drivesInOldList)
     {
         if (!drivesInNewList.contains(device))
         {
@@ -131,4 +140,14 @@ void DriveListModel::startPolling()
 void DriveListModel::stopPolling()
 {
     _thread.stop();
+}
+
+size_t DriveListModel::_curl_write_callback(char *, size_t size, size_t nmemb, void *)
+{
+    return size * nmemb;
+}
+
+size_t DriveListModel::_curl_header_callback(void *, size_t size, size_t nmemb, void *)
+{
+    return size * nmemb;
 }

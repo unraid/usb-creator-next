@@ -3,7 +3,11 @@
 
 cmake_minimum_required(VERSION 3.22)
 OPTION (ENABLE_CHECK_VERSION "Check for version updates" ON)
-OPTION (ENABLE_TELEMETRY "Enable sending telemetry" ON)
+OPTION (ENABLE_TELEMETRY "Enable sending telemetry" OFF)
+
+# allows IDE to interpret code better
+# ex. if you're developing on mac, will gray out code for windows/linux
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # We use FetchContent_Populate() instead of FetchContent_MakeAvailable() to allow EXCLUDE_FROM_ALL
 # This prevents the dependencies from being built by default, which is our desired behavior
@@ -22,10 +26,10 @@ endif()
 
 set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "Which macOS architectures to build for")
 
-project(rpi-imager LANGUAGES CXX C)
+project(unraid-usb-creator LANGUAGES CXX C)
 set(IMAGER_VERSION_MAJOR 1)
-set(IMAGER_VERSION_MINOR 9)
-set(IMAGER_VERSION_PATCH 6)
+set(IMAGER_VERSION_MINOR 1)
+set(IMAGER_VERSION_PATCH 0)
 set(IMAGER_VERSION_STR "${IMAGER_VERSION_MAJOR}.${IMAGER_VERSION_MINOR}.${IMAGER_VERSION_PATCH}")
 set(IMAGER_VERSION_CSV "${IMAGER_VERSION_MAJOR},${IMAGER_VERSION_MINOR},${IMAGER_VERSION_PATCH},0")
 add_definitions(-DIMAGER_VERSION_STR="${IMAGER_VERSION_STR}")
@@ -81,6 +85,7 @@ set(XZ_LZIP_DECODER OFF CACHE BOOL "" FORCE)
 set(XZ_ENABLE_SANDBOX OFF CACHE BOOL "" FORCE)
 set(XZ_BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 set(XZ_ENABLE_DOXYGEN OFF CACHE BOOL "" FORCE)
+set(XZ_NLS OFF CACHE BOOL "" FORCE)
 set(XZ_DECODERS
     lzma1
     lzma2
@@ -104,6 +109,7 @@ unset(XZ_LZIP_DECODER)
 unset(XZ_ENABLE_SANDBOX)
 unset(XZ_BUILD_SHARED_LIBS)
 unset(XZ_ENABLE_DOXYGEN)
+unset(XZ_NLS) 
 unset(CREATE_LZMA_SYMLINKS)
 unset(CREATE_XZ_SYMLINKS)
 set(LIBLZMA_FOUND true CACHE BOOL "" FORCE)
@@ -202,8 +208,13 @@ set(ZLIB_ROOT ${zlib_SOURCE_DIR} CACHE PATH "" FORCE)
 # On Windows with MinGW, zlib builds with .a extension, not .lib
 # Set the correct library path before find_package
 if (WIN32 AND CMAKE_COMPILER_IS_GNUCXX)
-    set(ZLIB_LIBRARY ${zlib_BINARY_DIR}/libzlibstatic.a CACHE FILEPATH "" FORCE)
-    set(ZLIB_LIBRARIES ${zlib_BINARY_DIR}/libzlibstatic.a CACHE STRING "" FORCE)
+    if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+        set(ZLIB_LIBRARY ${zlib_BINARY_DIR}/libzsd.a CACHE FILEPATH "" FORCE)
+        set(ZLIB_LIBRARIES ${zlib_BINARY_DIR}/libzsd.a CACHE STRING "" FORCE)
+    else()
+        set(ZLIB_LIBRARY ${zlib_BINARY_DIR}/libzs.a CACHE FILEPATH "" FORCE)
+        set(ZLIB_LIBRARIES ${zlib_BINARY_DIR}/libzs.a CACHE STRING "" FORCE)
+    endif()
 else()
     set(ZLIB_LIBRARY ${zlib_BINARY_DIR}/libz.a CACHE FILEPATH "" FORCE)
     set(ZLIB_LIBRARIES ${zlib_BINARY_DIR}/libz.a CACHE STRING "" FORCE)
@@ -220,8 +231,11 @@ set(ZLIB_FOUND TRUE CACHE BOOL "" FORCE)
 add_library(ZLIB::ZLIB STATIC IMPORTED)
 if (WIN32 AND CMAKE_COMPILER_IS_GNUCXX)
     set_target_properties(ZLIB::ZLIB PROPERTIES
-        IMPORTED_LOCATION "${zlib_BINARY_DIR}/libzlibstatic.a"
-        INTERFACE_INCLUDE_DIRECTORIES "${zlib_SOURCE_DIR};${zlib_BINARY_DIR}"
+        IMPORTED_LOCATION_DEBUG        "${zlib_BINARY_DIR}/libzsd.a"
+        IMPORTED_LOCATION_RELEASE      "${zlib_BINARY_DIR}/libzs.a"
+        IMPORTED_LOCATION_MINSIZEREL   "${zlib_BINARY_DIR}/libzs.a"
+        IMPORTED_LOCATION_RELWITHDEBINFO "${zlib_BINARY_DIR}/libzs.a"
+        INTERFACE_INCLUDE_DIRECTORIES  "${zlib_SOURCE_DIR};${zlib_BINARY_DIR}"
     )
     add_dependencies(ZLIB::ZLIB zlibstatic)
 else()
@@ -528,7 +542,7 @@ set(HEADERS config.h imagewriter.h networkaccessmanagerfactory.h nan.h drivelist
 
 # Add dependencies
 if (APPLE)
-    set_source_files_properties("icons/rpi-imager.icns" PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
+    set_source_files_properties("icons/unraid.icns" PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
     set(PLATFORM_SOURCES
         mac/acceleratedcryptographichash_commoncrypto.cpp
         mac/macfile.cpp
@@ -541,7 +555,7 @@ if (APPLE)
         mac/file_operations_macos.cpp
         mac/buffer_optimization_macos.cpp
     )
-    set(DEPENDENCIES  icons/rpi-imager.icns)
+    set(DEPENDENCIES  icons/unraid.icns)
     enable_language(OBJC C)
 elseif (UNIX)
     find_package(GnuTLS REQUIRED)
@@ -593,12 +607,14 @@ elseif (WIN32)
         windows/winwlancredentials.cpp
         windows/file_operations_windows.cpp
         windows/buffer_optimization_windows.cpp
+        windows/volume_locks.cpp
+        windows/volume_locks.h
     )
     set(DEPENDENCIES
-        windows/rpi-imager.rc
+        windows/unraid-usb-creator.rc
         wlanapi_delayed.lib
     )
-    set(EXTRALIBS setupapi ${CMAKE_BINARY_DIR}/wlanapi_delayed.lib Bcrypt.dll)
+    set(EXTRALIBS setupapi ${CMAKE_BINARY_DIR}/wlanapi_delayed.lib bcrypt.dll)
 
 endif()
 
@@ -633,7 +649,7 @@ set(SOURCES ${PLATFORM_SOURCES} "main.cpp" "networkaccessmanagerfactory.cpp"
     "drivelistitem.cpp" "drivelistmodel.cpp" "drivelistmodelpollthread.cpp" "downloadthread.cpp" "downloadextractthread.cpp"
     "devicewrapper.cpp" "devicewrapperblockcacheentry.cpp" "devicewrapperpartition.cpp" "devicewrapperfatpartition.cpp"
     "driveformatthread.cpp" "localfileextractthread.cpp" "powersaveblocker.cpp" "downloadstatstelemetry.cpp" "qml.qrc" "dependencies/sha256crypt/sha256crypt.c" "cli.cpp"
-    "disk_formatter.cpp" "file_operations.cpp" "cachemanager.cpp" "buffer_optimization.h")
+    "disk_formatter.cpp" "file_operations.cpp" "cachemanager.cpp" "buffer_optimization.h"  "unraidguidvalidator.h" "unraidguidvalidator.cpp" )
 
 find_package(Qt6 6.7 QUIET COMPONENTS Core Quick LinguistTools Svg OPTIONAL_COMPONENTS Widgets DBus WinExtras)
 if (Qt6_FOUND)
@@ -669,12 +685,16 @@ qt_add_translation(QM_FILES  ${TRANSLATIONS})
 configure_file(i18n/translations.qrc "${CMAKE_CURRENT_BINARY_DIR}" COPYONLY)
 set(SOURCES ${SOURCES} ${CMAKE_CURRENT_BINARY_DIR}/translations.qrc ${QM_FILES})
 
-# Create an rpi-imager_lupdate target
+# Create an unraid-usb-creator_lupdate target
 qt_add_lupdate(TS_FILES ${TRANSLATIONS} SOURCE_TARGETS ${PROJECT_NAME} OPTIONS -no-obsolete -locations none)
 
 if (WIN32)
-    # Adding WIN32 prevents a console window being opened on Windows
-    add_executable(${PROJECT_NAME} WIN32 ${SOURCES} ${HEADERS} ${DEPENDENCIES})
+    # Use WIN32 to hide console for MinSizeRel/Release on Windows
+    if (CMAKE_BUILD_TYPE MATCHES "^(MinSizeRel|Release|RelWithDebInfo)$")
+        add_executable(${PROJECT_NAME} WIN32 ${SOURCES} ${HEADERS} ${DEPENDENCIES})
+    else()
+        add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS} ${DEPENDENCIES})
+    endif()
 else()
     add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS} ${DEPENDENCIES})
 endif()
@@ -719,6 +739,8 @@ set(IMAGER_QML_FILES
     qmlcomponents/ImCloseButton.qml
     qmlcomponents/ImPopup.qml
     qmlcomponents/ImRadioButton.qml
+    qmlcomponents/IpTextField.qml
+    qmlcomponents/OctetTextField.qml
     MainPopupBase.qml
     HwPopup.qml
     OSPopup.qml
@@ -736,12 +758,12 @@ set(IMAGER_QML_CPP_TYPES
 )
 
 qt_add_qml_module(${PROJECT_NAME}
-    URI RpiImager
+    URI UnraidImager
     VERSION 1.0
     QML_FILES ${IMAGER_QML_FILES}
     SOURCES ${IMAGER_QML_CPP_TYPES}
     NO_CACHEGEN
-    OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/RpiImager
+    OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/UnraidImager
     DEPENDENCIES QtQuick
     NO_PLUGIN
 )
@@ -749,7 +771,19 @@ qt_add_qml_module(${PROJECT_NAME}
 # Because dependencies are typically not available by default on Windows, build bundled code
 if (WIN32)
     # Target Windows 10, in line with Qt requirements
-    add_definitions(-DWINVER=0x0A00 -D_WIN32_WINNT=0x0A00 -DNTDDI_VERION=0x0A000000)
+    add_definitions(-DWINVER=0x0A00 -D_WIN32_WINNT=0x0A00 -DNTDDI_VERSION=0x0A000000)
+    
+    # See driveformatthread.cpp. Windows fallback requires fat32format.exe
+    # fat32format is built locally from src/dependencies/fat32format.
+    # fat32format relies on the std C/C++ libraries that are built by the main app. It dynamically links to them.
+    # copied fat32format.exe to the /deploy (directory that the installer uses) so it can be used by the app during runtime.
+    add_definitions(-DHAVE_FAT32FORMAT_FALLBACK)
+    add_subdirectory(dependencies/fat32format)
+    add_dependencies(${PROJECT_NAME} fat32format)
+    add_custom_command(TARGET ${PROJECT_NAME}
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy "$<TARGET_FILE:fat32format>" "${CMAKE_BINARY_DIR}/deploy")
+
 
     # Strip debug symbols
     add_custom_command(TARGET ${PROJECT_NAME}
@@ -805,18 +839,24 @@ if (WIN32)
     endif(IMAGER_SIGNED_APP)
 
     # Windeploy
-    find_program(WINDEPLOYQT "windeployqt.exe" PATHS "${Qt6_ROOT}/bin")
-    if (NOT WINDEPLOYQT)
-        message(FATAL_ERROR "Unable to locate windeployqt.exe")
-    endif()
+    # find_program(WINDEPLOYQT "windeployqt.exe" PATHS "${Qt6_ROOT}/bin")
+    # if (NOT WINDEPLOYQT)
+    #     message(FATAL_ERROR "Unable to locate windeployqt.exe")
+    # endif()
 
+    # Mxedeploy for cross-compiling with MXE
+    find_program(MXEDEPLOYQT "mxedeployqt")
+    if (NOT MXEDEPLOYQT)
+        message(FATAL_ERROR "Unable to locate mxedeployqt")
+    endif()
+	
     file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/deploy")
 
     add_custom_command(TARGET ${PROJECT_NAME}
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy
             "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.exe"
-            "${CMAKE_SOURCE_DIR}/../license.txt" "${CMAKE_SOURCE_DIR}/windows/rpi-imager-cli.cmd"
+            "${CMAKE_SOURCE_DIR}/../license.txt" "${CMAKE_SOURCE_DIR}/windows/unraid-usb-creator-cli.cmd"
             "${CMAKE_BINARY_DIR}/deploy")
 
     # Inno Setup configuration
@@ -828,8 +868,8 @@ if (WIN32)
         
         # Configure the Inno Setup script
         configure_file(
-            "${CMAKE_CURRENT_SOURCE_DIR}/windows/rpi-imager.iss.in"
-            "${CMAKE_CURRENT_BINARY_DIR}/rpi-imager.iss"
+            "${CMAKE_CURRENT_SOURCE_DIR}/windows/unraid-usb-creator.iss.in"
+            "${CMAKE_CURRENT_BINARY_DIR}/unraid-usb-creator.iss"
             @ONLY)
             
         # Find Inno Setup compiler
@@ -841,13 +881,13 @@ if (WIN32)
         if(INNO_COMPILER)
             if(IMAGER_SIGNED_APP)
                 add_custom_target(inno_installer
-                    COMMAND "${INNO_COMPILER}" "${CMAKE_CURRENT_BINARY_DIR}/rpi-imager.iss" "/DSIGNING_ENABLED" "/Ssign=${SIGNTOOL} sign /tr http://timestamp.digicert.com /td sha256 /fd sha256 /a $p"
+                    COMMAND "${INNO_COMPILER}" "${CMAKE_CURRENT_BINARY_DIR}/unraid-usb-creator.iss" "/DSIGNING_ENABLED" "/Ssign=${SIGNTOOL} sign /tr http://timestamp.digicert.com /td sha256 /fd sha256 /a $p"
                     DEPENDS ${PROJECT_NAME}
                     COMMENT "Building Inno Setup installer"
                     VERBATIM)
             else()
                 add_custom_target(inno_installer
-                    COMMAND "${INNO_COMPILER}" "${CMAKE_CURRENT_BINARY_DIR}/rpi-imager.iss"
+                    COMMAND "${INNO_COMPILER}" "${CMAKE_CURRENT_BINARY_DIR}/unraid-usb-creator.iss"
                     DEPENDS ${PROJECT_NAME}
                     COMMENT "Building Inno Setup installer"
                     VERBATIM)
@@ -859,10 +899,25 @@ if (WIN32)
     else()
         # NSIS Installer (legacy option)
         configure_file(
-            "${CMAKE_CURRENT_SOURCE_DIR}/windows/rpi-imager.nsi.in"
-            "${CMAKE_CURRENT_BINARY_DIR}/rpi-imager.nsi"
+            "${CMAKE_CURRENT_SOURCE_DIR}/windows/unraid-usb-creator.nsi.in"
+            "${CMAKE_CURRENT_BINARY_DIR}/unraid-usb-creator.nsi"
             @ONLY)
     endif()
+
+
+
+# Auto-detect MXE triplet root when cross-compiling
+if (NOT MINGW64_ROOT)
+    # e.g. i686-w64-mingw32.shared or x86_64-w64-mingw32.shared
+    execute_process(
+        COMMAND "${CMAKE_C_COMPILER}" -dumpmachine
+        OUTPUT_VARIABLE MXE_TRIPLET
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    if (MXE_TRIPLET)
+        set(MINGW64_ROOT "/opt/mxe/usr/${MXE_TRIPLET}" CACHE PATH "" FORCE)
+    endif()
+endif()
 
     add_custom_command(TARGET ${PROJECT_NAME}
         POST_BUILD
@@ -872,17 +927,64 @@ if (WIN32)
             "${MINGW64_ROOT}/bin/libwinpthread-1.dll"
             "${CMAKE_BINARY_DIR}/deploy")
 
+    # add_custom_command(TARGET ${PROJECT_NAME}
+    #     POST_BUILD
+    #     COMMAND "${WINDEPLOYQT}" --no-translations --qmldir "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_BINARY_DIR}/deploy/unraid-usb-creator.exe")
+
+    add_custom_command(TARGET ${PROJECT_NAME}
+    POST_BUILD
+    COMMAND "${MXEDEPLOYQT}" "${CMAKE_BINARY_DIR}/deploy/" --qmlrootpath "${CMAKE_CURRENT_SOURCE_DIR}"  --mxetarget "x86_64-w64-mingw32.shared")
+
+
+    # Generate a small script to move plugin folders up one level
+    file(WRITE "${CMAKE_BINARY_DIR}/flatten_plugins.cmake" "
+    # Robust flattener: move each subdir of plugins/ up one level, then remove plugins/ if empty
+    set(_deploy \"${CMAKE_BINARY_DIR}/deploy\")
+    set(_plugins \"${CMAKE_BINARY_DIR}/deploy/plugins\")
+
+    if(NOT EXISTS \"\${_plugins}\")
+    message(STATUS \"No plugins directory to flatten: \${_plugins}\")
+    return()
+    endif()
+
+    # Enumerate *actual* subdirectories instead of hardcoding names
+    file(GLOB _subdirs LIST_DIRECTORIES true \"\${_plugins}/*\")
+
+    foreach(p IN LISTS _subdirs)
+    if(IS_DIRECTORY \"\${p}\")
+        get_filename_component(name \"\${p}\" NAME)
+        set(dst \"\${_deploy}/\${name}\")
+        if(EXISTS \"\${dst}\")
+        file(REMOVE_RECURSE \"\${dst}\")
+        endif()
+        file(RENAME \"\${p}\" \"\${dst}\")
+    endif()
+    endforeach()
+
+    # If plugins/ is empty (or contains only files), nuke it
+    file(GLOB _leftovers \"\${_plugins}/*\")
+    if(NOT _leftovers)
+    file(REMOVE_RECURSE \"\${_plugins}\")
+    endif()
+    ")
+
+
+    # Flatten plugin layout by moving folders (no duplicates)
     add_custom_command(TARGET ${PROJECT_NAME}
         POST_BUILD
-        COMMAND "${WINDEPLOYQT}" --no-translations --qmldir "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_BINARY_DIR}/deploy/rpi-imager.exe")
+        COMMAND "${CMAKE_COMMAND}" -E echo "Flattening plugin layout for NSIS"
+        COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_BINARY_DIR}/flatten_plugins.cmake"
+        VERBATIM
+    )
 
-    # Remove excess files
+    # Remove excess files after flattening (targets now at root-level)
     add_custom_command(TARGET ${PROJECT_NAME}
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E remove
             "${CMAKE_BINARY_DIR}/deploy/imageformats/qtiff.dll"
             "${CMAKE_BINARY_DIR}/deploy/imageformats/qwebp.dll"
             "${CMAKE_BINARY_DIR}/deploy/imageformats/qgif.dll")
+
 
 elseif(APPLE)
     find_library(Cocoa Cocoa)
@@ -894,18 +996,18 @@ elseif(APPLE)
     set(EXTRALIBS ${EXTRALIBS} ${CoreFoundation} ${DiskArbitration} ${Security} ${Cocoa} ${IOKit} ${SystemConfiguration} iconv)
     
     # Set application name with proper spacing
-    set(APP_NAME "Raspberry Pi Imager")
+    set(APP_NAME "Unraid Usb Creator")
     
     # Set all required bundle properties
     set(MACOSX_BUNDLE_BUNDLE_NAME "${APP_NAME}")
     set(MACOSX_BUNDLE_EXECUTABLE_NAME "${PROJECT_NAME}")
-    set(MACOSX_BUNDLE_GUI_IDENTIFIER "org.raspberrypi.imagingutility")
+    set(MACOSX_BUNDLE_GUI_IDENTIFIER "com.limetech.unraid-usb-creator")
     set(MACOSX_BUNDLE_BUNDLE_VERSION "${IMAGER_VERSION_STR}")
     set(MACOSX_BUNDLE_SHORT_VERSION_STRING "${IMAGER_VERSION_STR}")
     set(MACOSX_BUNDLE_LONG_VERSION_STRING "${IMAGER_VERSION_STR}")
-    set(MACOSX_BUNDLE_ICON_FILE "rpi-imager.icns")
+    set(MACOSX_BUNDLE_ICON_FILE "unraid.icns")
     string(TIMESTAMP CURRENT_YEAR "%Y")
-    set(MACOSX_BUNDLE_COPYRIGHT "Copyright © 2020-${CURRENT_YEAR} Raspberry Pi Ltd")
+    set(MACOSX_BUNDLE_COPYRIGHT "Copyright © 2020-${CURRENT_YEAR} Lime Technology, Inc.")
     
     # Simple macos bundle with minimal Info.plist configuration
     set_target_properties(${PROJECT_NAME} PROPERTIES 
@@ -953,12 +1055,21 @@ elseif(APPLE)
         message(FATAL_ERROR "Unable to locate macdeployqt")
     endif()
 
-    # Deploy Qt dependencies as part of the main build
     add_custom_command(TARGET ${PROJECT_NAME}
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E echo "Deploying Qt dependencies..."
-        COMMAND "${MACDEPLOYQT}" "${APP_BUNDLE_PATH}" -qmldir="${CMAKE_CURRENT_SOURCE_DIR}" -always-overwrite
+
+        # -appstore-compliant doesn't do anything for some reason (and docs say -feature-appstore-compliant which isn't an option anymore)
+        COMMAND "${MACDEPLOYQT}" "${APP_BUNDLE_PATH}" -qmldir="${CMAKE_CURRENT_SOURCE_DIR}" -always-overwrite 
         COMMENT "Deploying Qt dependencies"
+    )
+
+    add_custom_command(TARGET ${PROJECT_NAME}
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E echo "Removing Qt SQL drivers (sqldrivers) from app bundle..."
+        COMMAND ${CMAKE_COMMAND} -E remove_directory "${APP_BUNDLE_PATH}/Contents/PlugIns/sqldrivers"
+        COMMENT "Pruning disallowed/unused Qt Plugins for App Store compliance"
+        VERBATIM
     )
 
     # Create explicit DMG target (similar to inno_installer on Windows)
@@ -1021,9 +1132,20 @@ else()
     endif()
 
     install(TARGETS ${PROJECT_NAME} DESTINATION bin)
-    install(FILES "${CMAKE_CURRENT_LIST_DIR}/../debian/rpi-imager.png" DESTINATION share/icons/hicolor/128x128/apps)
-    install(FILES "${CMAKE_CURRENT_LIST_DIR}/../debian/org.raspberrypi.rpi-imager.desktop" DESTINATION share/applications)
-    install(FILES "${CMAKE_CURRENT_LIST_DIR}/../debian/org.raspberrypi.rpi-imager.metainfo.xml" DESTINATION share/metainfo)
+    install(FILES icons/unraid128.png DESTINATION share/icons/hicolor/128x128/apps RENAME unraid.png)
+    install(FILES icons/unraid256.png DESTINATION share/icons/hicolor/256x256/apps RENAME unraid.png)
+    install(FILES icons/unraid512.png DESTINATION share/icons/hicolor/512x512/apps RENAME unraid.png)
+    install(FILES icons/unraid.svg DESTINATION share/icons/hicolor/scalable/apps RENAME unraid.svg)
+    install(FILES icons/unraid256.png DESTINATION . RENAME .DirIcon)
+
+    install(FILES "${CMAKE_CURRENT_LIST_DIR}/../debian/com.limetech.unraid-usb-creator.desktop" DESTINATION share/applications)
+    install(FILES "${CMAKE_CURRENT_LIST_DIR}/../debian/com.limetech.unraid-usb-creator.metainfo.xml" DESTINATION share/metainfo)
+
+
+
+
+
+
 endif()
 
 add_dependencies(${PROJECT_NAME} ZLIB::ZLIB)

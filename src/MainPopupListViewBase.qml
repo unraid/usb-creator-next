@@ -6,7 +6,7 @@
 import QtQuick
 import QtQuick.Controls
 
-import RpiImager
+import UnraidImager
 
 ListView {
     id: root

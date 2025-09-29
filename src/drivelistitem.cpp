@@ -5,10 +5,9 @@
 
 #include "drivelistitem.h"
 
-DriveListItem::DriveListItem(QString device, QString description, quint64 size, bool isUsb, bool isScsi, bool readOnly, bool isSystem, QStringList mountpoints, QObject *parent)
-    : QObject(parent), _device(device), _description(description), _mountpoints(mountpoints), _size(size), _isUsb(isUsb), _isScsi(isScsi), _isReadOnly(readOnly), _isSystem(isSystem)
+DriveListItem::DriveListItem(QString device, QString description, quint64 size, QString guid, bool guidValid, bool isUsb, bool isScsi, bool readOnly, bool isSystem, QStringList mountpoints, QObject *parent)
+    : QObject(parent), _device(device), _description(description), _mountpoints(mountpoints), _size(size), _guid(guid), _guidValid(guidValid), _isUsb(isUsb), _isScsi(isScsi), _isReadOnly(readOnly), _isSystem(isSystem)
 {
-
 }
 
 int DriveListItem::sizeInGb()

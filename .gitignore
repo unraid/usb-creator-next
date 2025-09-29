@@ -1,3 +1,4 @@
+build/**
 /build**
 src/build/*
 src/build/**
@@ -8,11 +9,13 @@ obj-**
 # IDE Configurations
 .vscode
 .zed
+.qtcreator**
+.vs
 
 # Debian packaging
-debian/rpi-imager/**
-debian/rpi-imager-amd64/**
-debian/rpi-imager-embedded/**
+debian/unraid-usb-creator/**
+debian/unraid-usb-creator-amd64/**
+debian/unraid-usb-creator-embedded/**
 debian/.debhelper**
 debian/*.debhelper**
 debian/files
@@ -25,12 +28,17 @@ debian/tmp
 *.DS_Store
 # editor backups
 *.*swp*
+Releases 
+*.dmg
 
 # AppImage related
 *.AppImage*
 *.appimagecraft*
 AppDir-*
 appimage-*
+.artifacts/
+tools-dir/
+
 
 # Qt related
 qt-build
@@ -38,3 +46,4 @@ qt-src
 build
 build-aarch64
 build-x86_64
+

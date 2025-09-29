@@ -41,7 +41,7 @@ DownloadStatsTelemetry::DownloadStatsTelemetry(const QByteArray &url, const QByt
     }
 #endif
 
-    _useragent = "Mozilla/5.0 rpi-imager/" IMAGER_VERSION_STR;
+    _useragent = "Mozilla/5.0 unraid-usb-creator/" IMAGER_VERSION_STR;
 }
 
 void DownloadStatsTelemetry::run()

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<component type="desktop-application">
+  <id>com.limetech.unraid-usb-creator</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>Apache-2.0</project_license>
+  <name>Unraid USB Creator</name>
+  <summary>Unraid imaging utility</summary>
+  <description>
+    <p>
+      Unraid USB Creator downloads a .JSON file from the Unraid
+      website with a list of all current download options, ensuring you are
+      always installing the most up-to-date version.
+    </p>
+    <p>
+      Once you’ve selected an operating system from the available options,
+      the utility reads the relevant file directly from the Unraid
+      website and writes it straight to the USB. This speeds up the
+      process quite considerably compared to the standard process of reading
+      it from the website, writing it to a file on your hard drive, and then,
+      as a separate step, reading it back from the hard drive and writing it
+      to the USB.
+    </p>
+    <p>
+      During this process, Unraid USB Creator also caches the downloaded
+      operating system image – that is to say, it saves a local copy on your
+      computer, so you can program additional USBs without having to
+      download the file again.
+    </p>
+  </description>
+  <launchable type="desktop-id">com.limetech.unraid-usb-creator.desktop</launchable>
+  <screenshots>
+    <screenshot type="default">
+      <image>http://downloads.raspberrypi.org/imager/IMAGING-UTILITY-MAIN.png</image>
+      <caption>Main window</caption>
+    </screenshot>
+    <screenshot>
+      <image>http://downloads.raspberrypi.org/imager/IMAGING-UTILITY-OS.png</image>
+      <caption>Choose OS</caption>
+    </screenshot>
+    <screenshot>
+      <image>http://downloads.raspberrypi.org/imager/IMAGING-UTILITY-SD.png</image>
+      <caption>Choose SD</caption>
+    </screenshot>
+    <screenshot>
+      <image>http://downloads.raspberrypi.org/imager/IMAGING-UTILITY-WRITE.png</image>
+      <caption>Write in progress</caption>
+    </screenshot>
+    <screenshot>
+      <image>http://downloads.raspberrypi.org/imager/IMAGING-UTILITY-DONE.png</image>
+      <caption>Write done</caption>
+    </screenshot>
+  </screenshots>
+  <url type="homepage">https://github.com/unraid/usb-creator-next</url>
+  <provides>
+    <binary>unraid-imager</binary>
+  </provides>
+  <releases>
+    <release version="1.1.0" />
+  </releases>
+  <content_rating type="oars-1.1">
+    <content_attribute id="social-info">moderate</content_attribute>
+  </content_rating>
+</component>

@@ -223,7 +223,7 @@ fi
 mkdir -p "$APPDIR"
 mkdir -p "$BUILD_DIR"
 
-echo "Building rpi-imager for embedded $ARCH..."
+echo "Building unraid-usb-creator for embedded $ARCH..."
 # Configure and build with CMake
 cd "$BUILD_DIR"
 
@@ -252,13 +252,13 @@ make DESTDIR="$APPDIR" install
 cd ..
 
 # Copy the desktop file from debian directory and modify for embedded use
-if [ ! -f "$APPDIR/usr/share/applications/org.raspberrypi.rpi-imager-embedded.desktop" ]; then
+if [ ! -f "$APPDIR/usr/share/applications/com.limetech.unraid-usb-creator-embedded.desktop" ]; then
     mkdir -p "$APPDIR/usr/share/applications"
-    cp "debian/org.raspberrypi.rpi-imager.desktop" "$APPDIR/usr/share/applications/org.raspberrypi.rpi-imager-embedded.desktop"
+    cp "debian/com.limetech.unraid-usb-creator.desktop "$APPDIR/usr/share/applications/com.limetech.unraid-usb-creator-embedded.desktop"
     # Update the desktop file for embedded use
-    sed -i 's|Name=.*|Name=Raspberry Pi Imager (Embedded)|' "$APPDIR/usr/share/applications/org.raspberrypi.rpi-imager-embedded.desktop"
-    sed -i 's|Comment=.*|Comment=Raspberry Pi Imager for embedded systems (EGLFS)|' "$APPDIR/usr/share/applications/org.raspberrypi.rpi-imager-embedded.desktop"
-    sed -i 's|Exec=.*|Exec=rpi-imager|' "$APPDIR/usr/share/applications/org.raspberrypi.rpi-imager-embedded.desktop"
+    sed -i 's|Name=.*|Name=Unraid Usb Creator (Embedded)|' "$APPDIR/usr/share/applications/com.limetech.unraid-usb-creator-embedded.desktop"
+    sed -i 's|Comment=.*|Comment=Unraid USB Creator for embedded systems (EGLFS)|' "$APPDIR/usr/share/applications/com.limetech.unraid-usb-creator-embedded.desktop"
+    sed -i 's|Exec=.*|Exec=unraid-usb-creator|' "$APPDIR/usr/share/applications/com.limetech.unraid-usb-creator-embedded.desktop"
 fi
 
 # Create the AppRun file optimized for EGLFS
@@ -299,7 +299,7 @@ if [ -c /dev/dri/card0 ]; then
     export QT_QPA_EGLFS_KMS_DEVICE=/dev/dri/card0
 fi
 
-exec "${HERE}/usr/bin/rpi-imager" "$@"
+exec "${HERE}/usr/bin/unraid-usb-creator" "$@"
 EOF
 chmod +x "$APPDIR/AppRun"
 
@@ -374,7 +374,7 @@ find "$APPDIR" -type f -executable -exec strip {} \; 2>/dev/null || true
 
 echo "Creating embedded AppImage..."
 # Remove old AppImage symlink
-rm -f "$PWD/rpi-imager-embedded.AppImage"
+rm -f "$PWD/unraid-usb-creator-embedded.AppImage"
 
 if [ -n "$LINUXDEPLOY" ] && [ -f "$LINUXDEPLOY" ]; then
     # Create AppImage using linuxdeploy
@@ -400,7 +400,7 @@ if [ -f "$OUTPUT_FILE" ]; then
     echo "Embedded AppImage created at $OUTPUT_FILE"
     
     # Create a symlink with a simpler name
-    SYMLINK_NAME="$PWD/rpi-imager-embedded.AppImage"
+    SYMLINK_NAME="$PWD/unraid-usb-creator-embedded.AppImage"
     if [ -L "$SYMLINK_NAME" ] || [ -f "$SYMLINK_NAME" ]; then
         rm -f "$SYMLINK_NAME"
     fi

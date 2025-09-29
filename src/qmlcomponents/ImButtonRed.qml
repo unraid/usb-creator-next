@@ -5,7 +5,7 @@
 
 import QtQuick.Controls.Material 2.2
 
-import RpiImager
+import UnraidImager
 
 ImButton {
     Material.background: activeFocus ? Style.button2FocusedBackgroundColor : Style.mainBackgroundColor

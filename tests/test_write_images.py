@@ -30,7 +30,7 @@ def test_write_image_and_modify_fat(imageitem, device):
     if os.path.exists(cacheFile) and os.path.getsize(cacheFile) != imageitem["image_download_size"]:
         os.remove(cacheFile)
 
-    shell("rpi-imager --cli --quiet --enable-writing-system-drives --sha256 {} --cache-file {} --first-run-script test_firstrun.txt {} {}".format(
+    shell("unraid-usb-creator --cli --quiet --enable-writing-system-drives --sha256 {} --cache-file {} --first-run-script test_firstrun.txt {} {}".format(
         quote(imageitem["extract_sha256"]), quote(cacheFile), quote(imageitem["url"]), quote(device) ), imageitem["url"])
     time.sleep(0.5)
     shell("fsck.vfat -n "+quote(device+"p1"), imageitem["url"])

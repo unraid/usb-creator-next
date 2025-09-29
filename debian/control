@@ -1,32 +1,32 @@
-Source: rpi-imager
+Source: unraid-usb-creator
 Section: admin
 Priority: optional
 Maintainer: Tom Dewey <tom.dewey@raspberrypi.com>
 Build-Depends: debhelper (>= 13), cmake, libgnutls28-dev, dh-exec
 Standards-Version: 4.1.2
-Homepage: https://www.raspberrypi.com/software
+Homepage: https://github.com/unraid/usb-creator-next
 
-Package: rpi-imager
+Package: unraid-usb-creator
 Build-Profiles: <!amd64 !embedded>
 Architecture: arm64
 Depends: ${shlibs:Depends}, ${misc:Depends}, dosfstools, fdisk, fuse, libfuse2, util-linux (>= 2.37)
 Recommends: udisks2
-Conflicts: rpi-imager-embedded, rpi-imager-amd64
-Description: Raspberry Pi Imaging utility
+Conflicts: unraid-usb-creator-embedded, unraid-usb-creator-amd64
+Description: Unraid OS Imaging utility
  A user-friendly tool for creating bootable media for Raspberry Pi Devices.
 
-Package: rpi-imager-amd64
+Package: unraid-usb-creator-amd64
 Build-Profiles: <amd64 !embedded>
 Architecture: amd64
 Depends: ${shlibs:Depends}, ${misc:Depends}, dosfstools, fdisk, fuse, libfuse2, util-linux (>= 2.37)
 Recommends: udisks2
-Conflicts: rpi-imager-embedded, rpi-imager
-Description: Raspberry Pi Imaging utility (x86_64)
+Conflicts: unraid-usb-creator-embedded, unraid-usb-creator
+Description: Unraid OS Imaging utility (x86_64)
  A user-friendly tool for creating bootable media for Raspberry Pi Devices.
  .
  This is the x86_64/amd64 version.
 
-Package: rpi-imager-embedded
+Package: unraid-usb-creator-embedded
 Build-Profiles: <embedded>
 Architecture: arm64
 Depends: ${shlibs:Depends}, ${misc:Depends}, 
@@ -35,8 +35,8 @@ Depends: ${shlibs:Depends}, ${misc:Depends},
          libinput10, libudev1, libraspberrypi0 | mesa-utils
 Recommends: udisks2, gpu-mem-256 | raspi-config
 Suggests: rpi-eeprom, firmware-brcm80211
-Conflicts: rpi-imager, rpi-imager-amd64
-Description: Raspberry Pi Imaging utility for embedded systems
+Conflicts: unraid-usb-creator, unraid-usb-creator-amd64
+Description: Unraid OS Imaging utility for embedded systems
  A user-friendly tool for creating bootable media for Raspberry Pi devices,
  optimized for embedded systems.
  .

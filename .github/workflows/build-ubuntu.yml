@@ -1,0 +1,105 @@
+name: Build Ubuntu .deb
+
+on:
+  push:
+    branches: ["main", "v1.9.6-rebase"]
+  pull_request:
+    branches: ["main", "v1.9.6-rebase"]
+
+env:
+  # Build type is set in the create-appimage.sh script, not here.
+  DEBIAN_FRONTEND: noninteractive
+  QT_VERSION: "6.9.1"
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install dependencies
+
+        run: |
+          sudo apt-get update
+
+
+          # Related docs for building QT apps on linux:
+          # https://doc.qt.io/qt-6/linux.html
+          # https://doc.qt.io/qt-6/linux-requirements.html
+
+          sudo apt-get install -y \
+            build-essential libgl1-mesa-dev \
+            libfontconfig1-dev \
+            libfreetype-dev \
+            libgtk-3-dev \
+            libx11-dev \
+            libx11-xcb-dev \
+            libxcb-cursor-dev \
+            libxcb-glx0-dev \
+            libxcb-icccm4-dev \
+            libxcb-image0-dev \
+            libxcb-keysyms1-dev \
+            libxcb-randr0-dev \
+            libxcb-render-util0-dev \
+            libxcb-shape0-dev \
+            libxcb-shm0-dev \
+            libxcb-sync-dev \
+            libxcb-util-dev \
+            libxcb-xfixes0-dev \
+            libxcb-xkb-dev \
+            libxcb1-dev \
+            libxext-dev \
+            libxfixes-dev \
+            libxi-dev \
+            libxkbcommon-dev \
+            libxkbcommon-x11-dev \
+            libxrender-dev
+
+          # Additional dependencies for building our app
+          sudo apt install -y cmake libgnutls28-dev
+
+          # install aqtinstall
+          sudo apt install -y python3-dev python3-pip python3-venv
+          python3 -m pip index versions aqtinstall
+          python3 -m pip install --user "aqtinstall>=3.2.2"
+
+          # Make aqt and QT binaries available for rest of the workflow steps
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          echo "$HOME/Qt/${{ env.QT_VERSION }}/gcc_64/bin" >> "$GITHUB_PATH"
+
+          # this is just for debugging/logging purposes
+          sudo apt install -y tree 
+          aqt list-qt linux desktop
+          aqt list-qt linux desktop --arch 6.9.1
+          aqt list-qt linux desktop --archives 6.9.1 linux_gcc_64
+
+          aqt install-qt linux desktop 6.9.1 linux_gcc_64 --outputdir "$HOME/Qt" --archives qtbase qtdeclarative qtsvg qttools icu
+
+      - name: Build using script
+        run: |
+          sed -i 's/\r$//' create-appimage.sh
+          chmod +x ./create-appimage.sh
+          ./create-appimage.sh --qt-root="$HOME/Qt/${{ env.QT_VERSION }}/gcc_64"
+
+      - name: Prepare artifact
+        run: |
+          mkdir -p Releases
+          APPIMG=$(ls Unraid_Usb_Creator-*-x86_64.AppImage)
+          mv "$APPIMG" "Releases/Unraid USB Creator.AppImage"
+          chmod +x "Releases/Unraid USB Creator.AppImage"
+
+      - name: Upload AppImage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Linux AppImage
+          path: "Releases/Unraid USB Creator.AppImage"
+          if-no-files-found: error
+
+      - name: Upload create-appimage.sh build log
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log-${{ github.run_id }}
+          path: build.log
+          if-no-files-found: warn

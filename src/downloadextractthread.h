@@ -7,66 +7,84 @@
  */
 
 #include "downloadthread.h"
-#include <deque>
-#include <condition_variable>
 #include <QFuture>
+#include <condition_variable>
+#include <deque>
 
 class _extractThreadClass;
 
-class DownloadExtractThread : public DownloadThread
-{
-    Q_OBJECT
+class DownloadExtractThread : public DownloadThread {
+  Q_OBJECT
 public:
-    /*
-     * Constructor
-     *
-     * - url: URL to download
-     * - localfolder: Folder to extract archive to
-     */
-    explicit DownloadExtractThread(const QByteArray &url, const QByteArray &localfilename = "", const QByteArray &expectedHash = "", QObject *parent = nullptr);
+  /*
+   * Constructor
+   *
+   * - url: URL to download
+   * - localfolder: Folder to extract archive to
+   */
+  explicit DownloadExtractThread(const QByteArray &url,
+                                 const QByteArray &localfilename = "",
+                                 const QByteArray &expectedHash = "",
+                                 QObject *parent = nullptr);
 
-    virtual ~DownloadExtractThread();
-    virtual void cancelDownload();
-    virtual void extractImageRun();
-    virtual void extractMultiFileRun();
-    virtual bool isImage();
-    virtual void enableMultipleFileExtraction();
+  virtual ~DownloadExtractThread();
+  virtual void cancelDownload();
+  virtual void extractImageRun();
+  virtual void extractMultiFileRun();
+  virtual bool isImage();
+  virtual void enableMultipleFileExtraction();
 
 signals:
-    void downloadProgressChanged(quint64 now, quint64 total);
-    void verifyProgressChanged(quint64 now, quint64 total);
+  void downloadProgressChanged(quint64 now, quint64 total);
+  void verifyProgressChanged(quint64 now, quint64 total);
 
 protected:
-    char *_abuf[2];
-    size_t _abufsize;
-    _extractThreadClass *_extractThread;
-    std::deque<QByteArray> _queue;
-    static const int MAX_QUEUE_SIZE;
-    std::mutex _queueMutex;
-    std::condition_variable _cv;
-    bool _ethreadStarted, _isImage;
-    AcceleratedCryptographicHash _inputHash;
-    int _activeBuf;
-    bool _writeThreadStarted;
-    QFuture<size_t> _writeFuture;
-    bool _progressStarted;
-    qint64 _lastProgressTime;
-    quint64 _lastEmittedDlNow, _lastLocalVerifyNow;
+  char *_abuf[2];
+  size_t _abufsize;
+  _extractThreadClass *_extractThread;
+  std::deque<QByteArray> _queue;
+  static const int MAX_QUEUE_SIZE;
+  std::mutex _queueMutex;
+  std::condition_variable _cv;
+  bool _ethreadStarted, _isImage;
+  AcceleratedCryptographicHash _inputHash;
+  int _activeBuf;
+  bool _writeThreadStarted;
+  QFuture<size_t> _writeFuture;
+  bool _progressStarted;
+  qint64 _lastProgressTime;
+  quint64 _lastEmittedDlNow, _lastLocalVerifyNow;
 
-    QByteArray _popQueue();
-    void _pushQueue(const char *data, size_t len);
-    void _cancelExtract();
-    virtual size_t _writeData(const char *buf, size_t len);
-    virtual void _onDownloadSuccess();
-    virtual void _onDownloadError(const QString &msg);
-    void _emitProgressUpdate();
-    virtual bool _verify();
+  QByteArray _popQueue();
+  void _pushQueue(const char *data, size_t len);
+  void _cancelExtract();
+  virtual size_t _writeData(const char *buf, size_t len);
+  virtual void _onDownloadSuccess();
+  virtual void _onDownloadError(const QString &msg);
+  void _emitProgressUpdate();
+  virtual bool _verify();
 
-    virtual ssize_t _on_read(struct archive *a, const void **buff);
-    virtual int _on_close(struct archive *a);
+  virtual ssize_t _on_read(struct archive *a, const void **buff);
+  virtual int _on_close(struct archive *a);
 
-    static ssize_t _archive_read(struct archive *a, void *client_data, const void **buff);
-    static int _archive_close(struct archive *a, void *client_data);
+  static ssize_t _archive_read(struct archive *a, void *client_data,
+                               const void **buff);
+  static int _archive_close(struct archive *a, void *client_data);
+
+  virtual void _resetForFullRestart() override;
+  void _cleanupExtractedFiles();
+
+  static void _setOrAddKey(QString &text, const QString &key,
+                           const QString &value, bool quoteValue = true);
+  static QString _detectEOL(const QString &text);
+  static void _removeKey(QString &text, const QString &key);
+
+private:
+  QStringList _extractedFiles;
+  QStringList _extractedDirs;
+  QString _extractionFolder;
+  bool _needsCleanup;
+  std::atomic<bool> _restartInProgress{false};
 };
 
 #endif // DOWNLOADEXTRACTTHREAD_H

@@ -11,7 +11,7 @@ import QtQuick.Layouts 1.15
 import QtQuick.Controls.Material 2.2
 import QtQuick.Window 2.15
 
-import RpiImager
+import UnraidImager
 
 MainPopupBase {
     id: root
@@ -20,29 +20,33 @@ MainPopupBase {
 
     // Provide implementation for the base popup's navigation functions
     function getNextFocusableElement(startElement) {
-        var focusableItems = [hwlist, root.closeButton].filter(function(item) {
-            return item.visible && item.enabled
-        })
+        var focusableItems = [hwlist, root.closeButton].filter(function (item) {
+            return item.visible && item.enabled;
+        });
 
-        if (focusableItems.length === 0) return startElement;
+        if (focusableItems.length === 0)
+            return startElement;
 
-        var currentIndex = focusableItems.indexOf(startElement)
-        if (currentIndex === -1) return focusableItems[0];
+        var currentIndex = focusableItems.indexOf(startElement);
+        if (currentIndex === -1)
+            return focusableItems[0];
 
         var nextIndex = (currentIndex + 1) % focusableItems.length;
         return focusableItems[nextIndex];
     }
 
     function getPreviousFocusableElement(startElement) {
-        var focusableItems = [hwlist, root.closeButton].filter(function(item) {
-            return item.visible && item.enabled
-        })
+        var focusableItems = [hwlist, root.closeButton].filter(function (item) {
+            return item.visible && item.enabled;
+        });
 
-        if (focusableItems.length === 0) return startElement;
+        if (focusableItems.length === 0)
+            return startElement;
 
-        var currentIndex = focusableItems.indexOf(startElement)
-        if (currentIndex === -1) return focusableItems[focusableItems.length - 1];
-        
+        var currentIndex = focusableItems.indexOf(startElement);
+        if (currentIndex === -1)
+            return focusableItems[focusableItems.length - 1];
+
         var prevIndex = (currentIndex - 1 + focusableItems.length) % focusableItems.length;
         return focusableItems[prevIndex];
     }
@@ -66,17 +70,17 @@ MainPopupBase {
 
         onActiveFocusChanged: {
             if (activeFocus && currentIndex === -1 && count > 0) {
-                currentIndex = 0
+                currentIndex = 0;
             }
         }
 
         Keys.onSpacePressed: {
             if (currentIndex != -1)
-                root.selectHWitem(currentIndex)
+                root.selectHWitem(currentIndex);
         }
         Accessible.onPressAction: {
             if (currentIndex != -1)
-                root.selectHWitem(currentIndex)
+                root.selectHWitem(currentIndex);
         }
     }
 
@@ -96,7 +100,7 @@ MainPopupBase {
 
             width: root.windowWidth - 100
             height: contentLayout.implicitHeight + 24
-            Accessible.name: name+".\n"+description
+            Accessible.name: name + ".\n" + description
 
             MouseArea {
                 id: hwMouseArea
@@ -105,15 +109,15 @@ MainPopupBase {
                 hoverEnabled: true
 
                 onEntered: {
-                    bgrect.mouseOver = true
+                    bgrect.mouseOver = true;
                 }
 
                 onExited: {
-                    bgrect.mouseOver = false
+                    bgrect.mouseOver = false;
                 }
 
                 onClicked: {
-                    root.selectHWitem(delegateRoot.index)
+                    root.selectHWitem(delegateRoot.index);
                 }
             }
 
@@ -171,9 +175,9 @@ MainPopupBase {
                     }
 
                     ToolTip {
-                        visible: hwMouseArea.containsMouse && typeof(tooltip) == "string" && delegateRoot.tooltip != ""
+                        visible: hwMouseArea.containsMouse && typeof (tooltip) == "string" && delegateRoot.tooltip != ""
                         delay: 1000
-                        text: typeof(tooltip) == "string" ? delegateRoot.tooltip : ""
+                        text: typeof (tooltip) == "string" ? delegateRoot.tooltip : ""
                         clip: false
                     }
                 }
@@ -183,16 +187,16 @@ MainPopupBase {
 
     function selectHWitem(index) {
         // this calls the C++ setter, which sets the image writer device filter
-        root.deviceModel.currentIndex = index
+        root.deviceModel.currentIndex = index;
 
         /* Reload OS list since filters changed */
-        root.osModel.reload()
+        root.osModel.reload();
 
-        root.deviceSelected()
-        root.close()
+        root.deviceSelected();
+        root.close();
     }
 
     onOpened: {
-        hwlist.forceActiveFocus()
+        hwlist.forceActiveFocus();
     }
 }

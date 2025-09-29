@@ -14,7 +14,7 @@ class DriveFormatThread : public QThread
 {
     Q_OBJECT
 public:
-    DriveFormatThread(const QByteArray &device, QObject *parent = nullptr);
+    DriveFormatThread(const QByteArray &device, const QString& label, QObject *parent = nullptr);
     virtual ~DriveFormatThread();
     virtual void run();
 
@@ -26,6 +26,7 @@ protected:
     QByteArray _device;
     std::uint64_t getDeviceSize(const QByteArray &device);
     QString formatErrorToString(rpi_imager::FormatError error);
+    QString _label;
 };
 
 #endif // DRIVEFORMATTHREAD_H

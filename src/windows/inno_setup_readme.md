@@ -1,4 +1,4 @@
-# Inno Setup Installer for Raspberry Pi Imager
+# Inno Setup Installer for Unraid USB Creator
 
 This directory contains the necessary files to build a Windows installer using Inno Setup, which is a widely-used, free installer system for Windows applications.
 
@@ -52,7 +52,7 @@ Inno Setup offers several advantages over NSIS:
 
 To modify the installer:
 
-- Edit `rpi-imager.iss.in` to change settings, add files, or modify behavior
+- Edit `unraid-usb-creator.iss.in` to change settings, add files, or modify behavior
 - The script uses CMake variables like `@CMAKE_BINARY_DIR@` which are replaced during configuration
 
 ## Testing

@@ -7,7 +7,7 @@
 #include <windows.h>
 #include <winioctl.h>
 #include <wlanapi.h>
-#include <Windot11.h>
+#include <windot11.h>
 #include <delayimp.h>
 #include <QDebug>
 #include <QRegularExpression>

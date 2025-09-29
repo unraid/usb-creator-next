@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Unraid USB Creator
+Comment=Unraid USB Creator
+Icon=unraid128
+Exec=unraid-usb-creator %F
+Categories=Utility
+StartupNotify=false

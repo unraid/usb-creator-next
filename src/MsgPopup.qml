@@ -9,7 +9,7 @@ import QtQuick.Layouts 1.0
 import QtQuick.Controls.Material 2.2
 import "qmlcomponents"
 
-import RpiImager
+import UnraidImager
 
 ImPopup {
     id: root
@@ -17,37 +17,44 @@ ImPopup {
     focus: true
 
     property alias text: msgpopupbody.text
+    property alias body: msgpopupbody
     property bool continueButton: true
     property bool quitButton: false
     property bool yesButton: false
     property bool noButton: false
+    property bool installGuideButton: false
+    signal installGuide
 
-    height: msgpopupbody.implicitHeight+150
+    height: msgpopupbody.implicitHeight + 150
 
     // Provide implementation for the base popup's navigation functions
-    getNextFocusableElement: function(startElement) {
-        var focusableItems = [noButton, yesButton, continueButton, quitButton, root.closeButton].filter(function(item) {
-            return item.visible && item.enabled
-        })
+    getNextFocusableElement: function (startElement) {
+        var focusableItems = [noButton, yesButton, continueButton, quitButton, root.closeButton].filter(function (item) {
+            return item.visible && item.enabled;
+        });
 
-        if (focusableItems.length === 0) return startElement;
+        if (focusableItems.length === 0)
+            return startElement;
 
-        var currentIndex = focusableItems.indexOf(startElement)
-        if (currentIndex === -1) return focusableItems[0];
+        var currentIndex = focusableItems.indexOf(startElement);
+        if (currentIndex === -1)
+            return focusableItems[0];
 
         var nextIndex = (currentIndex + 1) % focusableItems.length;
         return focusableItems[nextIndex];
     }
 
-    getPreviousFocusableElement: function(startElement) {
-        var focusableItems = [noButton, yesButton, continueButton, quitButton, root.closeButton].filter(function(item) {
-            return item.visible && item.enabled
-        })
+    getPreviousFocusableElement: function (startElement) {
+        var focusableItems = [noButton, yesButton, continueButton, quitButton, root.closeButton].filter(function (item) {
+            return item.visible && item.enabled;
+        });
 
-        if (focusableItems.length === 0) return startElement;
+        if (focusableItems.length === 0)
+            return startElement;
 
-        var currentIndex = focusableItems.indexOf(startElement)
-        if (currentIndex === -1) return focusableItems[0];
+        var currentIndex = focusableItems.indexOf(startElement);
+        if (currentIndex === -1)
+            return focusableItems[0];
 
         var prevIndex = (currentIndex - 1 + focusableItems.length) % focusableItems.length;
         return focusableItems[prevIndex];
@@ -61,6 +68,7 @@ ImPopup {
         wrapMode: Text.Wrap
         textFormat: Text.StyledText
         font.family: Style.fontFamily
+        color: Style.unraidTextColor
         Layout.fillHeight: true
         Layout.fillWidth: true
         Layout.leftMargin: 10
@@ -73,17 +81,17 @@ ImPopup {
     }
 
     RowLayout {
+        id: buttons
         Layout.alignment: Qt.AlignCenter | Qt.AlignBottom
         Layout.bottomMargin: 10
         spacing: 20
-        id: buttons
 
         ImButtonRed {
             id: noButton
             text: qsTr("NO")
             onClicked: {
-                root.close()
-                root.no()
+                root.close();
+                root.no();
             }
             visible: root.noButton
         }
@@ -92,8 +100,8 @@ ImPopup {
             id: yesButton
             text: qsTr("YES")
             onClicked: {
-                root.close()
-                root.yes()
+                root.close();
+                root.yes();
             }
             visible: root.yesButton
         }
@@ -102,7 +110,7 @@ ImPopup {
             id: continueButton
             text: qsTr("CONTINUE")
             onClicked: {
-                root.close()
+                root.close();
             }
             visible: root.continueButton
         }
@@ -111,17 +119,29 @@ ImPopup {
             id: quitButton
             text: qsTr("QUIT")
             onClicked: {
-                Qt.quit()
+                Qt.quit();
             }
             font.family: Style.fontFamily
             visible: root.quitButton
         }
-    }
 
+        ImButton {
+            text: qsTr("QUICK INSTALL GUIDE")
+            onClicked: {
+                root.installGuide();
+            }
+            font.family: Style.fontFamily
+            visible: root.installGuideButton
+        }
+
+        Text {
+            text: " "
+        }
+    }
 
     onOpened: {
         // The popup will get focus by default.
         // First tab press will move focus to the first interactive element.
-        root.contentItem.forceActiveFocus()
+        root.contentItem.forceActiveFocus();
     }
 }

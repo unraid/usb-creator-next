@@ -92,7 +92,7 @@ void UDisks2Api::_unmountDrive(const QString &driveDbusPath)
     }
 }
 
-bool UDisks2Api::formatDrive(const QString &device, bool mountAfterwards)
+bool UDisks2Api::formatDrive(const QString &device, bool mountAfterwards, const QString &label)
 {
     QString devpath = _resolveDevice(device);
     if (devpath.isEmpty())
@@ -141,6 +141,10 @@ bool UDisks2Api::formatDrive(const QString &device, bool mountAfterwards)
     QDBusInterface newblockdevice("org.freedesktop.UDisks2", newpartition.value().path(),
                                   "org.freedesktop.UDisks2.Block", QDBusConnection::systemBus());
     newblockdevice.setTimeout(300 * 1000);
+
+    if (!label.isEmpty()) {
+        formatOptions.insert("label", label);
+    }
     QDBusReply<void> fatformatreply = newblockdevice.call("Format", "vfat", formatOptions);
     if (!fatformatreply.isValid())
     {

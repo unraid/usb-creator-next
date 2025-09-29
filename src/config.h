@@ -8,13 +8,13 @@
 
 
 /* Repository URL */
-#define OSLIST_URL                        "https://downloads.raspberrypi.org/os_list_imagingutility_v4.json"
+#define OSLIST_URL                        "https://releases.unraid.net/usb-creator"
 
 /* Time synchronization URL (only used on eglfs QPA platform, URL must be HTTP) */
 #define TIME_URL                          "http://downloads.raspberrypi.org/os_list_imagingutility_v4.json?time_synchronization"
 
 /* Phone home the name of images downloaded for image popularity ranking */
-#define TELEMETRY_URL                     "https://rpi-imager-stats.raspberrypi.com/downloads"
+#define TELEMETRY_URL                     ""
 
 /* Hash algorithm for verifying (uncompressed image) checksum */
 #define OSLIST_HASH_ALGORITHM             QCryptographicHash::Sha256
@@ -30,5 +30,7 @@
 
 /* Do not cache if it would bring free disk space under 5 GB */
 #define IMAGEWRITER_MINIMAL_SPACE_FOR_CACHING   5*1024*1024*1024ll
+
+#define UNRAID_GUID_URL "https://keys.lime-technology.com/validate/guid"
 
 #endif // CONFIG_H

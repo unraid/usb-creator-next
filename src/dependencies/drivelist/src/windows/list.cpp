@@ -19,7 +19,8 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 
-#define _WIN32_WINNT   0x0601
+// this was already defined in the CMakeLists.txt file. Commenting out to avoid duplicate definition errors.
+// #define _WIN32_WINNT   0x0601
 
 #include <windows.h>
 #include <winioctl.h>
@@ -36,6 +37,8 @@
 #include <set>
 #include "../drivelist.hpp"
 #include "list.hpp"
+
+#include <regex>
 
 #include <devpkey.h>
 
@@ -613,6 +616,85 @@ bool GetDetailData(DeviceDescriptor* device,
   return result;
 }
 
+// BEGIN: FUNCTION ADDED FOR UNRAID USB CREATOR
+bool GetDeviceVidPidSerialNumber(HDEVINFO hDeviceInfo, PSP_DEVINFO_DATA deviceInfoData, DeviceDescriptor* deviceDescriptor) {
+    WCHAR wbuffer[MAX_PATH];
+    ZeroMemory(&wbuffer, sizeof(wbuffer));
+
+    // we can get the serial number from an HDEVINFO opened with GUID_DEVICE_INTERFACE_DISK,
+    // but not VID or PID - so, extract SN first, then loop through devices with GUID_DEVICE_INTERFACE_USB_DEVICE
+    // to correlate all three
+
+    DWORD requiredChars = 0;
+    BOOL hasDeviceInstanceId = SetupDiGetDeviceInstanceIdW(hDeviceInfo, deviceInfoData, wbuffer, MAX_PATH, &requiredChars);
+    std::string deviceId = hasDeviceInstanceId ? WCharToUtf8String(wbuffer) : std::string("");
+
+
+    
+    if(deviceId.empty()) {
+        return false;
+    }
+
+    ZeroMemory(&wbuffer, sizeof(wbuffer));
+
+    HDEVINFO hInfo = NULL;
+    hInfo = SetupDiGetClassDevs(&GUID_DEVICE_INTERFACE_USB_DEVICE, NULL, NULL, DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
+    if (hInfo == INVALID_HANDLE_VALUE) {
+        return false;
+    }
+    SP_DEVINFO_DATA DeviceInfoData;
+    DeviceInfoData.cbSize = sizeof(SP_DEVINFO_DATA);
+    std::string VID{""}, PID{""}, SN{""};
+    size_t matchCount{0};
+    for (DWORD i=0; SetupDiEnumDeviceInfo(hInfo, i, &DeviceInfoData); i++)
+    {
+        DWORD nSize = 0;
+
+        if (!SetupDiGetDeviceInstanceIdW(hInfo, &DeviceInfoData, wbuffer, MAX_PATH, &nSize)) {
+            continue;
+        }
+
+        std::string deviceId_usb{WCharToUtf8String(wbuffer)};
+        std::smatch vid_pid_sn_match;
+        std::regex vid_pid_sn_regex("USB\\\\VID_([0-9A-Za-z]{4})(?:.*)&PID_([0-9A-Za-z]{4})(?:.*)\\\\([0-9A-Za-z]+)");
+        if (std::regex_search(deviceId_usb, vid_pid_sn_match, vid_pid_sn_regex) && vid_pid_sn_match.size() == 4)
+        {
+            VID = vid_pid_sn_match[1];
+            PID = vid_pid_sn_match[2];
+            SN = vid_pid_sn_match[3];
+        }
+        if(VID.empty() || PID.empty() || SN.empty()) {
+            continue;
+        }
+
+        std::regex sn_regex("\\\\" + SN);
+        std::smatch sn_match;
+        if(std::regex_search(deviceId, sn_match, sn_regex)) {
+            deviceDescriptor->vid = VID;
+            deviceDescriptor->pid = PID;
+            deviceDescriptor->serialNumber = SN;
+            matchCount++;
+        }
+    }
+
+
+    if (hInfo) {
+        SetupDiDestroyDeviceInfoList(hInfo);
+    }
+
+    if(matchCount != 1) {
+        // we either had multiple ambiguous matches or no matches
+        deviceDescriptor->vid = "";
+        deviceDescriptor->pid = "";
+        deviceDescriptor->serialNumber = "";
+        return false;
+    }
+
+
+    return true;
+}
+// END: FUNCTION ADDED FOR UNRAID USB CREATOR
+
 std::vector<DeviceDescriptor> ListStorageDevices() {
   HDEVINFO hDeviceInfo = NULL;
   SP_DEVINFO_DATA deviceInfoData;
@@ -658,6 +740,10 @@ std::vector<DeviceDescriptor> ListStorageDevices() {
       !device.isVirtual && !device.isCard;
     device.devicePathNull = true;
 
+// BEGIN: FUNCTION ADDED FOR UNRAID USB CREATOR
+    GetDeviceVidPidSerialNumber(hDeviceInfo, &deviceInfoData, &device);
+// END: FUNCTION ADDED FOR UNRAID USB CREATOR
+
     if (GetDetailData(&device, hDeviceInfo, deviceInfoData)) {
       device.isSystem = device.isSystem || IsSystemDevice(hDeviceInfo, &device);
       device.isCard = device.busType == "SD" || device.busType == "MMC";
@@ -669,12 +755,40 @@ std::vector<DeviceDescriptor> ListStorageDevices() {
       device.error = "Couldn't get detail data";
     }
 
+    printf("[DRIVE] raw=%s device=%s desc=%s\n",
+      device.raw.c_str(),
+      device.device.c_str(),
+      device.description.c_str());
+    printf("        enumerator=%s busType=%s size=%llu blockSize=%u logicalBlockSize=%u\n",
+      device.enumerator.c_str(), device.busType.c_str(),
+      (unsigned long long) device.size, device.blockSize, device.logicalBlockSize);
+    printf("        flags: readOnly=%d system=%d removable=%d virtual=%d card=%d scsi=%d usb=%d uas=%d\n",
+      device.isReadOnly, device.isSystem, device.isRemovable, device.isVirtual,
+      device.isCard, device.isSCSI, device.isUSB, device.isUAS);
+    printf("        vid=%s pid=%s serial=%s\n",
+      device.vid.c_str(), device.pid.c_str(), device.serialNumber.c_str());
+    if (!device.mountpoints.empty()) {
+      printf("        mountpoints:");
+      for (const auto &mp : device.mountpoints) {
+        printf(" %s", mp.c_str());
+      }
+      printf("\n");
+    }
+    fflush(stdout);
+
+
+
+
+
     deviceList.push_back(device);
   }
 
   SetupDiDestroyDeviceInfoList(hDeviceInfo);
 
+
+
   return deviceList;
 }
+
 
 }  // namespace Drivelist

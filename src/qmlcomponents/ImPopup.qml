@@ -8,16 +8,16 @@ import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.0
 import QtQuick.Controls.Material 2.2
 
-import RpiImager
+import UnraidImager
 
 Popup {
     id: msgpopup
-    x: (parent.width-width)/2
-    y: (parent.height-height)/2
+    x: (parent.width - width) / 2
+    y: (parent.height - height) / 2
     width: 550
     padding: 0
     closePolicy: Popup.CloseOnEscape
-    modal: true
+    // modal: true
 
     default property alias content: contents.data
 
@@ -25,36 +25,45 @@ Popup {
     property alias closeButton: closeButton
 
     // Functions to be implemented by derived components
-    property var getNextFocusableElement: function(startElement) { return startElement }
-    property var getPreviousFocusableElement: function(startElement) { return startElement }
+    property var getNextFocusableElement: function (startElement) {
+        return startElement;
+    }
+    property var getPreviousFocusableElement: function (startElement) {
+        return startElement;
+    }
 
-    signal yes()
-    signal no()
+    signal yes
+    signal no
 
     contentItem: Item {
         focus: true
-        Keys.onPressed: (event) => {
+        Keys.onPressed: event => {
             if (!event.accepted) {
-                var focusedItem = Window.activeFocusItem
+                var focusedItem = Window.activeFocusItem;
                 if (event.key === Qt.Key_Backtab || (event.key === Qt.Key_Tab && event.modifiers & Qt.ShiftModifier)) {
-                    msgpopup.getPreviousFocusableElement(focusedItem).forceActiveFocus()
-                    event.accepted = true
+                    msgpopup.getPreviousFocusableElement(focusedItem).forceActiveFocus();
+                    event.accepted = true;
                 } else if (event.key === Qt.Key_Tab) {
-                    msgpopup.getNextFocusableElement(focusedItem).forceActiveFocus()
-                    event.accepted = true
+                    msgpopup.getNextFocusableElement(focusedItem).forceActiveFocus();
+                    event.accepted = true;
                 }
             }
         }
     }
 
     onOpened: {
-        contentItem.forceActiveFocus()
+        contentItem.forceActiveFocus();
+    }
+
+    background: Rectangle {
+        color: Style.unraidPrimaryBgColor
+        border.color: Style.unraidSecondaryBgColor
     }
 
     // background of title
     Rectangle {
         id: msgpopup_title_background
-        color: Style.titleBackgroundColor
+        color: Style.unraidSecondaryBgColor
         anchors.left: parent.left
         anchors.top: parent.top
         height: 35
@@ -67,6 +76,7 @@ Popup {
             anchors.topMargin: 10
             font.family: Style.fontFamily
             font.bold: true
+            color: Style.unraidTextColor
         }
 
         ImCloseButton {
@@ -79,7 +89,7 @@ Popup {
     // line under title
     Rectangle {
         id: msgpopup_title_separator
-        color: Style.titleSeparatorColor
+        color: Style.unraidSecondaryBgColor
         width: parent.width
         anchors.top: msgpopup_title_background.bottom
         height: 1

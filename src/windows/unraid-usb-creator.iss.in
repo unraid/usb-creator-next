@@ -1,0 +1,329 @@
+#define MyAppName "Unraid USB Creator"
+#define MyAppVersion "@IMAGER_VERSION_STR@"
+#define MyAppPublisher "Lime Technology, Inc"
+#define LimeTechnologyURL "https://unraid.net/"
+#define ImagerRepoRootURL "https://github.com/unraid/usb-creator-next"
+#define ImagerRepoIssuesURL "https://github.com/unraid/usb-creator-next/issues"
+#define MyAppExeName "unraid-usb-creator.exe"
+
+[Setup]
+; NOTE: This was extracted from an NSIS installation.
+AppId={{6D809377-6AF0-444B-8957-A3773F02200E}
+AppName={#MyAppName}
+AppVersion={#MyAppVersion}
+AppVerName={#MyAppName} {#MyAppVersion}
+AppPublisher={#MyAppPublisher}
+AppPublisherURL={#LimeTechnologyURL}
+AppSupportURL={#ImagerRepoIssuesURL}
+AppUpdatesURL={#ImagerRepoRootURL}
+DefaultDirName={autopf}\{#MyAppName}
+DefaultGroupName=Unraid USB Creator
+AllowNoIcons=yes
+LicenseFile=@CMAKE_BINARY_DIR@\deploy\license.txt
+OutputDir=@CMAKE_BINARY_DIR@\installer
+OutputBaseFilename=imager-{#MyAppVersion}
+SetupIconFile=@CMAKE_SOURCE_DIR@\icons\unraid.ico
+Compression=lzma2/max
+SolidCompression=yes
+WizardStyle=modern
+ArchitecturesInstallIn64BitMode=x64compatible
+MinVersion=10.0.15063
+PrivilegesRequired=admin
+UninstallDisplayIcon={app}\{#MyAppExeName},0
+UninstallDisplayName={#MyAppName}
+DisableProgramGroupPage=yes
+DisableWelcomePage=no
+DisableReadyPage=yes
+DisableFinishedPage=no
+CreateUninstallRegKey=yes
+#ifdef SIGNING_ENABLED
+SignTool=sign $f
+SignedUninstaller=yes
+#endif
+
+[Languages]
+Name: "english"; MessagesFile: "compiler:Default.isl"
+Name: "dutch"; MessagesFile: "compiler:Languages\Dutch.isl"
+Name: "french"; MessagesFile: "compiler:Languages\French.isl"
+Name: "german"; MessagesFile: "compiler:Languages\German.isl"
+Name: "italian"; MessagesFile: "compiler:Languages\Italian.isl"
+Name: "spanish"; MessagesFile: "compiler:Languages\Spanish.isl"
+
+[Tasks]
+Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+
+[Registry]
+Root: HKLM; Subkey: "Software\Microsoft\Windows\CurrentVersion\App Paths\{#MyAppExeName}"; ValueType: string; ValueName: ""; ValueData: "{app}\{#MyAppExeName}"; Flags: uninsdeletekey
+Root: HKLM; Subkey: "Software\Classes\.zip\OpenWithProgIds"; ValueType: string; ValueName: "UNRAID-USB-CREATOR-UTILITY"; ValueData: ""; Flags: uninsdeletevalue
+Root: HKLM; Subkey: "Software\Classes\.gz\OpenWithProgIds"; ValueType: string; ValueName: "UNRAID-USB-CREATOR-UTILITY"; ValueData: ""; Flags: uninsdeletevalue
+Root: HKLM; Subkey: "Software\Classes\.xz\OpenWithProgIds"; ValueType: string; ValueName: "UNRAID-USB-CREATOR-UTILITY"; ValueData: ""; Flags: uninsdeletevalue
+Root: HKLM; Subkey: "Software\Classes\.img\OpenWithProgIds"; ValueType: string; ValueName: "UNRAID-USB-CREATOR-UTILITY"; ValueData: ""; Flags: uninsdeletevalue
+Root: HKLM; Subkey: "Software\Classes\.wic\OpenWithProgIds"; ValueType: string; ValueName: "UNRAID-USB-CREATOR-UTILITY"; ValueData: ""; Flags: uninsdeletevalue
+Root: HKLM; Subkey: "Software\Classes\.zstd\OpenWithProgIds"; ValueType: string; ValueName: "UNRAID-USB-CREATOR-UTILITY"; ValueData: ""; Flags: uninsdeletevalue
+Root: HKLM; Subkey: "Software\Classes\UNRAID-USB-CREATOR-UTILITY\shell\open"; ValueType: string; ValueName: "FriendlyAppName"; ValueData: "{#MyAppName}"; Flags: uninsdeletekey
+Root: HKLM; Subkey: "Software\Classes\UNRAID-USB-CREATOR-UTILITY\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#MyAppExeName}"" ""%1"""; Flags: uninsdeletekey
+
+[Files]
+; Main program files
+Source: "@CMAKE_BINARY_DIR@\deploy\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion signonce
+
+Source: "@CMAKE_BINARY_DIR@\deploy\unraid-usb-creator-cli.cmd"; DestDir: "{app}"; Flags: ignoreversion
+Source: "@CMAKE_BINARY_DIR@\deploy\license.txt"; DestDir: "{app}"; Flags: ignoreversion
+
+; Core DLLs
+Source: "@CMAKE_BINARY_DIR@\deploy\D3Dcompiler_47.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "@CMAKE_BINARY_DIR@\deploy\libgcc_s_seh-1.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "@CMAKE_BINARY_DIR@\deploy\libstdc++-6.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "@CMAKE_BINARY_DIR@\deploy\libwinpthread-1.dll"; DestDir: "{app}"; Flags: ignoreversion
+
+; Qt DLLs
+Source: "@CMAKE_BINARY_DIR@\deploy\Qt6*.dll"; DestDir: "{app}"; Flags: ignoreversion
+
+; Qt Plugin directories
+Source: "@CMAKE_BINARY_DIR@\deploy\generic\*"; DestDir: "{app}\generic"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "@CMAKE_BINARY_DIR@\deploy\iconengines\*"; DestDir: "{app}\iconengines"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "@CMAKE_BINARY_DIR@\deploy\imageformats\*"; DestDir: "{app}\imageformats"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "@CMAKE_BINARY_DIR@\deploy\networkinformation\*"; DestDir: "{app}\networkinformation"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "@CMAKE_BINARY_DIR@\deploy\platforminputcontexts\*"; DestDir: "{app}\platforminputcontexts"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "@CMAKE_BINARY_DIR@\deploy\platforms\*"; DestDir: "{app}\platforms"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "@CMAKE_BINARY_DIR@\deploy\styles\*"; DestDir: "{app}\styles"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "@CMAKE_BINARY_DIR@\deploy\tls\*"; DestDir: "{app}\tls"; Flags: ignoreversion recursesubdirs createallsubdirs
+
+; QML directories
+Source: "@CMAKE_BINARY_DIR@\deploy\qml\*"; DestDir: "{app}\qml"; Flags: ignoreversion recursesubdirs createallsubdirs
+
+[Icons]
+Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; AfterInstall: SetElevationBit('{group}\{#MyAppName}.lnk')
+Name: "{commondesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon; AfterInstall: SetElevationBit('{commondesktop}\{#MyAppName}.lnk')
+
+[Run]
+Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent runascurrentuser
+
+[Code]
+
+// Inno doesn't support setting 'Run as Administrator' on icons natively
+// https://stackoverflow.com/a/44082068
+procedure SetElevationBit(Filename: string);
+var
+  Buffer: string;
+  Stream: TStream;
+begin
+  Filename := ExpandConstant(Filename);
+  Log('Setting elevation bit for ' + Filename);
+
+  Stream := TFileStream.Create(FileName, fmOpenReadWrite);
+  try
+    Stream.Seek(21, soFromBeginning);
+    SetLength(Buffer, 1);
+    Stream.ReadBuffer(Buffer, 1);
+    Buffer[1] := Chr(Ord(Buffer[1]) or $20);
+    Stream.Seek(-1, soFromCurrent);
+    Stream.WriteBuffer(Buffer, 1);
+  finally
+    Stream.Free;
+  end;
+end;
+
+// Helper function to find a process by name
+function FindProcess(ExeFileName: String; var ProcessID: Integer): Boolean;
+var
+  CmdLine: String;
+  ResultCode: Integer;
+  OutputFile: String;
+  FileLines: TArrayOfString;
+  I: Integer;
+  ProcessLine: String;
+  IdStr: String;
+begin
+  Result := False;
+  OutputFile := ExpandConstant('{tmp}\processes.txt');
+  
+  // Use tasklist to get running processes
+  CmdLine := Format('/c tasklist /FI "IMAGENAME eq %s" /FO CSV /NH > "%s"', [ExeFileName, OutputFile]);
+  ShellExec('', 'cmd.exe', CmdLine, '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  
+  if ResultCode = 0 then
+  begin
+    // Read the output file
+    if LoadStringsFromFile(OutputFile, FileLines) then
+    begin
+      for I := 0 to GetArrayLength(FileLines) - 1 do
+      begin
+        ProcessLine := FileLines[I];
+        // Process line is in CSV format: "imagename","PID",...
+        if Pos('"' + ExeFileName + '"', ProcessLine) = 1 then
+        begin
+          // Get the PID
+          ProcessLine := Copy(ProcessLine, Length(ExeFileName) + 3, Length(ProcessLine));
+          IdStr := '';
+          
+          // Extract numeric PID
+          while (Length(ProcessLine) > 0) and (ProcessLine[1] <> '"') do
+          begin
+            ProcessLine := Copy(ProcessLine, 2, Length(ProcessLine));
+          end;
+          
+          if Length(ProcessLine) > 0 then 
+          begin
+            ProcessLine := Copy(ProcessLine, 2, Length(ProcessLine)); // Skip "
+            while (Length(ProcessLine) > 0) and (ProcessLine[1] <> '"') do
+            begin
+              IdStr := IdStr + ProcessLine[1];
+              ProcessLine := Copy(ProcessLine, 2, Length(ProcessLine));
+            end;
+            
+            ProcessID := StrToIntDef(IdStr, 0);
+            if ProcessID > 0 then
+            begin
+              Result := True;
+              break;
+            end;
+          end;
+        end;
+      end;
+    end;
+    
+    // Clean up temporary file
+    DeleteFile(OutputFile);
+  end;
+end;
+
+// Function to check if Windows 10 or later
+function IsWindows10OrNewer: Boolean;
+var
+  Version: TWindowsVersion;
+begin
+  GetWindowsVersionEx(Version);
+  Result := (Version.Major >= 10);
+end; 
+
+// Function to check if a program is installed by the NSIS installer
+function IsNSISVersionInstalled: Boolean;
+var
+  NSISUninstallString: String;
+begin
+  Result := False;
+  
+  // Check for NSIS registry entry in HKCU
+  if RegQueryStringValue(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Uninstall\Unraid Usb Creator',
+                          'UninstallString', NSISUninstallString) then
+  begin
+    Result := True;
+  end;
+  
+  // Also check in HKLM
+  if not Result and RegQueryStringValue(HKLM, 'Software\Microsoft\Windows\CurrentVersion\Uninstall\Unraid Usb Creator',
+                                       'UninstallString', NSISUninstallString) then
+  begin
+    Result := True;
+  end;
+end;
+
+// Function to uninstall the NSIS version if detected
+function UninstallNSISVersion: Boolean;
+var
+  NSISUninstallString, NSISUninstallArgs: String;
+  ResultCode: Integer;
+begin
+  Result := False;
+  
+  // First try HKCU
+  if RegQueryStringValue(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Uninstall\Unraid Usb Creator',
+                         'UninstallString', NSISUninstallString) then
+  begin
+    // NSIS uninstaller is typically followed by /S for silent uninstall
+    NSISUninstallArgs := '/S';
+    
+    // Run the uninstaller
+    if Exec(NSISUninstallString, NSISUninstallArgs, '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
+    begin
+      Result := (ResultCode = 0);
+    end;
+  end
+  else if RegQueryStringValue(HKLM, 'Software\Microsoft\Windows\CurrentVersion\Uninstall\Unraid Usb Creator',
+                              'UninstallString', NSISUninstallString) then
+  begin
+    // NSIS uninstaller is typically followed by /S for silent uninstall
+    NSISUninstallArgs := '/S';
+    
+    // Run the uninstaller
+    if Exec(NSISUninstallString, NSISUninstallArgs, '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
+    begin
+      Result := (ResultCode = 0);
+    end;
+  end;
+end;
+
+function InitializeSetup(): Boolean;
+var
+  ResultCode: Integer;
+  ResultFlag: Boolean;
+  ProcessFound: Boolean;
+  ProcessID: Integer;
+  NSISInstalled: Boolean;
+  UninstallResult: Boolean;
+begin
+  ResultFlag := True;
+  ProcessFound := False;
+  NSISInstalled := False;
+  
+  // More reliable way to check if unraid-usb-creator.exe is running
+  try
+    // Try to find process with exact name
+    ProcessID := 0;
+    ProcessFound := FindProcess('unraid-usb-creator.exe', ProcessID);
+    
+    if ProcessFound and (ProcessID > 0) then
+    begin
+      if MsgBox('Unraid USB Creator is running and needs to be closed before continuing. Close it now?', mbConfirmation, MB_YESNO) = IDYES then
+      begin
+        // Try to shut down gracefully first
+        ShellExec('', 'taskkill.exe', '/IM unraid-usb-creator.exe /F', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+        if ResultCode <> 0 then
+        begin
+          MsgBox('Failed to close Unraid USB Creator. Please close it manually and try again.', mbError, MB_OK);
+          ResultFlag := False;
+        end;
+      end
+      else
+      begin
+        ResultFlag := False;
+      end;
+    end;
+  except
+    // If FindProcess fails, fall back to default behavior
+    Log('Error checking for running process');
+  end;
+
+  // Check for NSIS installation
+  if ResultFlag then
+  begin
+    NSISInstalled := IsNSISVersionInstalled;
+    if NSISInstalled then
+    begin
+      if MsgBox('A previous version of Unraid USB Creator was found that needs to be uninstalled first. Uninstall now?', 
+                mbConfirmation, MB_YESNO) = IDYES then
+      begin
+        UninstallResult := UninstallNSISVersion;
+        if not UninstallResult then
+        begin
+          MsgBox('Failed to uninstall the previous version. Please uninstall it manually before continuing.', mbError, MB_OK);
+          ResultFlag := False;
+        end;
+      end
+      else
+      begin
+        ResultFlag := False;
+      end;
+    end;
+  end;
+
+  // Check Windows version - require Windows 10
+  if ResultFlag and (not IsWindows10OrNewer) then
+  begin
+    MsgBox('This application requires Windows 10 or later.', mbError, MB_OK);
+    ResultFlag := False;
+  end;
+  
+  Result := ResultFlag;
+end;
