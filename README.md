@@ -2,6 +2,8 @@
 
 Unraid Imaging Utility
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/unraid/usb-creator-next)
+
 - Download the latest version for Windows, macOS and Ubuntu from the [Unraid download page](https://unraid.net/getting-started).
 
 Based on the work by [Raspberry Pi](https://github.com/raspberrypi/rpi-imager)
