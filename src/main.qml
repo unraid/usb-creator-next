@@ -1011,8 +1011,8 @@ ApplicationWindow {
 
     function onSuccess() {
         msgpopup.title = qsTr("Write Successful");
-        if (osbutton.text === qsTr("Erase")){
-            msgpopup.text = qsTr("<b>%1</b> has been erased.<br><br>Your drive has been ejected, you can now safely remove it.").arg(dstbutton.text);
+        if (osbutton.text.toLowerCase() === qsTr("Erase").toLowerCase()){
+            msgpopup.text = qsTr("<b>%1</b> has been erased.<br><br>Please safely eject your drive before removing it.").arg(dstbutton.text);
             msgpopup.installGuideButton = false;
         }      
         else if (imageWriter.isEmbeddedMode()) {

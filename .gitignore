@@ -30,6 +30,7 @@ debian/tmp
 *.*swp*
 Releases 
 *.dmg
+.cache
 
 # AppImage related
 *.AppImage*
