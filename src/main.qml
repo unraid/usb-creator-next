@@ -246,7 +246,7 @@ ApplicationWindow {
 
                     ImButton {
                         id: osbutton
-                        text: window.selectedOsName === "" ? qsTr("CHOOSE OS") : window.selectedOsName
+                        text: window.selectedOsName === "" ? qsTr("CHOOSE OS") : window.selectedOsName.toUpperCase()
                         spacing: 0
                         padding: 0
                         bottomPadding: 0
@@ -296,7 +296,7 @@ ApplicationWindow {
 
                     ImButton {
                         id: dstbutton
-                        text: window.selectedStorageName === "" ? qsTr("CHOOSE STORAGE") : window.selectedStorageName
+                        text: window.selectedStorageName === "" ? qsTr("CHOOSE STORAGE") : window.selectedStorageName.toUpperCase()
                         spacing: 0
                         padding: 0
                         bottomPadding: 0
