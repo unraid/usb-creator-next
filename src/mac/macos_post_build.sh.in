@@ -8,7 +8,9 @@ set -e
 echo "Starting macOS post-build process..."
 
 # Configuration
-APP_NAME="@CMAKE_PROJECT_NAME@"
+# UNRAID: the bundle is named after the product (see mac/PlatformPackaging.cmake),
+# not after the CMake target, so this must not use @CMAKE_PROJECT_NAME@.
+APP_NAME="@IMAGER_APP_NAME@"
 APP_PATH="@CMAKE_BINARY_DIR@/${APP_NAME}.app"
 FINAL_DMG_PATH="@CMAKE_BINARY_DIR@/${APP_NAME}-@IMAGER_VERSION_STR@.dmg"
 SIGNING_IDENTITY="@IMAGER_SIGNING_IDENTITY@"
