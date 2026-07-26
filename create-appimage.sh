@@ -165,9 +165,21 @@ fi
 BUILD_TYPE="MinSizeRel"
 QML_SOURCES_PATH="$PWD/src/qmlcomponents/"
 
+# UNRAID: product identity, mirroring src/cmake/UnraidBranding.cmake. These are
+# overridable so a stock upstream AppImage is still reproducible:
+#   IMAGER_EXE_NAME=rpi-imager IMAGER_DESKTOP_ID=com.raspberrypi.rpi-imager \
+#   IMAGER_APPIMAGE_NAME=Raspberry_Pi_Imager ./create-appimage.sh
+#
+# IMAGER_APPIMAGE_NAME must match the desktop file's Name= with spaces replaced
+# by underscores, because that is what linuxdeploy names its output.
+IMAGER_EXE_NAME="${IMAGER_EXE_NAME:-unraid-usb-creator}"
+IMAGER_DESKTOP_ID="${IMAGER_DESKTOP_ID:-com.limetech.unraid-usb-creator}"
+IMAGER_APPIMAGE_NAME="${IMAGER_APPIMAGE_NAME:-Unraid_USB_Creator}"
+IMAGER_DESKTOP_SRC="${IMAGER_DESKTOP_SRC:-src/unraid/packaging/${IMAGER_DESKTOP_ID}.desktop}"
+
 # Location of AppDir and output file
 APPDIR="$PWD/AppDir-$ARCH"
-OUTPUT_FILE="$PWD/Raspberry_Pi_Imager-${GIT_VERSION}-desktop-${ARCH}.AppImage"
+OUTPUT_FILE="$PWD/${IMAGER_APPIMAGE_NAME}-${GIT_VERSION}-desktop-${ARCH}.AppImage"
 
 # Tools directory for downloaded binaries
 TOOLS_DIR="$PWD/appimage-tools"
@@ -225,7 +237,7 @@ fi
 mkdir -p "$APPDIR"
 mkdir -p "$BUILD_DIR"
 
-echo "Building rpi-imager for $ARCH..."
+echo "Building ${IMAGER_EXE_NAME} for $ARCH..."
 # Configure and build with CMake
 cd "$BUILD_DIR"
 
@@ -251,11 +263,11 @@ make DESTDIR="$APPDIR" install
 cd ..
 
 # Copy the desktop file from debian directory
-if [ ! -f "$APPDIR/usr/share/applications/com.raspberrypi.rpi-imager.desktop" ]; then
+if [ ! -f "$APPDIR/usr/share/applications/${IMAGER_DESKTOP_ID}.desktop" ]; then
     mkdir -p "$APPDIR/usr/share/applications"
-    cp "debian/com.raspberrypi.rpi-imager.desktop" "$APPDIR/usr/share/applications/"
+    cp "${IMAGER_DESKTOP_SRC}" "$APPDIR/usr/share/applications/"
     # Update the Exec line to match the AppImage requirements (preserve %F for file arguments)
-    sed -i 's|Exec=.*|Exec=rpi-imager %F|' "$APPDIR/usr/share/applications/com.raspberrypi.rpi-imager.desktop"
+    sed -i "s|Exec=.*|Exec=${IMAGER_EXE_NAME} %F|" "$APPDIR/usr/share/applications/${IMAGER_DESKTOP_ID}.desktop"
 fi
 
 # Create the AppRun file if not created by the install process
@@ -315,7 +327,7 @@ if [ "$(id -u)" = "0" ]; then
 fi
 
 # The binary handles privilege elevation internally via pkexec if needed
-exec "${HERE}/usr/bin/rpi-imager" "$@"
+exec "${HERE}/usr/bin/${IMAGER_EXE_NAME}" "$@"
 EOF
     chmod +x "$APPDIR/AppRun"
 fi
@@ -389,8 +401,8 @@ rm -f "$APPDIR/usr/lib/libQt6QuickControls2WindowsStyleImpl.so"*
 # Create the AppImage
 echo "Creating AppImage..."
 # Remove old symlinks for this variant only
-rm -f "$PWD/rpi-imager-desktop-$ARCH.AppImage"
-rm -f "$PWD/rpi-imager-$ARCH.AppImage"  # Legacy symlink name
+rm -f "$PWD/${IMAGER_EXE_NAME}-desktop-$ARCH.AppImage"
+rm -f "$PWD/${IMAGER_EXE_NAME}-$ARCH.AppImage"  # Legacy symlink name
 
 # Ensure LD_LIBRARY_PATH is still set for this call too
 export LD_LIBRARY_PATH="$QT_DIR/lib:$LD_LIBRARY_PATH"
@@ -398,7 +410,7 @@ export LD_LIBRARY_PATH="$QT_DIR/lib:$LD_LIBRARY_PATH"
 # Re-specify --exclude-library flags: linuxdeploy re-resolves dependencies during
 # output generation, which would re-bundle excluded libraries.
 "$LINUXDEPLOY" --appdir="$APPDIR" \
-    --desktop-file="$APPDIR/usr/share/applications/com.raspberrypi.rpi-imager.desktop" \
+    --desktop-file="$APPDIR/usr/share/applications/${IMAGER_DESKTOP_ID}.desktop" \
     --exclude-library="libsystemd*" \
     --exclude-library="libdbus-*" \
     --exclude-library="libcap*" \
@@ -408,7 +420,7 @@ export LD_LIBRARY_PATH="$QT_DIR/lib:$LD_LIBRARY_PATH"
 
 # Rename the output file from linuxdeploy's default name to our versioned name
 # linuxdeploy creates: Raspberry_Pi_Imager-${ARCH}.AppImage (based on Name= in desktop file)
-LINUXDEPLOY_OUTPUT="Raspberry_Pi_Imager-${ARCH}.AppImage"
+LINUXDEPLOY_OUTPUT="${IMAGER_APPIMAGE_NAME}-${ARCH}.AppImage"
 if [ -f "$LINUXDEPLOY_OUTPUT" ]; then
     echo "Renaming '$LINUXDEPLOY_OUTPUT' to '$(basename "$OUTPUT_FILE")'"
     mv "$LINUXDEPLOY_OUTPUT" "$OUTPUT_FILE"
@@ -424,7 +436,7 @@ echo "AppImage created at $OUTPUT_FILE"
 
 # Create symlinks for debian packaging and user convenience
 # Primary symlink matches debian/rpi-imager.install expectations
-DEBIAN_SYMLINK="$PWD/rpi-imager-$ARCH.AppImage"
+DEBIAN_SYMLINK="$PWD/${IMAGER_EXE_NAME}-$ARCH.AppImage"
 if [ -L "$DEBIAN_SYMLINK" ] || [ -f "$DEBIAN_SYMLINK" ]; then
     rm -f "$DEBIAN_SYMLINK"
 fi
@@ -432,7 +444,7 @@ ln -s "$(basename "$OUTPUT_FILE")" "$DEBIAN_SYMLINK"
 echo "Created symlink: $DEBIAN_SYMLINK -> $(basename "$OUTPUT_FILE")"
 
 # Additional descriptive symlink for clarity when multiple variants exist
-DESCRIPTIVE_SYMLINK="$PWD/rpi-imager-desktop-$ARCH.AppImage"
+DESCRIPTIVE_SYMLINK="$PWD/${IMAGER_EXE_NAME}-desktop-$ARCH.AppImage"
 if [ -L "$DESCRIPTIVE_SYMLINK" ] || [ -f "$DESCRIPTIVE_SYMLINK" ]; then
     rm -f "$DESCRIPTIVE_SYMLINK"
 fi
