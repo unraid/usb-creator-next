@@ -15,6 +15,11 @@ class DriveFormatThread : public QThread
     Q_OBJECT
 public:
     DriveFormatThread(const QByteArray &device, QObject *parent = nullptr);
+
+    // UNRAID: override the FAT32 volume label ("UNRAID" for Unraid images). A
+    // setter rather than a constructor parameter so upstream's call sites stay
+    // byte-identical across rebases.
+    void setVolumeLabel(const QByteArray &label) { _volumeLabel = label; }
     virtual ~DriveFormatThread();
     virtual void run();
 
@@ -26,6 +31,7 @@ signals:
 
 protected:
     QByteArray _device;
+    QByteArray _volumeLabel; // UNRAID
     std::uint64_t getDeviceSize(const QByteArray &device);
     QString formatErrorToString(rpi_imager::FormatError error);
 };

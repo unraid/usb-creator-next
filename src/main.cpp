@@ -35,6 +35,7 @@
 #include <QtMath>
 #endif
 #include "platformquirks.h"
+#include "branding.h" // UNRAID: generated product identity
 #ifdef Q_OS_DARWIN
 #include <CoreFoundation/CoreFoundation.h>
 #endif
@@ -137,10 +138,10 @@ int main(int argc, char *argv[])
             g_logFile = fopen(logPath, "a");
             if (g_logFile) {
 #ifdef Q_OS_UNIX
-                fprintf(g_logFile, "\n=== Raspberry Pi Imager started (PID %d, EUID %d) ===\n",
+                fprintf(g_logFile, "\n=== " IMAGER_APP_NAME " started (PID %d, EUID %d) ===\n", // UNRAID: branded
                         getpid(), geteuid());
 #else
-                fprintf(g_logFile, "\n=== Raspberry Pi Imager started ===\n");
+                fprintf(g_logFile, "\n=== " IMAGER_APP_NAME " started ===\n"); // UNRAID: branded
 #endif
                 fflush(g_logFile);
                 qInstallMessageHandler(fileLogHandler);
@@ -234,9 +235,10 @@ int main(int argc, char *argv[])
 
     QGuiApplication app(argc, argv);
 
-    app.setOrganizationName("Raspberry Pi");
-    app.setOrganizationDomain("raspberrypi.com");
-    app.setApplicationName("Raspberry Pi Imager");
+    // UNRAID: identity from the branding layer (cmake/UnraidBranding.cmake).
+    app.setOrganizationName(IMAGER_ORG_NAME);
+    app.setOrganizationDomain(IMAGER_ORG_DOMAIN);
+    app.setApplicationName(IMAGER_APP_NAME);
     app.setApplicationVersion(ImageWriter::staticVersion());
     app.setWindowIcon(QIcon(":/icons/rpi-imager.ico"));
 
@@ -333,7 +335,7 @@ int main(int argc, char *argv[])
     int cliRefreshJitter = -1;
 
     QCommandLineParser parser;
-    parser.setApplicationDescription("Raspberry Pi Imager GUI");
+    parser.setApplicationDescription(IMAGER_APP_NAME " GUI"); // UNRAID: branded
     parser.addHelpOption();
     parser.addVersionOption();
     parser.addOptions({
@@ -765,7 +767,7 @@ int main(int argc, char *argv[])
     if (hasPermissionIssue)
     {
         // Common message parts to reduce translation effort
-        QString header = QObject::tr("Raspberry Pi Imager requires elevated privileges to write to storage devices.");
+        QString header = QObject::tr("%1 requires elevated privileges to write to storage devices.").arg(IMAGER_APP_NAME); // UNRAID: branded
         QString footer = QObject::tr("Without this, you will encounter permission errors when writing images.");
         QString statusAndAction = {};
 

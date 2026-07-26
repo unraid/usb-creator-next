@@ -68,7 +68,9 @@ Item {
     property bool secureBootEnabled: false
     property bool piConnectEnabled: false
     // Whether selected OS supports Raspberry Raspberry Pi Connect customization
+    // UNRAID: brand gates this off; upstream assignments still run but cannot enable it.
     property bool piConnectAvailable: false
+    readonly property bool piConnectAllowed: piConnectAvailable && BrandSteps.piConnectAvailable // UNRAID
     // Whether the current write target is a fastboot storage device.
     // Set by StorageSelectionStep on selection; consumed by the
     // Pi Connect customisation step to choose between device-identity
@@ -83,6 +85,7 @@ Item {
     property string connectOrgDescription: ""
     // Whether selected OS supports Secure Boot signing
     property bool secureBootAvailable: false
+    readonly property bool secureBootAllowed: secureBootAvailable && BrandSteps.secureBootAvailable // UNRAID
     // Whether selected OS supports passwordless sudo configuration
     property bool passwordlessSudoAvailable: false
     // Whether secure boot key is configured in App Options
@@ -91,6 +94,7 @@ Item {
     // Interfaces & Features
     property bool ccRpiAvailable: false
     property bool ifAndFeaturesAvailable: false  // Whether any interface/feature capabilities are available
+    readonly property bool ifAndFeaturesAllowed: ifAndFeaturesAvailable && BrandSteps.interfacesAndFeaturesAvailable // UNRAID
     property bool ifI2cEnabled: false
     property bool ifSpiEnabled: false
     property bool if1WireEnabled: false
@@ -272,13 +276,20 @@ Item {
     }
 
     function getLastCustomizationStep() {
-        return (ccRpiAvailable && ifAndFeaturesAvailable)
+        // UNRAID: mirrors the *Allowed* gating used by nextStep().
+        return (ccRpiAvailable && ifAndFeaturesAllowed)
             ? stepIfAndFeatures
-            : piConnectAvailable
+            : piConnectAllowed
                 ? stepPiConnectCustomization
-                : secureBootAvailable
+                : secureBootAllowed
                     ? stepSecureBootCustomization
-                    : stepRemoteAccess
+                    // UNRAID: fall back past the brand-gated tail steps, otherwise the
+                    // customisation group would claim steps the wizard never enters.
+                    : BrandSteps.remoteAccessAvailable
+                        ? stepRemoteAccess
+                        : BrandSteps.wifiAvailable
+                            ? stepWifiCustomization
+                            : stepUserCustomization
     }
 
     function getCustomizationSubstepLabels() {
@@ -287,14 +298,21 @@ Item {
             return []
         }
         
-        var labels = [qsTr("Hostname"), qsTr("Localisation"), qsTr("User"), qsTr("Wi‑Fi"), qsTr("Remote access")]
-        if (secureBootAvailable) {
+        // UNRAID: the base steps are brand-gated and brand-labelled rather than
+        // deleted, so this stays a small edit to upstream's list. See BrandSteps.qml.
+        var labels = []
+        if (BrandSteps.serverNameAvailable) { labels.push(BrandSteps.serverNameLabel) }
+        if (BrandSteps.localisationAvailable) { labels.push(qsTr("Localisation")) }
+        if (BrandSteps.networkConfigAvailable) { labels.push(BrandSteps.networkConfigLabel) }
+        if (BrandSteps.wifiAvailable) { labels.push(BrandSteps.wifiLabel) }
+        if (BrandSteps.remoteAccessAvailable) { labels.push(qsTr("Remote access")) }
+        if (secureBootAllowed) { // UNRAID
             labels.push(qsTr("Secure Boot"))
         }
-        if (piConnectAvailable) {
+        if (piConnectAllowed) { // UNRAID
             labels.push(qsTr("Raspberry Pi Connect"))
         }
-        if (ccRpiAvailable && ifAndFeaturesAvailable) {
+        if (ccRpiAvailable && ifAndFeaturesAllowed) { // UNRAID
             labels.push(qsTr("Interfaces & Features"))
         }
 
@@ -307,10 +325,10 @@ Item {
         if (subIndex >= labels.length) return false
         
         var stepLabel = labels[subIndex]
-        if (stepLabel === qsTr("Hostname")) return hostnameConfigured
+        if (stepLabel === BrandSteps.serverNameLabel) return hostnameConfigured // UNRAID
         if (stepLabel === qsTr("Localisation")) return localeConfigured
-        if (stepLabel === qsTr("User")) return userConfigured
-        if (stepLabel === qsTr("Wi‑Fi")) return wifiConfigured
+        if (stepLabel === BrandSteps.networkConfigLabel) return userConfigured // UNRAID
+        if (stepLabel === BrandSteps.wifiLabel) return wifiConfigured // UNRAID
         if (stepLabel === qsTr("Remote access")) return sshEnabled
         if (stepLabel === qsTr("Secure Boot")) return secureBootEnabled
         if (stepLabel === qsTr("Raspberry Pi Connect")) return piConnectEnabled
@@ -840,16 +858,27 @@ Item {
             else if (!customizationSupported && nextIndex === firstCustomizationStep) {
                 nextIndex = stepWriting
             }
+            // UNRAID: brand-gated steps. Same shape as upstream's existing skips, so
+            // these lines rebase cleanly alongside them.
+            if (!BrandSteps.localisationAvailable && nextIndex === stepLocaleCustomization) {
+                nextIndex++
+            }
+            if (!BrandSteps.wifiAvailable && nextIndex === stepWifiCustomization) {
+                nextIndex++
+            }
+            if (!BrandSteps.remoteAccessAvailable && nextIndex === stepRemoteAccess) {
+                nextIndex++
+            }
             // Skip optional Secure Boot step when OS does not support it
-            if (!secureBootAvailable && nextIndex === stepSecureBootCustomization) {
+            if (!secureBootAllowed && nextIndex === stepSecureBootCustomization) { // UNRAID
                 nextIndex++
             }
             // Skip optional Raspberry Pi Connect step when OS does not support it
-            if (!piConnectAvailable && nextIndex === stepPiConnectCustomization) {
+            if (!piConnectAllowed && nextIndex === stepPiConnectCustomization) { // UNRAID
                 nextIndex++
             }
             // Skip interfaces and features if OS doesn't support it or no capabilities are available
-            if ((!ccRpiAvailable || !ifAndFeaturesAvailable) && nextIndex == stepIfAndFeatures) {
+            if ((!ccRpiAvailable || !ifAndFeaturesAllowed) && nextIndex == stepIfAndFeatures) { // UNRAID
                 nextIndex++
             }
             // Before entering the writing step, apply customization (when supported)
@@ -904,13 +933,13 @@ Item {
                 prevIndex = stepStorageSelection
             } else {
                 // Skip interfaces and features if OS doesn't support it or no capabilities are available
-                if (prevIndex == stepIfAndFeatures && (!ccRpiAvailable || !ifAndFeaturesAvailable)) {
+                if (prevIndex == stepIfAndFeatures && (!ccRpiAvailable || !ifAndFeaturesAllowed)) { // UNRAID
                     prevIndex--
                 }
-                if (prevIndex === stepPiConnectCustomization && !piConnectAvailable) {
+                if (prevIndex === stepPiConnectCustomization && !piConnectAllowed) { // UNRAID
                     prevIndex--
                 }
-                if (prevIndex === stepSecureBootCustomization && !secureBootAvailable) {
+                if (prevIndex === stepSecureBootCustomization && !secureBootAllowed) { // UNRAID
                     prevIndex--
                 }
                 // Skip device selection if offline (it would be empty/useless)
@@ -954,8 +983,10 @@ Item {
             case stepStorageSelection: return storageSelectionStep
             case stepHostnameCustomization: return hostnameCustomizationStep
             case stepLocaleCustomization: return localeCustomizationStep
-            case stepUserCustomization: return userCustomizationStep
-            case stepWifiCustomization: return wifiCustomizationStep
+            // UNRAID: this slot carries network addressing for Unraid, not credentials.
+            case stepUserCustomization: return BrandSteps.networkConfigAvailable ? unraidNetworkStep : userCustomizationStep
+            // UNRAID: Unraid stores Wi-Fi in config/wireless.cfg, not a wpa_supplicant.conf.
+            case stepWifiCustomization: return BrandSteps.wifiAvailable ? unraidWifiStep : wifiCustomizationStep
             case stepRemoteAccess: return remoteAccessStep
             case stepSecureBootCustomization: return secureBootCustomizationStep
             case stepPiConnectCustomization: return piConnectCustomizationStep
@@ -1042,6 +1073,20 @@ Item {
         }
     }
     
+    // UNRAID: network addressing, occupying the User step slot. See BrandSteps.qml.
+    Component {
+        id: unraidNetworkStep
+        UnraidNetworkStep {
+            wizardContainer: root
+            appOptionsButton: optionsButton
+            onNextClicked: root.nextStep()
+            onBackClicked: root.previousStep()
+            onSkipClicked: {
+                // Skip functionality is handled in the step itself
+            }
+        }
+    }
+
     Component {
         id: userCustomizationStep
         UserCustomizationStep {
@@ -1055,6 +1100,20 @@ Item {
         }
     }
     
+    // UNRAID: Wi-Fi credentials for config/wireless.cfg.
+    Component {
+        id: unraidWifiStep
+        UnraidWifiStep {
+            wizardContainer: root
+            appOptionsButton: optionsButton
+            onNextClicked: root.nextStep()
+            onBackClicked: root.previousStep()
+            onSkipClicked: {
+                // Skip functionality is handled in the step itself
+            }
+        }
+    }
+
     Component {
         id: wifiCustomizationStep
         WifiCustomizationStep {

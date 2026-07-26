@@ -4,6 +4,7 @@
  */
 
 #include "cli.h"
+#include "branding.h" // UNRAID: generated product identity
 #include "imagewriter.h"
 #include <iostream>
 #include <QCoreApplication>
@@ -24,9 +25,10 @@ Cli::Cli(int &argc, char *argv[]) : QObject(nullptr), _imageWriter(nullptr)
     /* Attach to console for output (Windows-specific, no-op on other platforms) */
     PlatformQuirks::attachConsole();
     _app = new QCoreApplication(argc, argv);
-    _app->setOrganizationName("Raspberry Pi");
-    _app->setOrganizationDomain("raspberrypi.com");
-    _app->setApplicationName("Raspberry Pi Imager");
+    // UNRAID: identity from the branding layer (cmake/UnraidBranding.cmake).
+    _app->setOrganizationName(IMAGER_ORG_NAME);
+    _app->setOrganizationDomain(IMAGER_ORG_DOMAIN);
+    _app->setApplicationName(IMAGER_APP_NAME);
     _app->setApplicationVersion(ImageWriter::staticVersion());
     // Don't create ImageWriter here - defer until we know we need it
 }

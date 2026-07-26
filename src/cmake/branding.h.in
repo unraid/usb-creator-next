@@ -1,0 +1,29 @@
+/*
+ * UNRAID: Generated from cmake/branding.h.in by cmake/UnraidBranding.cmake.
+ * Do not edit the generated copy in the build directory.
+ *
+ * Product-identity strings live here so that upstream source files reference a
+ * symbol instead of a hardcoded brand name. See PORTING.md.
+ */
+
+#ifndef BRANDING_H
+#define BRANDING_H
+
+/* Display name, e.g. "Unraid USB Creator" */
+#define IMAGER_APP_NAME       "@IMAGER_APP_NAME@"
+
+/* Executable / bundle short name, e.g. "unraid-usb-creator" */
+#define IMAGER_EXE_NAME       "@IMAGER_EXE_NAME@"
+
+/* Bundle identifier / desktop-file id */
+#define IMAGER_BUNDLE_ID      "@IMAGER_BUNDLE_ID@"
+
+/* QSettings organisation. NOTE: changing this moves where user settings are
+ * stored, so it must stay stable across releases of a given brand. */
+#define IMAGER_ORG_NAME       "@IMAGER_ORG_NAME@"
+#define IMAGER_ORG_DOMAIN     "@IMAGER_ORG_DOMAIN@"
+
+/* Custom URL scheme handled by the app */
+#define IMAGER_URL_SCHEME     "@IMAGER_URL_SCHEME@"
+
+#endif // BRANDING_H

@@ -228,6 +228,11 @@ Result<void> DiskFormatter::WriteFat32(
     std::uint32_t partition_size_sectors) const {
   
   Fat32Config config = CalculateFat32Config(partition_size_sectors);
+
+  // UNRAID: apply the caller's volume label, if any.
+  if (!volume_label_.empty()) {
+    config.volume_label = volume_label_;
+  }
   config.total_sectors = partition_size_sectors;
 
   // Write boot sector

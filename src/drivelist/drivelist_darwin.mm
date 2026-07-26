@@ -20,6 +20,7 @@
 #import <IOKit/IOKitLib.h>
 #import <IOKit/storage/IOMedia.h>
 #import <IOKit/IOBSD.h>
+#import <IOKit/usb/USBSpec.h> // UNRAID: kUSBVendorID / kUSBProductID / kUSBSerialNumberString
 #include <os/log.h>
 #include <sys/sysctl.h>
 
@@ -183,6 +184,64 @@ std::string findAPFSParent(const char* bsdName)
 /**
  * @brief Create a DeviceDescriptor from DiskArbitration properties
  */
+// UNRAID: Unraid licences are bound to a GUID built from the flash device's USB
+// vendor id, product id and serial number, so we have to recover those three
+// values for USB devices. DiskArbitration does not expose them; they live on the
+// IOUSBHostDevice node further up the IORegistry.
+//
+// IORegistryEntrySearchCFProperty with kIORegistryIterateParents walks the parent
+// chain for us, so we can query straight from the media node without hand-rolling
+// the traversal.
+void populateUsbIdentity(const std::string& bsdName, DeviceDescriptor* device)
+{
+    io_service_t media = IOServiceGetMatchingService(
+        kIOMainPortDefault, IOBSDNameMatching(kIOMainPortDefault, 0, bsdName.c_str()));
+    if (!media) {
+        return;
+    }
+
+    const IOOptionBits options = kIORegistryIterateParents | kIORegistryIterateRecursively;
+
+    auto copyNumber = [&](CFStringRef key, uint32_t* out) -> bool {
+        CFTypeRef ref = IORegistryEntrySearchCFProperty(media, kIOServicePlane, key,
+                                                        kCFAllocatorDefault, options);
+        if (!ref) {
+            return false;
+        }
+        bool ok = false;
+        if (CFGetTypeID(ref) == CFNumberGetTypeID()) {
+            ok = CFNumberGetValue((CFNumberRef)ref, kCFNumberSInt32Type, out);
+        }
+        CFRelease(ref);
+        return ok;
+    };
+
+    uint32_t vendorId = 0;
+    uint32_t productId = 0;
+    if (copyNumber(CFSTR(kUSBVendorID), &vendorId) && copyNumber(CFSTR(kUSBProductID), &productId)) {
+        char buf[8];
+        snprintf(buf, sizeof(buf), "%04X", vendorId & 0xFFFF);
+        device->vid = buf;
+        snprintf(buf, sizeof(buf), "%04X", productId & 0xFFFF);
+        device->pid = buf;
+    }
+
+    CFTypeRef serialRef = IORegistryEntrySearchCFProperty(
+        media, kIOServicePlane, CFSTR(kUSBSerialNumberString), kCFAllocatorDefault, options);
+    if (serialRef) {
+        if (CFGetTypeID(serialRef) == CFStringGetTypeID()) {
+            NSString* s = (__bridge NSString*)serialRef;
+            const char* utf8 = [s UTF8String];
+            if (utf8) {
+                device->serialNumber = utf8;
+            }
+        }
+        CFRelease(serialRef);
+    }
+
+    IOObjectRelease(media);
+}
+
 DeviceDescriptor createDeviceDescriptor(const std::string& bsdName, CFDictionaryRef diskDescription)
 {
     DeviceDescriptor device;
@@ -239,6 +298,11 @@ DeviceDescriptor createDeviceDescriptor(const std::string& bsdName, CFDictionary
     // UAS detection not easily available on macOS
     device.isUAS = false;
     device.isUASNull = true;
+
+    // UNRAID: recover USB vid/pid/serial for GUID derivation (USB devices only).
+    if (device.isUSB) {
+        populateUsbIdentity(bsdName, &device);
+    }
 
     // APFS volumes are virtual and need parent device tracking
     if (device.description == "AppleAPFSMedia") {

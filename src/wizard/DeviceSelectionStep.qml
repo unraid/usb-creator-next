@@ -17,7 +17,7 @@ WizardStepBase {
     
     readonly property HWListModel hwModel: ImageWriterSingleton.getHWList()
     
-    title: qsTr("Select your Raspberry Pi device")
+    title: qsTr("Select your device")
     showNextButton: true
     // Enable Next when device selected OR when offline (so users can proceed with custom image)
     nextButtonEnabled: hasDeviceSelected || (osListUnavailable && hwlist.count === 0)

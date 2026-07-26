@@ -161,6 +161,10 @@ public:
     /* Function to return version (for QML - C++ code should use staticVersion()) */
     Q_INVOKABLE QString constantVersion() const;
 
+    /* UNRAID: product display name from the branding layer, so QML strings can
+     * interpolate it instead of hardcoding a brand. See PORTING.md. */
+    Q_INVOKABLE QString appName() const;
+
     /* Static version - for use without creating an instance */
     static QString staticVersion();
 
@@ -527,6 +531,13 @@ private:
     QString parseTokenFromUrl(const QUrl &url, bool strictAuthKey = false) const;
 
 protected:
+
+    /* UNRAID: raw customisation map for the Unraid init format. Unraid is not
+     * customised by generating a firstrun/cloud-init payload; the values are
+     * applied to config files on the FAT partition after extraction, so the map
+     * has to survive as far as the write thread. */
+    QVariantMap _unraidSettings;
+
     QUrl _src, _repo;
     QString _dst, _parentCategory, _osName, _osReleaseDate, _currentLang, _currentLangcode, _currentKeyboard, _bmapUrl;
     QByteArray _expectedHash, _cmdline, _config, _firstrun, _cloudinit, _cloudinitNetwork, _initFormat;

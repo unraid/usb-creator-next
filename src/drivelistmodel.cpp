@@ -6,6 +6,7 @@
 #include "drivelistmodel.h"
 #include "config.h"
 #include "drivelist/drivelist.h"
+#include "unraid/unraid_guid.h" // UNRAID: flash GUID derivation + async validation
 #include <QSet>
 #include <QDebug>
 
@@ -25,7 +26,11 @@ DriveListModel::DriveListModel(QObject *parent)
         {isRpibootRole, "isRpiboot"},
         {isFastbootStorageRole, "isFastbootStorage"},
         {fastbootBlockDeviceRole, "fastbootBlockDevice"},
-        {fastbootStorageTypeRole, "fastbootStorageType"}
+        {fastbootStorageTypeRole, "fastbootStorageType"},
+        // UNRAID
+        {guidRole, "guid"},
+        {guidValidRole, "guidValid"},
+        {guidCheckedRole, "guidChecked"}
     };
 
     // Enumerate drives in separate thread, but process results in UI thread
@@ -35,6 +40,17 @@ DriveListModel::DriveListModel(QObject *parent)
     // Forward performance event signal
     connect(&_thread, &DriveListModelPollThread::eventDriveListPoll,
             this, &DriveListModel::eventDriveListPoll);
+
+    // UNRAID: apply key-server verdicts when they arrive, to whichever drives
+    // currently carry that GUID.
+    connect(&_guidValidator, &Unraid::GuidValidator::guidValidated,
+            this, [this](const QString &guid, Unraid::GuidValidator::Status status) {
+                for (auto it = _guidByKey.cbegin(); it != _guidByKey.cend(); ++it) {
+                    if (it.value() == guid) {
+                        applyGuidStatus(it.key(), guid, status);
+                    }
+                }
+            });
 }
 
 int DriveListModel::rowCount(const QModelIndex &parent) const
@@ -109,6 +125,7 @@ void DriveListModel::processDriveList(std::vector<Drivelist::DeviceDescriptor> l
         bool isFastbootStorage = false;
         QString fastbootBlockDevice;
         QString fastbootStorageType;
+        QString guid; // UNRAID
     };
     QList<NewDriveInfo> drivesToAdd;
 
@@ -212,6 +229,7 @@ void DriveListModel::processDriveList(std::vector<Drivelist::DeviceDescriptor> l
             info.isFastbootStorage = isFastbootStorage;
             info.fastbootBlockDevice = QString::fromStdString(i.fastbootBlockDevice);
             info.fastbootStorageType = QString::fromStdString(i.fastbootStorageType);
+            info.guid = Unraid::deviceGuid(i); // UNRAID
             drivesToAdd.append(info);
         }
     }
@@ -265,8 +283,17 @@ void DriveListModel::processDriveList(std::vector<Drivelist::DeviceDescriptor> l
             info.mountpoints, info.childDevices,
             info.isRpiboot,
             info.isFastbootStorage, info.fastbootBlockDevice, info.fastbootStorageType,
+            info.guid, // UNRAID
             this);
         endInsertRows();
+
+        // UNRAID: seed from cache, then queue a check if we have not seen this GUID.
+        // This slot runs on the UI thread and the drive list is polled continuously,
+        // so validation must never block here.
+        if (!info.guid.isEmpty()) {
+            applyGuidStatus(info.key, info.guid, _guidValidator.cachedStatus(info.guid));
+            _guidValidator.requestValidation(info.guid);
+        }
 
         qDebug() << "Drive added:" << info.device;
     }
@@ -334,4 +361,28 @@ QStringList DriveListModel::getChildDevices(const QString &device) const
         }
     }
     return QStringList();
+}
+
+
+// UNRAID: push a validation verdict onto the matching DriveListItem and notify
+// the view. Status::Unknown means "not answered yet" (or the key server was
+// unreachable) and deliberately leaves the item unmarked rather than showing a
+// false warning on an offline machine.
+void DriveListModel::applyGuidStatus(const QString &key, const QString &guid,
+                                     Unraid::GuidValidator::Status status)
+{
+    _guidByKey.insert(key, guid);
+
+    auto it = _drivelist.find(key);
+    if (it == _drivelist.end() || !it.value()) {
+        return;
+    }
+
+    const bool checked = (status != Unraid::GuidValidator::Status::Unknown);
+    const bool valid = (status == Unraid::GuidValidator::Status::Valid);
+    it.value()->setGuidStatus(valid, checked);
+
+    const int row = static_cast<int>(std::distance(_drivelist.begin(), it));
+    const QModelIndex idx = index(row, 0);
+    emit dataChanged(idx, idx, {guidValidRole, guidCheckedRole});
 }

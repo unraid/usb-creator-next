@@ -15,9 +15,13 @@ import RpiImager
 WizardStepBase {
     id: root
     
-    title: qsTr("Customisation: Choose hostname")
+    title: qsTr("Customisation: %1").arg(BrandSteps.serverNameLabel) // UNRAID
+
+    // UNRAID: written to config/ident.cfg as NAME= and used as the server's
+    // network name; it is not a Raspberry Pi hostname.
+    readonly property string serverNameHelp: qsTr("The name this Unraid server appears as on your network. It should contain only letters, numbers, and hyphens.")
     showSkipButton: true
-    nextButtonAccessibleDescription: qsTr("Save hostname and continue to next customisation step")
+    nextButtonAccessibleDescription: qsTr("Save server name and continue to next customisation step") // UNRAID
     backButtonAccessibleDescription: qsTr("Return to previous step")
     skipButtonAccessibleDescription: qsTr("Skip all customisation and proceed directly to writing the image")
     
@@ -58,9 +62,9 @@ WizardStepBase {
                 ImTextField {
                     id: fieldHostname
                     Layout.fillWidth: true
-                    placeholderText: qsTr("Enter your hostname")
+                    placeholderText: qsTr("Enter your server name") // UNRAID
                     font.pointSize: Style.fontSizeInput
-                    Accessible.description: qsTr("A hostname is a unique name that identifies your Raspberry Pi on the network. It should contain only letters, numbers, and hyphens.")
+                    Accessible.description: root.serverNameHelp // UNRAID
                     
                     validator: RegularExpressionValidator {
                         regularExpression: /^[a-zA-Z0-9][a-zA-Z0-9-]{0,62}$/
@@ -70,7 +74,7 @@ WizardStepBase {
             
             WizardDescriptionText {
                 id: helpText
-                text: qsTr("A hostname is a unique name that identifies your Raspberry Pi on the network. It should contain only letters, numbers, and hyphens.")
+                text: root.serverNameHelp // UNRAID
             }
         }
     }

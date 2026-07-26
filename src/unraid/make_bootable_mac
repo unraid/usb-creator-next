@@ -1,0 +1,73 @@
+#!/bin/bash
+
+################################################################################
+#      This file is part of makebootable_mac used for the creation
+#	   of a bootable USB thumb drive that unRAID can be run from
+#      Copyright (C) 2009-2012 Kyle Hiltner (stephan@openelec.tv)
+#      Copyright (C) 2013 Lime Technology
+#
+#  This Program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2, or (at your option)
+#  any later version.
+#
+#  This Program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+#  GNU General Public License for more details.
+################################################################################
+
+VERSION="v1.3"
+
+echo "INFO: make_bootable_mac $VERSION"
+echo ""
+
+DISTRO=$(uname -s)
+if [ $DISTRO != "Darwin" ]; then
+	echo ""
+	echo "FAIL: This script is only for Mac OS X systems, aborting!"
+	echo ""
+	exit 1
+fi
+
+if [ $(diskutil list | grep UNRAID | wc -l) == 1 ]; then
+	TARGET=$(diskutil list | sed -En 's/.+UNRAID.+(disk[0-9]+)s1/\/dev\/\1/p')
+	if [ -n "$TARGET" ]; then
+		echo "INFO: The following drive appears to be the unRAID USB Flash drive: "
+		echo $TARGET;diskutil list | grep UNRAID | awk '{print " " $4$5}'
+		echo ""
+	else
+		echo "FAIL: There appears to a drive present with the label UNRAID"
+		echo "but it's not installed on the first partition"
+		echo ""
+		exit 1
+	fi
+else
+	echo "FAIL: There appears to be no drive present with the label UNRAID"
+	echo "Exiting since there is not a drive labeled UNRAID"
+	echo ""
+	exit 1
+fi
+
+while true; do
+	echo -n "Permit UEFI boot mode [Y/N]: "
+	read BOOT
+	case $BOOT in
+        [nN])
+		[[ -d /Volumes/UNRAID/EFI && ! -d /Volumes/UNRAID/EFI- ]] && mv /Volumes/UNRAID/EFI /Volumes/UNRAID/EFI-
+                break;
+        	;;
+	[yY])
+		[[ -d /Volumes/UNRAID/EFI- && ! -d /Volumes/UNRAID/EFI ]] && mv /Volumes/UNRAID/EFI- /Volumes/UNRAID/EFI
+                break;
+                ;;
+	*)
+		echo "Please answer Y or N"
+		;;
+      	esac
+done
+                                               
+mkdir -p /tmp/UNRAID/syslinux ; cp -rp /Volumes/UNRAID/syslinux/* /tmp/UNRAID/syslinux
+
+echo -n "To continue please enter your admin "
+sudo /tmp/UNRAID/syslinux/make_bootable_mac.sh $TARGET

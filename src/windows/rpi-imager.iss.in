@@ -1,10 +1,10 @@
-#define MyAppName "Raspberry Pi Imager"
+#define MyAppName "@IMAGER_APP_NAME@"
 #define MyAppVersion "@IMAGER_VERSION_STR@"
-#define MyAppPublisher "Raspberry Pi Ltd"
+#define MyAppPublisher "@IMAGER_VENDOR@"
 #define RaspberryPiSoftwareURL "https://www.raspberrypi.com/software"
 #define ImagerRepoRootURL "https://github.com/raspberrypi/rpi-imager"
 #define ImagerRepoIssuesURL "https://github.com/raspberrypi/rpi-imager/issues"
-#define MyAppExeName "rpi-imager.exe"
+#define MyAppExeName "@IMAGER_EXE_NAME@.exe"
 
 [Setup]
 AppId={{46C75BF3-E267-4834-AE1D-BEB77E05BFA1}
@@ -20,8 +20,8 @@ DefaultGroupName=Raspberry Pi
 AllowNoIcons=yes
 LicenseFile=@CMAKE_BINARY_DIR@\deploy\license.txt
 OutputDir=@CMAKE_BINARY_DIR@\installer
-OutputBaseFilename=imager-{#MyAppVersion}
-SetupIconFile=@CMAKE_SOURCE_DIR@\icons\rpi-imager.ico
+OutputBaseFilename=@IMAGER_EXE_NAME@-{#MyAppVersion}
+SetupIconFile=@IMAGER_ICON_ICO@
 Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern dynamic

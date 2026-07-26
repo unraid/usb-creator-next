@@ -125,10 +125,14 @@ endif()
 
 file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/deploy")
 
+# UNRAID: the shipped executable is renamed via OUTPUT_NAME so users see the
+# product name, while the CMake target stays upstream's. See PORTING.md.
+set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "${IMAGER_EXE_NAME}")
+
 add_custom_command(TARGET ${PROJECT_NAME}
     POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
-        "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.exe"
+        "${CMAKE_BINARY_DIR}/${IMAGER_EXE_NAME}.exe" # UNRAID
         "${CMAKE_SOURCE_DIR}/../license.txt"
         "${CMAKE_SOURCE_DIR}/windows/rpi-imager-cli.cmd"
         "${CMAKE_BINARY_DIR}/rpi-imager-callback-relay.exe"
@@ -136,7 +140,7 @@ add_custom_command(TARGET ${PROJECT_NAME}
 
 add_custom_command(TARGET ${PROJECT_NAME}
     POST_BUILD
-    COMMAND "${WINDEPLOYQT}" --no-translations --no-widgets --skip-plugin-types qmltooling --exclude-plugins qtiff,qwebp,qgif --no-quickcontrols2fusion --no-quickcontrols2fusionstyleimpl --no-quickcontrols2universal --no-quickcontrols2universalstyleimpl --no-quickcontrols2imagine --no-quickcontrols2imaginestyleimpl --no-quickcontrols2fluentwinui3styleimpl --no-quickcontrols2windowsstyleimpl --verbose 2 --qmldir "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_BINARY_DIR}/deploy/rpi-imager.exe")
+    COMMAND "${WINDEPLOYQT}" --no-translations --no-widgets --skip-plugin-types qmltooling --exclude-plugins qtiff,qwebp,qgif --no-quickcontrols2fusion --no-quickcontrols2fusionstyleimpl --no-quickcontrols2universal --no-quickcontrols2universalstyleimpl --no-quickcontrols2imagine --no-quickcontrols2imaginestyleimpl --no-quickcontrols2fluentwinui3styleimpl --no-quickcontrols2windowsstyleimpl --verbose 2 --qmldir "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_BINARY_DIR}/deploy/${IMAGER_EXE_NAME}.exe") # UNRAID
 
 # NSIS or Inno Setup configuration
 option(ENABLE_INNO_INSTALLER "Build Inno Setup installer instead of NSIS" OFF)
@@ -147,6 +151,13 @@ set(_installer_extra_vars "${CMAKE_CURRENT_BINARY_DIR}/installer_extra_vars.cmak
 file(WRITE "${_installer_extra_vars}"
     "set(CMAKE_BINARY_DIR \"${CMAKE_BINARY_DIR}\")\n"
     "set(CMAKE_SOURCE_DIR \"${CMAKE_SOURCE_DIR}\")\n"
+    # UNRAID: product identity for the installer templates. See PORTING.md.
+    "set(IMAGER_APP_NAME \"${IMAGER_APP_NAME}\")\n"
+    "set(IMAGER_EXE_NAME \"${IMAGER_EXE_NAME}\")\n"
+    "set(IMAGER_VENDOR \"${IMAGER_VENDOR}\")\n"
+    "set(IMAGER_BUNDLE_ID \"${IMAGER_BUNDLE_ID}\")\n"
+    "set(IMAGER_ICON_ICO \"${IMAGER_ICON_ICO}\")\n"
+    "set(IMAGER_HOMEPAGE \"${IMAGER_HOMEPAGE}\")\n"
 )
 
 if(ENABLE_INNO_INSTALLER)

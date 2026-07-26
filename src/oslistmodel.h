@@ -48,6 +48,11 @@ public:
         WebsiteRole,
         ArchitectureRole,
         PiConnectRole,
+        // UNRAID: an Unraid release is a zip of many files laid onto a FAT32
+        // volume, not a raw disk image. Without this role QML reads
+        // contains_multiple_files as undefined, ImageWriter takes the raw-image
+        // path, and the resulting stick is not bootable.
+        ContainsMultipleFilesRole,
     };
 
     struct OS {
@@ -72,6 +77,7 @@ public:
 
         bool random = false;
         bool enableRPiConnect = false;
+        bool containsMultipleFiles = false; // UNRAID
     };
 
     explicit OSListModel(ImageWriter &);

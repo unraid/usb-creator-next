@@ -14,6 +14,7 @@
 #include <QQmlEngine>
 #endif
 #include "drivelistitem.h"
+#include "unraid/unraid_guid.h" // UNRAID
 #include "drivelistmodelpollthread.h"
 
 class DriveListModel : public QAbstractListModel
@@ -83,7 +84,8 @@ public:
     enum driveListRoles {
         deviceRole = Qt::UserRole + 1, descriptionRole, sizeRole, isUsbRole, isScsiRole, isReadOnlyRole, isSystemRole, mountpointsRole, childDevicesRole,
         isRpibootRole,
-        isFastbootStorageRole, fastbootBlockDeviceRole, fastbootStorageTypeRole
+        isFastbootStorageRole, fastbootBlockDeviceRole, fastbootStorageTypeRole,
+        guidRole, guidValidRole, guidCheckedRole // UNRAID
     };
 
 signals:
@@ -120,6 +122,12 @@ protected:
     QMap<QString,DriveListItem *> _drivelist;
     QHash<int, QByteArray> _rolenames;
     DriveListModelPollThread _thread;
+
+    // UNRAID: async, per-GUID-cached key-server validation. Never blocks the UI
+    // thread (processDriveList runs there and is invoked on every poll).
+    Unraid::GuidValidator _guidValidator;
+    QHash<QString, QString> _guidByKey; // drive key -> GUID, for applying late results
+    void applyGuidStatus(const QString &key, const QString &guid, Unraid::GuidValidator::Status status);
     QString _lastError;  // Last enumeration error message (empty if successful)
     QStringList _connectedRpibootChips;
     // Tracks naked rpiboot devices we've already emitted rpibootDeviceDetected

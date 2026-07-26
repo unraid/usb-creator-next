@@ -1,0 +1,55 @@
+# One-click release: push a tag, get signed installers on a GitHub Release.
+#
+#   git tag v2.0.10-unraid.1 && git push origin v2.0.10-unraid.1
+#
+# The build itself is build.yml, called with signing enabled, so CI and release
+# never drift apart. Tags are also what `git describe` reports as the in-app
+# version, so the tag name is the version users see.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    uses: ./.github/workflows/build.yml
+    with:
+      signed: true
+    secrets: inherit
+
+  publish:
+    name: Publish release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Collect installers
+        run: |
+          mkdir -p release
+          # Artifacts land in per-job directories; flatten and drop the
+          # unversioned duplicate DMG the macOS build also produces.
+          find artifacts -type f \
+            \( -name '*.dmg' -o -name '*.exe' -o -name '*.AppImage' \) \
+            -print0 | while IFS= read -r -d '' f; do
+              cp "$f" release/
+          done
+          # Prefer the versioned DMG when both are present.
+          if ls release/*-v*.dmg >/dev/null 2>&1; then
+            find release -name '*.dmg' ! -name '*-v*.dmg' -delete
+          fi
+          ls -lh release/
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/*
+          generate_release_notes: true
+          # Pre-release for any tag carrying a suffix such as -rc.1 or -beta.2.
+          prerelease: ${{ contains(github.ref_name, '-rc') || contains(github.ref_name, '-beta') }}

@@ -1,0 +1,8 @@
+# UNRAID: preserve upstream line endings exactly as committed.
+#
+# A few upstream files (e.g. src/driveformatthread.h) are committed with CRLF.
+# If a tool silently normalises them to LF, every line shows as changed and the
+# file conflicts wholesale on the next upstream rebase — the exact churn
+# PORTING.md exists to prevent. Treating sources as binary-ish for EOL purposes
+# means git never rewrites endings on checkout or commit.
+* -text

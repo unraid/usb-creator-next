@@ -197,6 +197,14 @@ struct DeviceDescriptor {
     std::string devicePath;       ///< Full device path (Windows-specific)
     std::string parentDevice;     ///< Parent device path (for APFS volumes on macOS)
 
+    // UNRAID: USB identity. Unraid licences are bound to a GUID derived from the
+    // flash device's USB vendor id, product id and serial number, so these three
+    // fields must survive enumeration. They are only populated for USB devices;
+    // everything else leaves them empty. See src/unraid/unraid_guid.h.
+    std::string vid;              ///< USB idVendor, 4 uppercase hex digits
+    std::string pid;              ///< USB idProduct, 4 uppercase hex digits
+    std::string serialNumber;     ///< USB iSerialNumber, as reported by the device
+
     // Mount information
     std::vector<std::string> mountpoints;      ///< Filesystem mount paths
     std::vector<std::string> mountpointLabels; ///< Volume labels for each mountpoint

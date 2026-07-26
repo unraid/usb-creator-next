@@ -113,6 +113,10 @@ void DriveFormatThread::run()
     formatTimer.start();
     
     rpi_imager::DiskFormatter formatter;
+    // UNRAID: Unraid images must land on a volume labelled UNRAID.
+    if (!_volumeLabel.isEmpty()) {
+        formatter.SetVolumeLabel(_volumeLabel.toStdString());
+    }
     auto formatResult = formatter.FormatDrive(_device.toStdString());
 
     quint32 formatDurationMs = static_cast<quint32>(formatTimer.elapsed());

@@ -716,3 +716,35 @@ add_custom_target(test_device_io_limits
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     COMMENT "Running device I/O limits diagnostic"
 )
+
+# UNRAID: flash GUID derivation. Pins our algorithm against unraidd's
+# strncpy_guid() (regis.c) — a divergence here silently invalidates user licences.
+add_executable(unraid_guid_test
+    ${CMAKE_CURRENT_SOURCE_DIR}/../unraid/unraid_guid.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../unraid/unraid_guid_test.cpp
+)
+
+# GuidValidator is a QObject with signals, so this target needs moc.
+set_property(TARGET unraid_guid_test PROPERTY AUTOMOC ON)
+
+target_link_libraries(unraid_guid_test PRIVATE
+    Catch2::Catch2WithMain
+    Qt6::Core
+    Qt6::Network
+)
+
+target_include_directories(unraid_guid_test PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+    ${CMAKE_CURRENT_BINARY_DIR}/..
+)
+
+target_compile_features(unraid_guid_test PRIVATE cxx_std_20)
+
+catch_discover_tests(unraid_guid_test)
+
+add_custom_target(test_unraid_guid
+    COMMAND unraid_guid_test
+    DEPENDS unraid_guid_test
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    COMMENT "Running Unraid flash GUID derivation tests"
+)

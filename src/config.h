@@ -8,7 +8,7 @@
 
 
 /* Repository URL */
-#define OSLIST_URL                              "https://downloads.raspberrypi.com/os_list_imagingutility_v4.json"
+#define OSLIST_URL                              "https://releases.unraid.net/usb-creator" // UNRAID: Unraid release feed
 
 /* Custom repository manifest file extension (without leading dot) */
 #define MANIFEST_EXTENSION                      "rpi-imager-manifest"
@@ -20,7 +20,7 @@
 #define TIME_URL                                "http://downloads.raspberrypi.com/"
 
 /* Phone home the name of images downloaded for image popularity ranking */
-#define TELEMETRY_URL                           "https://rpi-imager-stats.raspberrypi.com/downloads"
+#define TELEMETRY_URL                           "" // UNRAID: telemetry disabled (see ENABLE_TELEMETRY=OFF)
 
 /* Hash algorithm for verifying (uncompressed image) checksum */
 #define OSLIST_HASH_ALGORITHM                   QCryptographicHash::Sha256
@@ -36,5 +36,8 @@
 
 /* Do not cache if it would bring free disk space under 5 GB */
 #define IMAGEWRITER_MINIMAL_SPACE_FOR_CACHING   5*1024*1024*1024ll
+
+/* UNRAID: key-server endpoint used to check a flash GUID is unique/not blacklisted */
+#define UNRAID_GUID_URL                         "https://keys.lime-technology.com/validate/guid"
 
 #endif // CONFIG_H

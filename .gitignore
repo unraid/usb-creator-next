@@ -54,3 +54,5 @@ test-cli-**
 
 # clangd related
 .cache/clangd
+# UNRAID: local build output
+/build/
