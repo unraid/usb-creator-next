@@ -20,8 +20,11 @@ on:
 
 env:
   BUILD_TYPE: MinSizeRel
-  # Upstream requires >= 6.9.
-  QT_VERSION: "6.9.1"
+  # Upstream requires >= 6.9, but 6.9.1's qmlcachegen segfaults compiling
+  # main.qml (verified: the same source builds clean under 6.11.1 locally, and
+  # crashes reproducibly on 6.9.1 in CI). Pinned to a version proven to work
+  # rather than the minimum.
+  QT_VERSION: "6.11.1"
 
 jobs:
   macos:
@@ -100,21 +103,23 @@ jobs:
         with:
           fetch-depth: 0
 
+      # qtdeclarative / qtsvg / qttools are archives of the desktop release, not
+      # add-on modules; passing them as `modules` fails with "packages were not
+      # found while parsing XML". MinGW comes from the same step so the two do
+      # not fight over the install directory.
       - name: Install Qt ${{ env.QT_VERSION }}
         uses: jurplel/install-qt-action@v4
         with:
           version: ${{ env.QT_VERSION }}
+          host: windows
+          target: desktop
           arch: win64_mingw
-          modules: qtdeclarative qtsvg qttools
-          cache: true
-
-      - name: Install MinGW
-        uses: jurplel/install-qt-action@v4
-        with:
-          version: ${{ env.QT_VERSION }}
-          arch: win64_mingw
+          archives: qtbase qtdeclarative qtsvg qttools
           tools: tools_mingw1310
           cache: true
+
+      - name: Put MinGW on PATH
+        run: echo "$IQTA_TOOLS/mingw1310_64/bin" >> "$GITHUB_PATH"
 
       - name: Configure
         run: |
@@ -147,7 +152,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            build-essential cmake libgnutls28-dev \
+            build-essential cmake libgnutls28-dev libudev-dev \
             libgl1-mesa-dev libfontconfig1-dev libfreetype-dev \
             libx11-dev libx11-xcb-dev libxcb-cursor-dev libxcb-glx0-dev \
             libxcb-icccm4-dev libxcb-image0-dev libxcb-keysyms1-dev \
