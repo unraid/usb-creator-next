@@ -25,6 +25,10 @@ env:
   # crashes reproducibly on 6.9.1 in CI). Pinned to a version proven to work
   # rather than the minimum.
   QT_VERSION: "6.11.1"
+  # Qt stopped shipping a win64_mingw build after 6.10, so Windows pins to the
+  # newest release that still has one. Using llvm-mingw or MSVC instead would be
+  # a larger change to upstream's Windows toolchain assumptions.
+  QT_VERSION_WINDOWS: "6.10.3"
 
 jobs:
   macos:
@@ -107,10 +111,10 @@ jobs:
       # add-on modules; passing them as `modules` fails with "packages were not
       # found while parsing XML". MinGW comes from the same step so the two do
       # not fight over the install directory.
-      - name: Install Qt ${{ env.QT_VERSION }}
+      - name: Install Qt ${{ env.QT_VERSION_WINDOWS }}
         uses: jurplel/install-qt-action@v4
         with:
-          version: ${{ env.QT_VERSION }}
+          version: ${{ env.QT_VERSION_WINDOWS }}
           host: windows
           target: desktop
           arch: win64_mingw
