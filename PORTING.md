@@ -146,11 +146,12 @@ cmake -S src -B build -DCMAKE_BUILD_TYPE=Debug \
   -DCMAKE_PREFIX_PATH=/opt/homebrew/opt/qt \
   -DCMAKE_OSX_ARCHITECTURES=arm64
 cmake --build build -j 8
-open build/unraid-usb-creator.app
+open "build/Unraid USB Creator.app"
 ```
 
-The bundle is named from `IMAGER_EXE_NAME`, so it is `unraid-usb-creator.app` even though the CMake
-target is still `rpi-imager`.
+The bundle is named from `IMAGER_APP_NAME`, so it is `Unraid USB Creator.app` even though the CMake
+target is still `rpi-imager`. Finder shows the .app directory name rather than `CFBundleName`, so it
+has to carry the spaces; Windows and Linux use `IMAGER_EXE_NAME` instead, where spaces are unwelcome.
 
 `CMAKE_OSX_ARCHITECTURES=arm64` is required: upstream defaults to a universal `arm64;x86_64` build,
 and Homebrew's Qt is single-architecture, so the universal link fails.
@@ -163,7 +164,7 @@ code path (FAT32 format → multi-file extract → `unraid_postwrite`) in second
 
 ```bash
 ./src/unraid/tools/make-dev-image.sh
-UNRAID_DEV_IMAGE=$PWD/build/unraid-dev-image.zip open build/unraid-usb-creator.app
+UNRAID_DEV_IMAGE=$PWD/build/unraid-dev-image.zip open "build/Unraid USB Creator.app"
 ```
 
 The entry only exists while the variable is set. The image is not bootable and must never reach a user.

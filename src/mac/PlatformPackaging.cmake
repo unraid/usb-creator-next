@@ -10,18 +10,24 @@ else()
 
     # Set all required bundle properties
     set(MACOSX_BUNDLE_BUNDLE_NAME "${APP_NAME}")
-    set(MACOSX_BUNDLE_EXECUTABLE_NAME "${IMAGER_EXE_NAME}")
+    # CFBundleExecutable has to match the executable actually inside the bundle,
+    # which OUTPUT_NAME below names after the display name.
+    set(MACOSX_BUNDLE_EXECUTABLE_NAME "${APP_NAME}")
     set(MACOSX_BUNDLE_GUI_IDENTIFIER "${IMAGER_BUNDLE_ID}")
     set(MACOSX_BUNDLE_ICON_FILE "AppIcon")
     set(MACOSX_BUNDLE_COPYRIGHT "${IMAGER_COPYRIGHT}")
 
-    # UNRAID: the on-disk executable is renamed via OUTPUT_NAME; the CMake target
-    # stays 'rpi-imager' so upstream references keep resolving.
+    # UNRAID: OUTPUT_NAME names the .app directory, and Finder shows that name
+    # rather than CFBundleName -- so it has to be the display name, spaces and
+    # all ("Unraid USB Creator.app"), which is the usual macOS convention. Using
+    # the slug here would put "unraid-usb-creator" in the user's Applications
+    # folder. Windows and Linux keep IMAGER_EXE_NAME, where spaces are unwelcome.
+    # The CMake target stays 'rpi-imager' so upstream references keep resolving.
     set_target_properties(${PROJECT_NAME} PROPERTIES
         MACOSX_BUNDLE YES
-        OUTPUT_NAME "${IMAGER_EXE_NAME}")
+        OUTPUT_NAME "${APP_NAME}")
 
-    set(APP_BUNDLE_PATH "${CMAKE_BINARY_DIR}/${IMAGER_EXE_NAME}.app")
+    set(APP_BUNDLE_PATH "${CMAKE_BINARY_DIR}/${APP_NAME}.app")
     set(DMG_PATH "${CMAKE_BINARY_DIR}/${APP_NAME}.dmg")
 
     # Extra (non-version) variables for Info.plist.in — the MACOSX_BUNDLE_*_VERSION
