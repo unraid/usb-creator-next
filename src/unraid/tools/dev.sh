@@ -45,7 +45,7 @@ build() {
 }
 
 app_binary() {
-    echo "$BUILD_DIR/unraid-usb-creator.app/Contents/MacOS/unraid-usb-creator"
+    echo "$BUILD_DIR/Unraid USB Creator.app/Contents/MacOS/Unraid USB Creator"
 }
 
 case "${1:-build}" in

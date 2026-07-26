@@ -9,7 +9,7 @@
 # The result is NOT bootable and must never be handed to a user.
 #
 #   ./src/unraid/tools/make-dev-image.sh
-#   UNRAID_DEV_IMAGE=$PWD/build/unraid-dev-image.zip open build/unraid-usb-creator.app
+#   UNRAID_DEV_IMAGE=$PWD/build/unraid-dev-image.zip open "build/Unraid USB Creator.app"
 #
 # The extra OS entry only appears while UNRAID_DEV_IMAGE is set.
 
@@ -64,4 +64,4 @@ mkdir -p "$(dirname "$out")"
 echo "Wrote $out ($(du -h "$out" | cut -f1))"
 echo
 echo "Use it with:"
-echo "  UNRAID_DEV_IMAGE=$out open build/unraid-usb-creator.app"
+echo "  UNRAID_DEV_IMAGE=$out open 'build/Unraid USB Creator.app'"
