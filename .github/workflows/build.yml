@@ -42,7 +42,9 @@ jobs:
 
       - name: Install Qt ${{ env.QT_VERSION }}
         run: |
-          brew install aqtinstall
+          # create-dmg is only used by the styled (signed) DMG path; the unsigned
+          # path uses hdiutil, which is why a local unsigned build never needs it.
+          brew install aqtinstall create-dmg
           aqt install-qt mac desktop "${QT_VERSION}" clang_64 \
             --archives qtbase qtdeclarative qtsvg qttools icu \
             --outputdir "$HOME/Qt"
