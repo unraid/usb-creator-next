@@ -71,8 +71,9 @@ Item {
     readonly property string noStorageSelected: qsTr("No storage selected")
     
     // --- Configuration status messages (without bullets) ---
-    readonly property string hostnameConfigured: qsTr("Hostname configured")
-    readonly property string userAccountConfigured: qsTr("User account configured")
+    // UNRAID: these two slots carry the server name and network addressing.
+    readonly property string hostnameConfigured: qsTr("Server name configured")
+    readonly property string userAccountConfigured: qsTr("Network configured")
     readonly property string sshEnabled: qsTr("SSH enabled")
     readonly property string localeConfigured: qsTr("Localisation configured")
     readonly property string wifiConfigured: qsTr("Wi‑Fi configured")

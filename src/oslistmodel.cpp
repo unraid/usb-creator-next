@@ -28,7 +28,11 @@ namespace {
         QStringLiteral("cloudinit"),
         QStringLiteral("cloudinit-rpi"),
         QStringLiteral("rpi-preseed"),
-        QStringLiteral("none")
+        QStringLiteral("none"),
+        // UNRAID: an Unraid release is a multi-file zip laid onto a FAT32 volume,
+        // customised by src/unraid/unraid_postwrite.cpp. Without this every entry
+        // in the Unraid feed is pruned here and the OS list comes up empty.
+        QStringLiteral("UNRAID")
     };
 
     // Validate init_format value and return true if valid
@@ -49,7 +53,7 @@ namespace {
                 QString name = entry["name"].toString();
                 qWarning() << "OSListModel: Pruning OS entry with invalid init_format '" 
                            << initFormat << "':" << name
-                           << "(valid values: '', 'systemd', 'cloudinit', 'cloudinit-rpi', 'rpi-preseed', 'none')";
+                            << "(valid values:" << VALID_INIT_FORMATS << ")"; // UNRAID: report the real set
                 continue;
             }
             
@@ -348,6 +352,7 @@ bool OSListModel::reload()
         os.website = obj["website"].toString();
         os.architecture = obj["architecture"].toString();
         os.enableRPiConnect = obj.value("enable_rpi_connect").toBool(false);
+        os.containsMultipleFiles = obj.value("contains_multiple_files").toBool(false); // UNRAID
 
         _osList.append(os);
     }
@@ -395,7 +400,8 @@ QHash<int, QByteArray> OSListModel::roleNames() const
         { TooltipRole, "tooltip" },
         { WebsiteRole, "website" },
         { ArchitectureRole, "architecture" },
-        { PiConnectRole, "enable_rpi_connect" }
+        { PiConnectRole, "enable_rpi_connect" },
+        { ContainsMultipleFilesRole, "contains_multiple_files" } // UNRAID
     };
 }
 
@@ -443,6 +449,8 @@ QVariant OSListModel::data(const QModelIndex &index, int role) const {
             return os.architecture;
         case PiConnectRole:
             return os.enableRPiConnect;
+        case ContainsMultipleFilesRole: // UNRAID
+            return os.containsMultipleFiles;
     }
 
     return {};

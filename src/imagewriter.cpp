@@ -4,11 +4,13 @@
  */
 
 #include "downloadextractthread.h"
+#include "unraid/unraid_postwrite.h" // UNRAID: kInitFormat
 #include "imagewriter.h"
 #include "imager_version.h"
 #include "writeprogresswatchdog.h"
 #include "embedded_config.h"
 #include "config.h"
+#include "branding.h" // UNRAID: IMAGER_APP_NAME
 #include "file_operations.h"
 #include "drivelistitem.h"
 #include "customization_generator.h"
@@ -1689,6 +1691,7 @@ void ImageWriter::startWrite()
     _thread->setUserAgent(CurlNetworkConfig::instance().userAgent());
     qDebug() << "startWrite: Passing to thread - initFormat:" << _initFormat << "cloudinit empty:" << _cloudinit.isEmpty() << "cloudinitNetwork empty:" << _cloudinitNetwork.isEmpty();
     _thread->setImageCustomisation(_config, _cmdline, _firstrun, _cloudinit, _cloudinitNetwork, _initFormat, _advancedOptions);
+    _thread->setUnraidSettings(_unraidSettings); // UNRAID
     
     // Pass debug options to the thread
     _thread->setDebugDirectIO(_debugDirectIO);
@@ -1735,6 +1738,12 @@ void ImageWriter::startWrite()
     {
         static_cast<DownloadExtractThread *>(_thread)->enableMultipleFileExtraction();
         DriveFormatThread *dft = new DriveFormatThread(_dst.toLatin1(), this);
+        // UNRAID: Unraid boots by locating the volume labelled UNRAID, and the
+        // bundled make_bootable scripts assume that label too.
+        if (_initFormat == QByteArray(Unraid::kInitFormat))
+        {
+            dft->setVolumeLabel(Unraid::kInitFormat);
+        }
         connect(dft, SIGNAL(success()), _thread, SLOT(start()));
         connect(dft, SIGNAL(error(QString)), SLOT(onError(QString)));
         connect(dft, SIGNAL(preparationStatusUpdate(QString)), SLOT(onPreparationStatusUpdate(QString)));
@@ -1964,6 +1973,12 @@ QString ImageWriter::staticVersion()
 QString ImageWriter::constantVersion() const
 {
     return staticVersion();
+}
+
+/* UNRAID: product display name, supplied by the branding layer. */
+QString ImageWriter::appName() const
+{
+    return QStringLiteral(IMAGER_APP_NAME);
 }
 
 /* Returns true if version argument is newer than current program */
@@ -2366,6 +2381,33 @@ QJsonDocument ImageWriter::getFilteredOSlistDocument() {
             {"icon", "../icons/use_custom.png"},
             {"url", "internal://custom"},
         }));
+
+    // UNRAID: developer-only shortcut. A real Unraid release is a ~1.1 GB download,
+    // which makes iterating on the write path painfully slow. Pointing
+    // UNRAID_DEV_IMAGE at a small zip (see src/unraid/tools/make-dev-image.sh)
+    // exercises the same code path -- FAT32 format, multi-file extract, then
+    // unraid_postwrite -- in a couple of seconds.
+    //
+    // Deliberately env-gated rather than build-gated so a release binary can be
+    // used for debugging, and it is inert unless the variable is set.
+    if (qEnvironmentVariableIsSet("UNRAID_DEV_IMAGE")) {
+        const QString devImage = qEnvironmentVariable("UNRAID_DEV_IMAGE");
+        const QUrl devUrl = devImage.startsWith(QLatin1String("http"))
+                                ? QUrl(devImage)
+                                : QUrl::fromLocalFile(devImage);
+        qInfo() << "UNRAID_DEV_IMAGE set, offering development image:" << devUrl.toString();
+
+        reference_os_list_array.prepend(QJsonObject({
+            {"name", QStringLiteral("Unraid (development image)")},
+            {"description", QStringLiteral("Local test image — not a real Unraid release")},
+            {"icon", "../icons/use_custom.png"},
+            {"url", devUrl.toString()},
+            {"init_format", QLatin1String(Unraid::kInitFormat)},
+            {"contains_multiple_files", true},
+            {"release_date", QStringLiteral("")},
+            {"image_download_size", QFileInfo(devImage).size()},
+        }));
+    }
 
     return QJsonDocument(
         QJsonObject({
@@ -3879,6 +3921,14 @@ void ImageWriter::applyCustomisationFromSettings(const QVariantMap &settings)
         return;
     }
 
+    // UNRAID: nothing to generate -- unraid_postwrite.cpp applies these to
+    // config/ident.cfg and config/network.cfg once the zip has been extracted.
+    if (_initFormat == QLatin1String(Unraid::kInitFormat)) {
+        _unraidSettings = settings;
+        setImageCustomisation(QByteArray(), QByteArray(), QByteArray(), QByteArray(), QByteArray(), NoAdvancedOptions);
+        return;
+    }
+
     // Make the selected OS release date available to the generator so it can
     // choose the right password hashing algorithm (yescrypt vs sha256crypt)
     // when hashing a freshly entered plaintext password at generation time.
@@ -4808,6 +4858,7 @@ void ImageWriter::_continueStartWriteAfterCacheVerification(bool cacheIsValid)
     _thread->setUserAgent(CurlNetworkConfig::instance().userAgent());
     qDebug() << "_continueStartWrite: Passing to thread - initFormat:" << _initFormat << "cloudinit empty:" << _cloudinit.isEmpty() << "cloudinitNetwork empty:" << _cloudinitNetwork.isEmpty();
     _thread->setImageCustomisation(_config, _cmdline, _firstrun, _cloudinit, _cloudinitNetwork, _initFormat, _advancedOptions);
+    _thread->setUnraidSettings(_unraidSettings); // UNRAID
     
     // Pass debug options to the thread
     _thread->setDebugDirectIO(_debugDirectIO);
@@ -4856,6 +4907,12 @@ void ImageWriter::_continueStartWriteAfterCacheVerification(bool cacheIsValid)
     {
         static_cast<DownloadExtractThread *>(_thread)->enableMultipleFileExtraction();
         DriveFormatThread *dft = new DriveFormatThread(_dst.toLatin1(), this);
+        // UNRAID: Unraid boots by locating the volume labelled UNRAID, and the
+        // bundled make_bootable scripts assume that label too.
+        if (_initFormat == QByteArray(Unraid::kInitFormat))
+        {
+            dft->setVolumeLabel(Unraid::kInitFormat);
+        }
         connect(dft, SIGNAL(success()), _thread, SLOT(start()));
         connect(dft, SIGNAL(error(QString)), SLOT(onError(QString)));
         connect(dft, SIGNAL(preparationStatusUpdate(QString)), SLOT(onPreparationStatusUpdate(QString)));

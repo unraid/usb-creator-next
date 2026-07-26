@@ -161,11 +161,18 @@ fi
 rm -f "$FINAL_DMG_PATH"
 rm -f "$DMG_BACKGROUND_PATH"
 
-# Generate background image fresh each time
-echo "Generating DMG background image..."
-"@CMAKE_CURRENT_SOURCE_DIR@/mac/generate_dmg_background.sh" "$DMG_BACKGROUND_PATH" "@IMAGER_VERSION_STR@" || {
-    echo "Warning: Failed to generate background image, proceeding without custom background"
-}
+# UNRAID: a brand may supply a ready-made background; otherwise fall back to
+# upstream's generator, which draws one from the version string.
+BRAND_BACKGROUND="@IMAGER_DMG_BACKGROUND@"
+if [ -n "$BRAND_BACKGROUND" ] && [ -f "$BRAND_BACKGROUND" ]; then
+    echo "Using brand DMG background: $BRAND_BACKGROUND"
+    cp "$BRAND_BACKGROUND" "$DMG_BACKGROUND_PATH"
+else
+    echo "Generating DMG background image..."
+    "@CMAKE_CURRENT_SOURCE_DIR@/mac/generate_dmg_background.sh" "$DMG_BACKGROUND_PATH" "@IMAGER_VERSION_STR@" || {
+        echo "Warning: Failed to generate background image, proceeding without custom background"
+    }
+fi
 
 # Create DMG using create-dmg
 echo "Creating DMG with create-dmg..."

@@ -145,6 +145,12 @@ class DiskFormatter {
   // Format a device with MBR partition table and FAT32 filesystem
   Result<void> FormatDrive(const std::string& device_path);
 
+  // UNRAID: Unraid boots by locating the volume labelled "UNRAID" (see unraidd
+  // regis.c, which reads /dev/disk/by-label/UNRAID), and the bundled
+  // make_bootable scripts assume the same. Callers writing an Unraid image must
+  // override the default "BOOT" label.
+  void SetVolumeLabel(const std::string& label) { volume_label_ = label; }
+
   // Format to a file for testing
   Result<void> FormatFile(
       const std::string& file_path,
@@ -156,6 +162,9 @@ class DiskFormatter {
   static constexpr std::uint8_t kFat32PartitionType = 0x0C;    // FAT32 LBA
 
   std::unique_ptr<FileOperations> file_ops_;
+
+  // UNRAID: overrides Fat32Config::volume_label when non-empty.
+  std::string volume_label_;
 
   // Convert FileError to FormatError
   FormatError ConvertError(FileError error) const;

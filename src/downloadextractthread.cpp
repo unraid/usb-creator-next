@@ -4,6 +4,7 @@
  */
 
 #include "downloadextractthread.h"
+#include "unraid/unraid_postwrite.h" // UNRAID: post-extract customisation
 #include "config.h"
 #include "platformquirks.h"
 #include "systemmemorymanager.h"
@@ -732,6 +733,22 @@ void DownloadExtractThread::extractMultiFileRun()
                 emit cacheFileHashUpdated(cacheFileHash, computedHash);
                 // Keep old signal for backward compatibility
                 emit cacheFileUpdated(computedHash);
+            }
+        }
+
+        // UNRAID: an Unraid release is a zip of files, not a disk image. Once the
+        // files are on the FAT32 volume the drive still needs its config files
+        // personalised and its boot sector installed. See src/unraid/.
+        if (_initFormat == QByteArray(Unraid::kInitFormat))
+        {
+            if (_cancelled)
+            {
+                return;
+            }
+            QString unraidError;
+            if (!Unraid::finalizeFlashDrive(folder, _unraidSettings, &unraidError))
+            {
+                throw runtime_error(unraidError.toStdString());
             }
         }
 

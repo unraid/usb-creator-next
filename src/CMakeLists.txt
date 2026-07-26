@@ -28,6 +28,10 @@ set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "Which macOS architectur
 
 project(rpi-imager LANGUAGES CXX C)
 
+# UNRAID: product identity (name/bundle id/icons) lives here so that the target,
+# QML URI and filenames can stay upstream. See PORTING.md.
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/UnraidBranding.cmake)
+
 find_package(Git QUIET)
 
 # Build-time version: re-runs `git describe` on every build so that dirty
@@ -238,7 +242,9 @@ set(SOURCES_BASE ${PLATFORM_SOURCES} "main.cpp"
     "driveformatthread.cpp" "localfileextractthread.cpp" "downloadstatstelemetry.cpp" "dependencies/sha256crypt/sha256crypt.c" "cli.cpp"
     "disk_formatter.cpp" "file_operations.cpp" "cachemanager.cpp" "systemmemorymanager.cpp" "imageadvancedoptions.cpp"
     "customization_generator.cpp" "platformhelper.cpp" "suspend_inhibitor.cpp" "secureboot.cpp" "asynccachewriter.cpp" "ringbuffer.cpp"
-    "performancestats.cpp" "curlnetworkconfig.cpp" "curlfetcher.cpp" "writeprogresswatchdog.cpp")
+    "performancestats.cpp" "curlnetworkconfig.cpp" "curlfetcher.cpp" "writeprogresswatchdog.cpp"
+    # UNRAID: additive Unraid layer (see PORTING.md)
+    "unraid/unraid_guid.cpp" "unraid/unraid_postwrite.cpp" "unraid/unraid.qrc")
 
 # Add GUI-specific sources only for non-CLI builds
 if(BUILD_CLI_ONLY)
@@ -492,10 +498,16 @@ if(NOT BUILD_CLI_ONLY)
         wizard/components/WizardFormLabel.qml
         wizard/components/WizardDescriptionText.qml
         wizard/components/SshKeyManager.qml
+        # UNRAID: additive brand layer (see PORTING.md)
+        unraid/wizard/BrandSteps.qml
+        unraid/wizard/UnraidNetworkStep.qml
+        unraid/wizard/UnraidWifiStep.qml
     )
 
     set_source_files_properties(Style.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
     set_source_files_properties(CommonStrings.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
+    # UNRAID
+    set_source_files_properties(unraid/wizard/BrandSteps.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 
     # C++ types exposed to QML
     set(IMAGER_QML_CPP_TYPES

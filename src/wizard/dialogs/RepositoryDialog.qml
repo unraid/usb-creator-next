@@ -92,8 +92,8 @@ BaseDialog {
 
             ImRadioButton {
                 id: radioOfficial
-                text: "Raspberry Pi (default)"
-                accessibleDescription: qsTr("Use the official Raspberry Pi operating system repository")
+                text: qsTr("%1 (default)").arg(ImageWriterSingleton.appName()) // UNRAID
+                accessibleDescription: qsTr("Use the official operating system repository") // UNRAID
                 checked: true
                 ButtonGroup.group: repoGroup
                 Layout.fillWidth: true  // Enable text wrapping for long translations

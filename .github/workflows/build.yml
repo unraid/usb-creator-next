@@ -1,0 +1,185 @@
+# Continuous integration: build all three platforms and publish unsigned
+# artifacts. Signing and release publication live in release.yml.
+#
+# The heavy lifting is done by upstream's own CMake targets (dmg,
+# inno_installer, create-appimage.sh) rather than reimplemented here, so this
+# file stays small and keeps working across upstream bumps.
+name: Build
+
+on:
+  push:
+    branches: ["main", "v2.0.10-rebase"]
+  pull_request:
+    branches: ["main", "v2.0.10-rebase"]
+  workflow_call:
+    inputs:
+      signed:
+        description: "Produce signed/notarised artifacts (requires secrets)"
+        type: boolean
+        default: false
+
+env:
+  BUILD_TYPE: MinSizeRel
+  # Upstream requires >= 6.9.
+  QT_VERSION: "6.9.1"
+
+jobs:
+  macos:
+    name: macOS DMG
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The version string comes from `git describe`, which needs history.
+          fetch-depth: 0
+
+      - name: Install Qt ${{ env.QT_VERSION }}
+        run: |
+          brew install aqtinstall
+          aqt install-qt mac desktop "${QT_VERSION}" clang_64 \
+            --archives qtbase qtdeclarative qtsvg qttools icu \
+            --outputdir "$HOME/Qt"
+
+      - name: Import signing certificate
+        if: inputs.signed
+        env:
+          APPLE_BUILD_CERTIFICATE_BASE64: ${{ secrets.APPLE_BUILD_CERTIFICATE_BASE64 }}
+          APPLE_BUILD_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_BUILD_CERTIFICATE_PASSWORD }}
+          APPLE_KEYCHAIN_PASSWORD: ${{ secrets.APPLE_KEYCHAIN_PASSWORD }}
+        run: |
+          chmod +x scripts/setup-keychain-mac.sh
+          ./scripts/setup-keychain-mac.sh
+
+      - name: Store notarisation credentials
+        if: inputs.signed
+        env:
+          APPLE_EMAIL_ADDRESS: ${{ secrets.APPLE_EMAIL_ADDRESS }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          # The DMG target notarises via a keychain profile rather than raw
+          # credentials, so stash them under a known profile name.
+          xcrun notarytool store-credentials "notarytool-password" \
+            --apple-id "$APPLE_EMAIL_ADDRESS" \
+            --password "$APPLE_APP_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID"
+
+      - name: Configure
+        env:
+          APPLE_SIGNING_KEY_ID: ${{ secrets.APPLE_SIGNING_KEY_ID }}
+        run: |
+          EXTRA=()
+          if [ "${{ inputs.signed }}" = "true" ]; then
+            EXTRA+=(-DIMAGER_SIGNED_APP=ON
+                    "-DIMAGER_SIGNING_IDENTITY=${APPLE_SIGNING_KEY_ID}"
+                    -DIMAGER_NOTARIZE_APP=ON
+                    -DIMAGER_NOTARIZE_KEYCHAIN_PROFILE=notarytool-password)
+          fi
+          cmake -S src -B build \
+            -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" \
+            -DCMAKE_PREFIX_PATH="$HOME/Qt/${QT_VERSION}/macos" \
+            "${EXTRA[@]}"
+
+      - name: Build DMG
+        run: cmake --build build --target dmg -j 3
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-dmg
+          path: build/*.dmg
+          if-no-files-found: error
+
+  windows:
+    name: Windows installer
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Qt ${{ env.QT_VERSION }}
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          arch: win64_mingw
+          modules: qtdeclarative qtsvg qttools
+          cache: true
+
+      - name: Install MinGW
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          arch: win64_mingw
+          tools: tools_mingw1310
+          cache: true
+
+      - name: Configure
+        run: |
+          cmake -S src -B build -G "MinGW Makefiles" \
+            -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" \
+            -DENABLE_INNO_INSTALLER=ON
+
+      - name: Build
+        run: cmake --build build -j 4
+
+      # Inno Setup ships on the windows-latest image.
+      - name: Build installer
+        run: cmake --build build --target inno_installer
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: build/installer/*.exe
+          if-no-files-found: error
+
+  linux:
+    name: Linux AppImage
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential cmake libgnutls28-dev \
+            libgl1-mesa-dev libfontconfig1-dev libfreetype-dev \
+            libx11-dev libx11-xcb-dev libxcb-cursor-dev libxcb-glx0-dev \
+            libxcb-icccm4-dev libxcb-image0-dev libxcb-keysyms1-dev \
+            libxcb-randr0-dev libxcb-render-util0-dev libxcb-shape0-dev \
+            libxcb-shm0-dev libxcb-sync-dev libxcb-util-dev \
+            libxcb-xfixes0-dev libxcb-xkb-dev libxcb1-dev libxext-dev \
+            libxfixes-dev libxi-dev libxkbcommon-dev libxkbcommon-x11-dev \
+            libxrender-dev fuse libfuse2
+
+      - name: Install Qt ${{ env.QT_VERSION }}
+        run: |
+          python3 -m pip install --user "aqtinstall>=3.2.2"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/aqt" install-qt linux desktop "${QT_VERSION}" linux_gcc_64 \
+            --archives qtbase qtdeclarative qtsvg qttools icu \
+            --outputdir "$HOME/Qt"
+
+      - name: Build AppImage
+        run: |
+          chmod +x ./create-appimage.sh
+          ./create-appimage.sh --qt-root="$HOME/Qt/${QT_VERSION}/gcc_64"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-appimage
+          path: "*.AppImage"
+          if-no-files-found: error
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-build-log
+          path: build.log
+          if-no-files-found: warn

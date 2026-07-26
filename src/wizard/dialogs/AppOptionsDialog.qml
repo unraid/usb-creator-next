@@ -73,13 +73,16 @@ BaseDialog {
             // Only include secure boot key button if visible
             if (secureBootKeyButton.visible)
                 items.push(secureBootKeyButton.focusItem)
-            items.push(chkConnectOrg.focusItem)
+            if (chkConnectOrg.visible) // UNRAID
+                items.push(chkConnectOrg.focusItem)
             items.push(clearSettingsButton.focusItem)
             // Telemetry pill (and its help link) sit at the bottom — see the
             // pill's own placement comment below.
-            items.push(chkTelemetry.focusItem)
-            if (chkTelemetry.helpLinkItem && chkTelemetry.helpLinkItem.visible)
-                items.push(chkTelemetry.helpLinkItem)
+            if (chkTelemetry.visible) { // UNRAID
+                items.push(chkTelemetry.focusItem)
+                if (chkTelemetry.helpLinkItem && chkTelemetry.helpLinkItem.visible)
+                    items.push(chkTelemetry.helpLinkItem)
+            }
             return items
         }, 1)
         registerFocusGroup("buttons", function(){ 
@@ -167,7 +170,7 @@ BaseDialog {
                 id: editRepoButton
                 text: qsTr("Content Repository")
                 btnText: qsTr("Edit")
-                accessibleDescription: qsTr("Change the source of operating system images between official Raspberry Pi repository and custom sources")
+                accessibleDescription: qsTr("Change the source of operating system images between the official repository and custom sources") // UNRAID
                 Layout.fillWidth: true
                 // Disable while write is in progress to prevent changing source during write
                 enabled: ImageWriterSingleton.writeState === ImageWriterSingleton.Idle ||
@@ -233,6 +236,7 @@ BaseDialog {
 
             ImOptionPill {
                 id: chkConnectOrg
+                visible: BrandSteps.connectForOrganisationsAvailable // UNRAID
                 text: qsTr("Raspberry Pi Connect for Organisations")
                 accessibleDescription: qsTr("Enable the organisation-level Raspberry Pi Connect registration flow. When active, the Connect wizard step collects an organisation API key and registers each provisioned device with Connect.")
                 helpLabel: ImageWriterSingleton.isEmbeddedMode() ? "" : qsTr("What is this?")
@@ -268,6 +272,7 @@ BaseDialog {
             // commonly-toggled options like Beep / Eject / Disable warnings.
             ImOptionPill {
                 id: chkTelemetry
+                visible: BrandSteps.telemetryAvailable // UNRAID
                 text: qsTr("Enable anonymous statistics (telemetry)")
                 accessibleDescription: qsTr("Send anonymous usage statistics to help improve Raspberry Pi Imager")
                 helpLabel: ImageWriterSingleton.isEmbeddedMode() ? "" : qsTr("What is this?")
@@ -325,7 +330,7 @@ BaseDialog {
             ImButtonRed {
                 id: saveButton
                 text: qsTr("Save")
-                accessibleDescription: qsTr("Save the selected options and apply them to Raspberry Pi Imager")
+                accessibleDescription: qsTr("Save the selected options and apply them to %1").arg(ImageWriterSingleton.appName()) // UNRAID
                 Layout.minimumWidth: Style.buttonWidthMinimum
                 activeFocusOnTab: true
                 onClicked: {
@@ -503,7 +508,7 @@ BaseDialog {
             font.family: Style.fontFamily
             color: Style.textDescriptionColor
             Layout.fillWidth: true
-            text: qsTr("If you disable warnings, Raspberry Pi Imager will <b>not show confirmation prompts before writing images</b>. You will still be required to <b>type the exact name</b> when selecting a system drive.")
+            text: qsTr("If you disable warnings, %1 will <b>not show confirmation prompts before writing images</b>. You will still be required to <b>type the exact name</b> when selecting a system drive.").arg(ImageWriterSingleton.appName()) // UNRAID
             Accessible.name: text.replace(/<[^>]+>/g, '')  // Strip HTML tags for accessibility
         }
 

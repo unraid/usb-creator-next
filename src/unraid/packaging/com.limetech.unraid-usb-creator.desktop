@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Version=1.5
+Name=Unraid USB Creator
+Comment=Tool for writing Unraid to a USB flash drive
+Icon=unraid-usb-creator
+Exec=/usr/bin/unraid-usb-creator %u
+Categories=Utility;
+StartupNotify=false
+MimeType=x-scheme-handler/unraid-usb-creator;

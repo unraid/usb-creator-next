@@ -14,20 +14,20 @@ endif()
 
 # Generate metainfo.xml at build time so version stays in sync with the binary
 add_custom_command(
-    OUTPUT "${CMAKE_CURRENT_LIST_DIR}/../../debian/com.raspberrypi.rpi-imager.metainfo.xml"
+    OUTPUT "${IMAGER_METAINFO_OUT}"
     COMMAND ${CMAKE_COMMAND}
         -DVERSION_VARS_FILE=${IMAGER_VERSION_VARS}
-        -DINPUT=${CMAKE_CURRENT_LIST_DIR}/../../debian/com.raspberrypi.rpi-imager.metainfo.xml.in
-        -DOUTPUT=${CMAKE_CURRENT_LIST_DIR}/../../debian/com.raspberrypi.rpi-imager.metainfo.xml
+        -DINPUT=${IMAGER_METAINFO_IN}
+        -DOUTPUT=${IMAGER_METAINFO_OUT}
         -P ${CONFIGURE_VERSIONED_SCRIPT}
     DEPENDS
         ${IMAGER_VERSION_VARS}
-        ${CMAKE_CURRENT_LIST_DIR}/../../debian/com.raspberrypi.rpi-imager.metainfo.xml.in
+        ${IMAGER_METAINFO_IN}
     COMMENT "Configuring metainfo.xml with build-time version"
     VERBATIM
 )
 add_custom_target(generate_metainfo
-    DEPENDS "${CMAKE_CURRENT_LIST_DIR}/../../debian/com.raspberrypi.rpi-imager.metainfo.xml")
+    DEPENDS "${IMAGER_METAINFO_OUT}")
 add_dependencies(generate_metainfo generate_version)
 add_dependencies(${PROJECT_NAME} generate_metainfo)
 
@@ -40,9 +40,13 @@ if(BUILD_CLI_ONLY)
     install(FILES "${CMAKE_CURRENT_LIST_DIR}/../../debian/com.raspberrypi.rpi-imager-cli.desktop" DESTINATION share/applications)
 else()
     # GUI build: install full desktop integration
-    install(FILES "${CMAKE_CURRENT_LIST_DIR}/icon/rpi-imager.svg" DESTINATION share/icons/hicolor/scalable/apps)
-    install(FILES "${CMAKE_CURRENT_LIST_DIR}/../../debian/com.raspberrypi.rpi-imager.desktop" DESTINATION share/applications)
-    install(FILES "${CMAKE_CURRENT_LIST_DIR}/../../debian/com.raspberrypi.rpi-imager.metainfo.xml" DESTINATION share/metainfo)
+    # UNRAID: icon and desktop entry come from the branding layer. The installed
+    # basenames must match Icon= / the executable name in the desktop file, and
+    # linuxdeploy derives the AppImage name from its Name= field.
+    install(FILES "${IMAGER_ICON_SVG}" DESTINATION share/icons/hicolor/scalable/apps
+            RENAME "${IMAGER_EXE_NAME}.svg")
+    install(FILES "${IMAGER_DESKTOP_FILE}" DESTINATION share/applications)
+    install(FILES "${IMAGER_METAINFO_OUT}" DESTINATION share/metainfo)
 endif()
 
 

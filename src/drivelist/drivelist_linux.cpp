@@ -19,6 +19,8 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QDebug>
+#include <QDir>  // UNRAID: sysfs walk for USB vid/pid/serial
+#include <QFile> // UNRAID: sysfs attribute reads
 
 namespace Drivelist {
 
@@ -27,6 +29,56 @@ namespace {
 // Maximum recursion depth for walking device children
 // Prevents stack overflow from malformed or malicious lsblk output
 constexpr int MAX_CHILD_RECURSION_DEPTH = 10;
+
+// UNRAID: Unraid licences are bound to a GUID built from the flash device's USB
+// vendor id, product id and serial number. lsblk does not report vid/pid, so we
+// read them from sysfs the same way udev's `usb_id` builtin does — which is what
+// unraidd itself shells out to (see unraidd regis.c get_flash_info). Walking up
+// from /sys/block/<name> to the first ancestor carrying idVendor/idProduct/serial
+// lands on the USB device node and yields byte-identical values.
+void populateUsbIdentity(DeviceDescriptor* device)
+{
+    // device->device is a full path such as "/dev/sda"; sysfs wants the leaf name.
+    QString leaf = QString::fromStdString(device->device).section('/', -1);
+    if (leaf.isEmpty()) {
+        return;
+    }
+
+    QDir dir(QStringLiteral("/sys/block/") + leaf);
+    if (!dir.exists()) {
+        return;
+    }
+    // Resolve the symlink into the real /sys/devices/... hierarchy.
+    QString path = dir.canonicalPath();
+    if (path.isEmpty()) {
+        return;
+    }
+
+    auto readAttr = [](const QString &dirPath, const char *name) -> QString {
+        QFile f(dirPath + QLatin1Char('/') + QLatin1String(name));
+        if (!f.open(QIODevice::ReadOnly)) {
+            return {};
+        }
+        return QString::fromUtf8(f.readAll()).trimmed();
+    };
+
+    // Bounded walk up the device tree looking for the USB device node.
+    QDir walker(path);
+    for (int depth = 0; depth < 12; ++depth) {
+        const QString here = walker.absolutePath();
+        const QString vid = readAttr(here, "idVendor");
+        const QString pid = readAttr(here, "idProduct");
+        if (!vid.isEmpty() && !pid.isEmpty()) {
+            device->vid = vid.toUpper().toStdString();
+            device->pid = pid.toUpper().toStdString();
+            device->serialNumber = readAttr(here, "serial").toStdString();
+            return;
+        }
+        if (here == QLatin1String("/") || !walker.cdUp()) {
+            return;
+        }
+    }
+}
 
 /**
  * @brief Walk device children to collect mountpoints and labels
@@ -132,6 +184,11 @@ std::optional<DeviceDescriptor> parseBlockDevice(const QJsonObject& bdev, bool e
     // media is removable. USB devices are always removable.
     if (device.isCard || device.isUSB) {
         device.isRemovable = true;
+    }
+
+    // UNRAID: recover USB vid/pid/serial for GUID derivation (see unraid_guid.h).
+    if (device.isUSB) {
+        populateUsbIdentity(&device);
     }
 
     // System drive: non-removable and non-virtual

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+  UNRAID: AppStream metadata for software centres.
+
+  Ported from the pre-2.0 fork, with three corrections: the screenshots pointed
+  at downloads.raspberrypi.org, <binary> named a executable ("unraid-imager")
+  that has never existed, and the version was hardcoded. The version now comes
+  from the build via @IMAGER_VERSION_STR@, matching how upstream generates its
+  own metainfo. Screenshots are omitted rather than left pointing at the wrong
+  product; add them back once they are hosted somewhere durable.
+-->
+<component type="desktop-application">
+  <id>com.limetech.unraid-usb-creator</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>Apache-2.0</project_license>
+  <name>Unraid USB Creator</name>
+  <summary>Write Unraid to a USB flash drive</summary>
+  <developer id="net.unraid">
+    <name>Lime Technology, Inc.</name>
+  </developer>
+  <description>
+    <p>
+      Unraid USB Creator fetches the current list of Unraid releases from the
+      Unraid website, so you are always offered an up-to-date version.
+    </p>
+    <p>
+      Once you have chosen a release, the utility reads it directly from the
+      Unraid website and writes it straight to the USB flash drive. That is
+      considerably faster than downloading to disk and then writing from disk as
+      a separate step.
+    </p>
+    <p>
+      The downloaded release is also cached locally, so preparing additional
+      flash drives does not download it again.
+    </p>
+    <p>
+      An Unraid licence is tied to the flash drive it was issued against, so the
+      utility shows each drive's GUID and whether it is eligible before writing.
+    </p>
+  </description>
+  <launchable type="desktop-id">com.limetech.unraid-usb-creator.desktop</launchable>
+  <url type="homepage">https://unraid.net</url>
+  <url type="bugtracker">https://github.com/unraid/usb-creator-next/issues</url>
+  <provides>
+    <binary>unraid-usb-creator</binary>
+  </provides>
+  <releases>
+    <release version="@IMAGER_VERSION_STR@" />
+  </releases>
+  <content_rating type="oars-1.1" />
+</component>

@@ -1,0 +1,25 @@
+<!DOCTYPE RCC>
+<!--
+  UNRAID: boot payload restored onto the flash drive after extraction when a
+  release zip does not carry its own copy. See src/unraid/unraid_postwrite.cpp.
+-->
+<RCC version="1.0">
+    <qresource prefix="/unraid">
+        <file>syslinux/ldlinux.c32</file>
+        <file>syslinux/libcom32.c32</file>
+        <file>syslinux/libutil.c32</file>
+        <file>syslinux/make_bootable_linux.sh</file>
+        <file>syslinux/make_bootable_mac.sh</file>
+        <file>syslinux/mboot.c32</file>
+        <file>syslinux/mbr.bin</file>
+        <file>syslinux/menu.c32</file>
+        <file>syslinux/syslinux</file>
+        <file>syslinux/syslinux_linux</file>
+        <file>syslinux/syslinux.cfg</file>
+        <file>syslinux/syslinux.cfg-</file>
+        <file>syslinux/syslinux.exe</file>
+        <file>make_bootable_linux</file>
+        <file>make_bootable_mac</file>
+        <file>make_bootable.bat</file>
+    </qresource>
+</RCC>

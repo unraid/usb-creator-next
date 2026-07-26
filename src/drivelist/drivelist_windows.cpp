@@ -454,6 +454,73 @@ std::string busTypeToString(STORAGE_BUS_TYPE busType)
     }
 }
 
+// UNRAID: Unraid licences are bound to a GUID built from the flash device's USB
+// vendor id, product id and serial number.
+//
+// The disk devnode (USBSTOR\...) does not carry vid/pid, but its *parent* is the
+// USB devnode, whose instance id has the form:
+//
+//     USB\VID_0781&PID_5583\4C530001120904115535
+//
+// Walking to the parent with CM_Get_Parent is deterministic. The previous fork
+// instead enumerated every USB device and regex-correlated on serial substrings,
+// which silently produced no GUID whenever two devices shared a serial fragment.
+void populateUsbIdentity(DEVINST diskDevInst, DeviceDescriptor* device)
+{
+    DEVINST usbDevInst = 0;
+    if (CM_Get_Parent(&usbDevInst, diskDevInst, 0) != CR_SUCCESS) {
+        return;
+    }
+
+    // The disk's immediate parent is usually the USB device, but on UAS/hub
+    // topologies it can sit a level or two higher. Walk up a bounded number of
+    // levels until we find an instance id we can parse.
+    for (int depth = 0; depth < 4; ++depth) {
+        WCHAR idBuf[MAX_DEVICE_ID_LEN] = {};
+        if (CM_Get_Device_IDW(usbDevInst, idBuf, MAX_DEVICE_ID_LEN, 0) != CR_SUCCESS) {
+            return;
+        }
+
+        const std::wstring id(idBuf);
+        const size_t vidPos = id.find(L"VID_");
+        const size_t pidPos = id.find(L"PID_");
+        const size_t lastSep = id.rfind(L'\\');
+
+        if (vidPos != std::wstring::npos && pidPos != std::wstring::npos &&
+            id.compare(0, 4, L"USB\\") == 0 && lastSep != std::wstring::npos &&
+            vidPos + 8 <= id.size() && pidPos + 8 <= id.size()) {
+
+            const std::wstring wvid = id.substr(vidPos + 4, 4);
+            const std::wstring wpid = id.substr(pidPos + 4, 4);
+            const std::wstring wsn = id.substr(lastSep + 1);
+
+            device->vid = wcharToUtf8(wvid.c_str());
+            device->pid = wcharToUtf8(wpid.c_str());
+
+            // Windows appends "&0"-style interface suffixes to the instance id for
+            // multi-interface devices; the USB serial is the part before it.
+            std::string sn = wcharToUtf8(wsn.c_str());
+            const size_t amp = sn.find('&');
+            if (amp != std::string::npos) {
+                sn.erase(amp);
+            }
+            device->serialNumber = sn;
+
+            std::transform(device->vid.begin(), device->vid.end(), device->vid.begin(),
+                           [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
+            std::transform(device->pid.begin(), device->pid.end(), device->pid.begin(),
+                           [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
+            return;
+        }
+
+        DEVINST parent = 0;
+        if (CM_Get_Parent(&parent, usbDevInst, 0) != CR_SUCCESS) {
+            return;
+        }
+        usbDevInst = parent;
+    }
+}
+
 /**
  * @brief Get adapter info including bus type
  */
@@ -1010,6 +1077,11 @@ std::vector<DeviceDescriptor> ListStorageDevices()
         // also correctly protects a Windows-To-Go USB stick you booted from.
         if (device.deviceNumber >= 0 && systemDisks.count(device.deviceNumber) > 0) {
             device.isSystem = true;
+        }
+
+        // UNRAID: recover USB vid/pid/serial for GUID derivation (see unraid_guid.h).
+        if (device.isUSB) {
+            populateUsbIdentity(deviceInfoData.DevInst, &device);
         }
 
         deviceList.push_back(std::move(device));

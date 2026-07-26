@@ -20,6 +20,18 @@ ApplicationWindow {
     id: window
     visible: true
 
+    // UNRAID: the app renders with the Material style, and Material-drawn controls
+    // (TextField underlines, cursors, ripples) use Material's own palette rather
+    // than Style.qml. Without this they fall back to Material's stock light theme
+    // and pink accent, which shows up as pink borders on a dark background.
+    // Setting it once on the window inherits to every control, so individual
+    // components do not each have to remember to set Material.accent.
+    Material.theme: Material.Dark
+    Material.accent: Style.raspberryRed
+    Material.primary: Style.raspberryRed
+    Material.background: Style.mainBackgroundColor
+    Material.foreground: Style.formLabelColor
+
     // Whether to show the landing Language Selection step (set from C++)
     property bool showLanguageSelection: false
     // Wizard manages drive list and selection state
@@ -39,7 +51,7 @@ ApplicationWindow {
     property bool isOffline: ImageWriterSingleton.isOsListUnavailable
     
     title: {
-        var baseTitle = qsTr("Raspberry Pi Imager %1").arg(ImageWriterSingleton.constantVersion())
+        var baseTitle = qsTr("%1 %2").arg(ImageWriterSingleton.appName()).arg(ImageWriterSingleton.constantVersion())
         if (isOffline) {
             baseTitle += " — " + qsTr("Offline")
         }
@@ -301,7 +313,7 @@ ApplicationWindow {
 
         FocusableText {
             id: quitMessage
-            text: qsTr("Raspberry Pi Imager is still busy. Are you sure you want to quit?")
+            text: qsTr("%1 is still busy. Are you sure you want to quit?").arg(ImageWriterSingleton.appName())
             font.pointSize: Style.fontSizeDescription
             font.family: Style.fontFamily
             color: Style.textDescriptionColor
@@ -319,14 +331,14 @@ ApplicationWindow {
             ImButton {
                 id: quitNoButton
                 text: CommonStrings.no
-                accessibleDescription: qsTr("Return to Raspberry Pi Imager and continue the current operation")
+                accessibleDescription: qsTr("Return to %1 and continue the current operation").arg(ImageWriterSingleton.appName())
                 activeFocusOnTab: true
                 onClicked: quitDialog.close()
             }
             ImButtonRed {
                 id: quitYesButton
                 text: CommonStrings.yes
-                accessibleDescription: qsTr("Force quit Raspberry Pi Imager and cancel the current write operation")
+                accessibleDescription: qsTr("Force quit %1 and cancel the current write operation").arg(ImageWriterSingleton.appName())
                 activeFocusOnTab: true
                 onClicked: {
                     window.forceQuit = true;
@@ -425,7 +437,7 @@ ApplicationWindow {
             ImButton {
                 id: installAuthButton
                 text: qsTr("Install Authorization")
-                accessibleDescription: qsTr("Install system authorization to allow Raspberry Pi Imager to run with elevated privileges")
+                accessibleDescription: qsTr("Install system authorization to allow %1 to run with elevated privileges").arg(ImageWriterSingleton.appName())
                 activeFocusOnTab: true
                 visible: ImageWriterSingleton && ImageWriterSingleton.isElevatableBundle()
                 // Make button wide enough to fit the text, with sensible bounds
@@ -443,7 +455,7 @@ ApplicationWindow {
             ImButtonRed {
                 id: exitButton
                 text: qsTr("Exit")
-                accessibleDescription: qsTr("Exit Raspberry Pi Imager - you must restart with elevated privileges to write images")
+                accessibleDescription: qsTr("Exit %1 - you must restart with elevated privileges to write images").arg(ImageWriterSingleton.appName())
                 activeFocusOnTab: true
                 onClicked: Qt.quit()
             }

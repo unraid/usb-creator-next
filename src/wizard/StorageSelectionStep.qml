@@ -338,7 +338,17 @@ WizardStepBase {
             property bool isFastbootStorage: modelData && typeof modelData.isFastbootStorage !== "undefined" ? modelData.isFastbootStorage : false
             property string fastbootStorageType: modelData && typeof modelData.fastbootStorageType !== "undefined" ? modelData.fastbootStorageType : ""
 
-            readonly property bool shouldHide: isSystem && filterSystemDrives.checked
+            // UNRAID: flash GUID an Unraid licence binds to. guidChecked stays false
+            // until the key server answers, so an offline machine shows no verdict
+            // rather than falsely flagging a good stick.
+            property string guid: modelData && typeof modelData.guid !== "undefined" ? modelData.guid : ""
+            property bool guidValid: modelData && typeof modelData.guidValid !== "undefined" ? modelData.guidValid : false
+            property bool guidChecked: modelData && typeof modelData.guidChecked !== "undefined" ? modelData.guidChecked : false
+
+            // UNRAID: Unraid only boots from USB flash — a licence GUID cannot be
+            // derived from any other medium — so non-USB targets are hidden.
+            readonly property bool shouldHide: (isSystem && filterSystemDrives.checked)
+                                               || (BrandSteps.usbOnlyStorage && !isUsb)
             readonly property bool unselectable: isReadOnly && !isRpiboot && !isFastbootStorage
             
             // Accessibility properties
@@ -355,7 +365,13 @@ WizardStepBase {
             }
             
             width: dstlist.width
-            height: shouldHide ? 0 : Style.scaled(80)
+            // UNRAID: the GUID line, and the already-registered note under it, are extra
+            // rows in the text column, so the row grows to fit whichever are shown. The
+            // note wraps to two lines at the default window width.
+            height: shouldHide ? 0
+                  : Style.scaled(guid === "" ? 80
+                               : (guidChecked && !guidValid) ? 124
+                               : 96)
             visible: !shouldHide
             
             Rectangle {
@@ -452,13 +468,47 @@ WizardStepBase {
                         }
                         
                         MarqueeText {
-                            text: dstitem.mountpoints.length > 0 ? 
+                            text: dstitem.mountpoints.length > 0 ?
                                   qsTr("Mounted as %1").arg(dstitem.mountpoints.join(", ")) : ""
                             font.pointSize: Style.fontSizeSmall
                             font.family: Style.fontFamily
                             color: dstitem.unselectable ? Style.formLabelDisabledColor : Style.textMetadataColor
                             Layout.fillWidth: true
                             visible: dstitem.mountpoints.length > 0
+                            Accessible.ignored: true
+                        }
+
+                        // UNRAID: an Unraid licence is bound to this GUID, so show it on the
+                        // drive the user is about to write. The key-server verdict is only
+                        // rendered once it has actually arrived (guidChecked) — an offline
+                        // machine shows the GUID with no verdict rather than a false warning.
+                        Text {
+                            text: qsTr("GUID: %1").arg(dstitem.guid)
+                            font.pointSize: Style.fontSizeSmall
+                            font.family: Style.fontFamily
+                            color: dstitem.unselectable ? Style.formLabelDisabledColor : Style.textMetadataColor
+                            Layout.fillWidth: true
+                            elide: Text.ElideRight
+                            visible: dstitem.guid !== ""
+                            Accessible.ignored: true
+                        }
+
+                        // Its own row, so the GUID above stays readable rather than
+                        // both being elided into one line.
+                        //
+                        // A rejection from the key server means this GUID is already
+                        // registered or is one the vendor reuses across many drives --
+                        // not that the drive is unusable. It can still be written to and
+                        // booted, and the server may still be licensable by TPM, so this
+                        // is worded as information rather than a blocker.
+                        Text {
+                            text: qsTr("GUID already registered — you may still be able to license this server using TPM")
+                            font.pointSize: Style.fontSizeSmall
+                            font.family: Style.fontFamily
+                            color: Style.textMetadataColor
+                            Layout.fillWidth: true
+                            wrapMode: Text.WordWrap
+                            visible: dstitem.guid !== "" && dstitem.guidChecked && !dstitem.guidValid
                             Accessible.ignored: true
                         }
                     }
@@ -583,13 +633,18 @@ WizardStepBase {
         
         var isReadOnlyRole = 0x106
         var isSystemRole = 0x107
-        
+        var isUsbRole = 0x104 // UNRAID
+
         var idx = model.index(index, 0)
         var isReadOnly = model.data(idx, isReadOnlyRole)
         var isSystem = model.data(idx, isSystemRole)
-        
+        var isUsb = model.data(idx, isUsbRole) // UNRAID
+
         // Item is selectable if it's not read-only and either not a system drive or filter is off
-        var shouldHide = isSystem && filterSystemDrives.checked
+        // UNRAID: must mirror the delegate's shouldHide, or keyboard navigation can
+        // land on a row that is not rendered.
+        var shouldHide = (isSystem && filterSystemDrives.checked)
+                         || (BrandSteps.usbOnlyStorage && !isUsb)
         return !isReadOnly && !shouldHide
     }
     

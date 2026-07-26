@@ -12,6 +12,7 @@
 
 #include <QString>
 #include <QThread>
+#include <QVariantMap> // UNRAID
 #include <QFile>
 #include <QElapsedTimer>
 #include <QFuture>
@@ -124,6 +125,13 @@ public:
      * Enable image customization
      */
     void setImageCustomisation(const QByteArray &config, const QByteArray &cmdline, const QByteArray &firstrun, const QByteArray &cloudinit, const QByteArray &cloudinitNetwork, const QByteArray &initFormat, const ImageOptions::AdvancedOptions opts);
+
+    /*
+     * UNRAID: wizard customisation values for Unraid images (server name,
+     * addressing). Kept as a separate setter rather than widening
+     * setImageCustomisation() so the upstream signature stays untouched.
+     */
+    void setUnraidSettings(const QVariantMap &settings) { _unraidSettings = settings; }
 
     /*
      * Debug options (set before starting the thread)
@@ -274,6 +282,7 @@ protected:
     qint64 _sectorsStart;
     QByteArray _url, _useragent, _buf, _filename, _lastError, _expectedHash, _config, _cmdline, _firstrun, _cloudinit, _cloudinitNetwork, _initFormat;
     ImageOptions::AdvancedOptions _advancedOptions;
+    QVariantMap _unraidSettings; // UNRAID
     char *_firstBlock;
     size_t _firstBlockSize;
     static QByteArray _proxy;

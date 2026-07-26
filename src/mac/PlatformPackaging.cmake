@@ -5,20 +5,23 @@ if(BUILD_CLI_ONLY)
     message(STATUS "Building CLI-only version for macOS")
 else()
     # GUI build: create app bundle
-    # Set application name with proper spacing
-    set(APP_NAME "Raspberry Pi Imager")
+    # UNRAID: product identity comes from cmake/UnraidBranding.cmake, not literals.
+    set(APP_NAME "${IMAGER_APP_NAME}")
 
     # Set all required bundle properties
     set(MACOSX_BUNDLE_BUNDLE_NAME "${APP_NAME}")
-    set(MACOSX_BUNDLE_EXECUTABLE_NAME "${PROJECT_NAME}")
-    set(MACOSX_BUNDLE_GUI_IDENTIFIER "com.raspberrypi.rpi-imager")
+    set(MACOSX_BUNDLE_EXECUTABLE_NAME "${IMAGER_EXE_NAME}")
+    set(MACOSX_BUNDLE_GUI_IDENTIFIER "${IMAGER_BUNDLE_ID}")
     set(MACOSX_BUNDLE_ICON_FILE "AppIcon")
-    string(TIMESTAMP CURRENT_YEAR "%Y")
-    set(MACOSX_BUNDLE_COPYRIGHT "Copyright © 2020-${CURRENT_YEAR} Raspberry Pi Ltd")
+    set(MACOSX_BUNDLE_COPYRIGHT "${IMAGER_COPYRIGHT}")
 
-    set_target_properties(${PROJECT_NAME} PROPERTIES MACOSX_BUNDLE YES)
+    # UNRAID: the on-disk executable is renamed via OUTPUT_NAME; the CMake target
+    # stays 'rpi-imager' so upstream references keep resolving.
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        MACOSX_BUNDLE YES
+        OUTPUT_NAME "${IMAGER_EXE_NAME}")
 
-    set(APP_BUNDLE_PATH "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.app")
+    set(APP_BUNDLE_PATH "${CMAKE_BINARY_DIR}/${IMAGER_EXE_NAME}.app")
     set(DMG_PATH "${CMAKE_BINARY_DIR}/${APP_NAME}.dmg")
 
     # Extra (non-version) variables for Info.plist.in — the MACOSX_BUNDLE_*_VERSION
@@ -189,9 +192,10 @@ add_custom_command(TARGET ${PROJECT_NAME}
 # Install pre-compiled icon assets for dark mode + Liquid Glass support (macOS Tahoe+)
 # These were compiled from app_icon_macos.icon using Xcode's actool via a helper project
 # The pre-compiled Assets.car properly contains all appearance variants (light/dark/tinted)
-set(PRECOMPILED_ASSETS_CAR "${CMAKE_CURRENT_SOURCE_DIR}/icons/AppIcon-compiled.car")
-set(PRECOMPILED_ICNS "${CMAKE_CURRENT_SOURCE_DIR}/icons/AppIcon-compiled.icns")
-if(EXISTS "${PRECOMPILED_ASSETS_CAR}" AND NOT BUILD_CLI_ONLY)
+# UNRAID: icon paths come from the branding layer.
+set(PRECOMPILED_ASSETS_CAR "${IMAGER_ICON_ASSETS_CAR}")
+set(PRECOMPILED_ICNS "${IMAGER_ICON_ICNS}")
+if(PRECOMPILED_ASSETS_CAR AND EXISTS "${PRECOMPILED_ASSETS_CAR}" AND NOT BUILD_CLI_ONLY)
     message(STATUS "Found pre-compiled icon Assets.car: ${PRECOMPILED_ASSETS_CAR}")
     message(STATUS "Will install pre-compiled icons for Liquid Glass support on macOS Tahoe+")
     
@@ -212,6 +216,31 @@ if(EXISTS "${PRECOMPILED_ASSETS_CAR}" AND NOT BUILD_CLI_ONLY)
             "${APP_BUNDLE_PATH}/Contents/Resources/AppIcon.icns"
         COMMENT "Installing pre-compiled icon assets for Liquid Glass support"
     )
+elseif(PRECOMPILED_ICNS AND EXISTS "${PRECOMPILED_ICNS}" AND NOT BUILD_CLI_ONLY)
+    # UNRAID: brand supplies a plain .icns with no compiled Assets.car. Drop Qt's
+    # stock Assets.car so it can't win over our icon, and install the .icns under
+    # the name CFBundleIconFile refers to.
+    message(STATUS "Installing brand icon (no Assets.car): ${PRECOMPILED_ICNS}")
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E remove -f "${APP_BUNDLE_PATH}/Contents/Resources/Assets.car"
+        COMMAND ${CMAKE_COMMAND} -E copy
+            "${PRECOMPILED_ICNS}"
+            "${APP_BUNDLE_PATH}/Contents/Resources/AppIcon.icns"
+        COMMENT "Installing brand application icon"
+    )
+endif()
+
+# UNRAID: macdeployqt rewrites load commands in the executable and every bundled
+# framework, which invalidates the ad-hoc signature the linker applied. On Apple
+# Silicon an invalid signature is fatal — the app is SIGKILLed the moment it
+# launches, with no error. Re-sign ad-hoc so unsigned development builds run.
+# Real signing (IMAGER_SIGNED_APP) happens later and supersedes this.
+if(NOT IMAGER_SIGNED_APP)
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND codesign --force --deep --sign - "${APP_BUNDLE_PATH}"
+        COMMENT "Ad-hoc re-signing bundle after macdeployqt (development builds)"
+        VERBATIM
+    )
 endif()
 
 # Extra (non-version) variables needed by DMG shell scripts
@@ -227,6 +256,7 @@ file(WRITE "${_dmg_extra_vars}"
     "set(IMAGER_SIGNING_IDENTITY \"${IMAGER_SIGNING_IDENTITY}\")\n"
     "set(IMAGER_NOTARIZE_APP \"${IMAGER_NOTARIZE_APP}\")\n"
     "set(IMAGER_NOTARIZE_KEYCHAIN_PROFILE \"${IMAGER_NOTARIZE_KEYCHAIN_PROFILE}\")\n"
+    "set(IMAGER_DMG_BACKGROUND \"${IMAGER_DMG_BACKGROUND}\")\n" # UNRAID
 )
 
 if(IMAGER_SIGNED_APP)
