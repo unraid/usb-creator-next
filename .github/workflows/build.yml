@@ -127,11 +127,53 @@ jobs:
       - name: Put MinGW on PATH
         run: echo "$IQTA_TOOLS/mingw1310_64/bin" >> "$GITHUB_PATH"
 
+      # Code signing is dormant until a certificate exists. With no
+      # WINDOWS_CERT_BASE64 secret the build is simply unsigned, exactly as
+      # before -- nothing here fails on an unsigned build.
+      #
+      # Upstream's installer signs via `signtool sign ... /a`, which picks the
+      # certificate out of the Windows store rather than taking a file, so the
+      # PFX has to be imported rather than just written to disk.
+      #
+      # This is the path for a PFX you already hold. Cloud signing services
+      # (Azure Trusted Signing, Certum SimplySign, DigiCert KeyLocker) replace
+      # just this step with their own action; the Configure/Build steps below
+      # do not change. New certificates cannot be issued as a bare PFX any more
+      # -- CA/Browser Forum rules require the key on FIPS 140-2 Level 2
+      # hardware -- so a cloud provider is the likely route unless the existing
+      # certificate predates June 2023.
+      # The emptiness check lives inside the script on purpose: a step's own
+      # env: is not visible to its own if:, and the secrets context cannot be
+      # used in if: at all, so gating this at the YAML level silently never runs.
+      - name: Import signing certificate
+        id: winsign
+        if: inputs.signed
+        env:
+          WINDOWS_CERT_BASE64: ${{ secrets.WINDOWS_CERT_BASE64 }}
+          WINDOWS_CERT_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}
+        shell: pwsh
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:WINDOWS_CERT_BASE64)) {
+              Write-Host "No WINDOWS_CERT_BASE64 secret set; building unsigned."
+              exit 0
+          }
+          $pfx = Join-Path $env:RUNNER_TEMP "codesign.pfx"
+          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:WINDOWS_CERT_BASE64))
+          $pass = ConvertTo-SecureString -String $env:WINDOWS_CERT_PASSWORD -AsPlainText -Force
+          Import-PfxCertificate -FilePath $pfx -CertStoreLocation Cert:\CurrentUser\My -Password $pass
+          Remove-Item $pfx -Force
+          "signing=true" >> $env:GITHUB_OUTPUT
+
       - name: Configure
         run: |
+          EXTRA=()
+          if [ "${{ steps.winsign.outputs.signing }}" = "true" ]; then
+            EXTRA+=(-DIMAGER_SIGNED_APP=ON)
+          fi
           cmake -S src -B build -G "MinGW Makefiles" \
             -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" \
-            -DENABLE_INNO_INSTALLER=ON
+            -DENABLE_INNO_INSTALLER=ON \
+            "${EXTRA[@]}"
 
       - name: Build
         run: cmake --build build -j 4
@@ -139,6 +181,15 @@ jobs:
       # Inno Setup ships on the windows-latest image.
       - name: Build installer
         run: cmake --build build --target inno_installer
+
+      - name: Report signing status
+        shell: bash
+        run: |
+          if [ "${{ steps.winsign.outputs.signing }}" = "true" ]; then
+            echo "Installer was signed."
+          else
+            echo "::warning::Windows installer is UNSIGNED - users will see a SmartScreen warning. Set the WINDOWS_CERT_BASE64 and WINDOWS_CERT_PASSWORD secrets to enable signing."
+          fi
 
       - uses: actions/upload-artifact@v4
         with:
