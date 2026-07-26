@@ -181,10 +181,20 @@ jobs:
           chmod +x ./create-appimage.sh
           ./create-appimage.sh --qt-root="$HOME/Qt/${QT_VERSION}/gcc_64"
 
+      # create-appimage.sh also drops two unversioned symlinks next to the real
+      # output for debian packaging. upload-artifact dereferences symlinks, so a
+      # bare *.AppImage glob attaches the same 40MB file to the release three
+      # times. -type f keeps only the real one, without hardcoding the name.
+      - name: Collect AppImage
+        run: |
+          mkdir -p dist
+          find . -maxdepth 1 -name '*.AppImage' -type f -exec cp {} dist/ \;
+          ls -l dist/
+
       - uses: actions/upload-artifact@v4
         with:
           name: linux-appimage
-          path: "*.AppImage"
+          path: dist/*.AppImage
           if-no-files-found: error
 
       - name: Upload build log
