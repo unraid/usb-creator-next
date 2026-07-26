@@ -115,7 +115,7 @@ void DriveFormatThread::run()
     rpi_imager::DiskFormatter formatter;
     // UNRAID: Unraid images must land on a volume labelled UNRAID.
     if (!_volumeLabel.isEmpty()) {
-        formatter.SetVolumeLabel(_volumeLabel.toStdString());
+        formatter.SetVolumeLabelOverride(_volumeLabel.toStdString()); // UNRAID
     }
     auto formatResult = formatter.FormatDrive(_device.toStdString());
 

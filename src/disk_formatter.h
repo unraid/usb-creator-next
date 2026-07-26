@@ -149,7 +149,10 @@ class DiskFormatter {
   // regis.c, which reads /dev/disk/by-label/UNRAID), and the bundled
   // make_bootable scripts assume the same. Callers writing an Unraid image must
   // override the default "BOOT" label.
-  void SetVolumeLabel(const std::string& label) { volume_label_ = label; }
+  // UNRAID: deliberately NOT named SetVolumeLabel. <windows.h> defines that as a
+  // macro expanding to SetVolumeLabelW under UNICODE, so a member of that name
+  // fails to compile on Windows ("no member named SetVolumeLabelW").
+  void SetVolumeLabelOverride(const std::string& label) { volume_label_ = label; }
 
   // Format to a file for testing
   Result<void> FormatFile(
