@@ -229,9 +229,28 @@ secrets keep working:
 `APPLE_KEYCHAIN_PASSWORD`, `APPLE_SIGNING_KEY_ID`, `APPLE_EMAIL_ADDRESS`,
 `APPLE_APP_PASSWORD`, `APPLE_TEAM_ID`.
 
-Windows code signing is not wired up yet — the installer builds unsigned. Upstream
-supports it through `IMAGER_SIGNED_APP` plus a `signtool` on PATH, so it is a
-secrets-and-flags change rather than new machinery.
+### Windows code signing
+
+The Windows job has the signing path wired but **dormant**: with no
+`WINDOWS_CERT_BASE64` secret it builds unsigned exactly as before, and warns in the
+job summary. Populate `WINDOWS_CERT_BASE64` (a base64 PFX) and
+`WINDOWS_CERT_PASSWORD` and it signs.
+
+The certificate is imported into the Windows store rather than left as a file,
+because upstream's installer signs with `signtool sign ... /a`, which selects from
+the store.
+
+That PFX path only works for a certificate you already hold. Since June 2023 the
+CA/Browser Forum requires code-signing keys on FIPS 140-2 Level 2 hardware, so newly
+issued certificates cannot be a bare PFX. For a new certificate the realistic options
+are Azure Trusted Signing (~$10/month, names the organisation), Certum Open Source
+(~€30/yr, but the certificate names an individual, not the company), or DigiCert /
+SSL.com cloud signing. Each replaces only the "Import signing certificate" step —
+Configure and Build are unchanged.
+
+Note that OV certificates do not immediately silence SmartScreen; reputation accrues
+with download volume. Only EV gets instant reputation, and EV needs a hardware token
+(self-hosted runner) or a pricier cloud tier.
 
 ### Windows: native rather than MXE
 
