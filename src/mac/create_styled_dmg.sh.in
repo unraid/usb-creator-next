@@ -6,11 +6,17 @@
 set -e
 
 # Configuration  
-APP_NAME="Raspberry Pi Imager"
-PROJECT_NAME="@CMAKE_PROJECT_NAME@"
-SOURCE_APP_PATH="@CMAKE_BINARY_DIR@/${PROJECT_NAME}.app"
-DMG_APP_PATH="@CMAKE_BINARY_DIR@/${APP_NAME}.app"
-FINAL_DMG_PATH="@CMAKE_BINARY_DIR@/${PROJECT_NAME}-@IMAGER_VERSION_STR@.dmg"
+# UNRAID: was hardcoded to "Raspberry Pi Imager", and derived the source bundle
+# from the CMake target name. Upstream builds rpi-imager.app and renames it into
+# the DMG; we name the bundle after the product up front, so source and
+# destination are the same and no rename is needed.
+APP_NAME="@IMAGER_APP_NAME@"
+SOURCE_APP_PATH="@CMAKE_BINARY_DIR@/${APP_NAME}.app"
+# Staged copy: macdeployqt and codesign mutate this, and it is deleted at the
+# end, so it must NOT alias SOURCE_APP_PATH or the build output is destroyed.
+DMG_STAGING_DIR="@CMAKE_BINARY_DIR@/dmg-staging"
+DMG_APP_PATH="${DMG_STAGING_DIR}/${APP_NAME}.app"
+FINAL_DMG_PATH="@CMAKE_BINARY_DIR@/${APP_NAME}-@IMAGER_VERSION_STR@.dmg"
 DMG_BACKGROUND_PATH="@CMAKE_BINARY_DIR@/dmg_background.png"
 SIGNING_IDENTITY="@IMAGER_SIGNING_IDENTITY@"
 SHOULD_NOTARIZE="@IMAGER_NOTARIZE_APP@"
@@ -44,7 +50,8 @@ fi
 
 # Copy app bundle with display name for DMG
 echo "Copying app bundle with display name..."
-rm -rf "$DMG_APP_PATH"
+rm -rf "$DMG_STAGING_DIR"
+mkdir -p "$DMG_STAGING_DIR"
 cp -R "$SOURCE_APP_PATH" "$DMG_APP_PATH"
 
 # Deploy Qt dependencies to the copied app bundle
@@ -264,6 +271,6 @@ if [ "$SHOULD_NOTARIZE" = "ON" ] && [ -n "$KEYCHAIN_PROFILE" ] && [ "$KEYCHAIN_P
  
  # Clean up temporary app bundle copy
  echo "Cleaning up temporary app bundle..."
- rm -rf "$DMG_APP_PATH"
+ rm -rf "$DMG_STAGING_DIR"
  
  exit 0 
