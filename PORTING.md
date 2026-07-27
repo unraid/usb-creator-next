@@ -108,7 +108,7 @@ upstream. The deletion count is the number that matters: the v1.9.6 fork deleted
 lines from upstream files. If a future rebase makes that number jump, something has been
 reformatted or renamed — find it and revert that part rather than resolving it by hand.
 
-## Two traps worth knowing about
+## Traps worth knowing about
 
 **Wizard steps must commit as the user types, not in `onNextClicked`.**
 `WizardContainer.nextStep()` calls `applyCustomisationFromSettings()` on entering the
@@ -122,6 +122,50 @@ That is the QSettings-persisted map, which holds only what individual steps chos
 persist. It is not the wizard's session map. Passing it overwrites the real settings with
 a near-empty one — the bug that made static addressing and Wi-Fi vanish while the server
 name still worked.
+
+### Windows: four things upstream gets away with and we do not
+
+None of these are reachable from a Mac. All four were found in one session of testing in
+a Windows VM with a USB drive passed through, and all four would come straight back if a
+future rebase dropped the marked patches. Test on Windows before shipping.
+
+**A UASP drive is not "USB" to upstream's classifier.** `drivelist_windows.cpp` derives
+`isUSB` from the device *enumerator*, and Windows drives UASP bridges (most USB3
+enclosures, plenty of ordinary sticks) through `SCSI\`, not `USBSTOR\`. Upstream notices
+this as `isUAS` but computes it *after* the checks that need it. Consequences: our
+`usbOnlyStorage` filter hides the drive, the GUID derivation is gated on `isUSB` so it
+gets none anyway, and the "non-removable on a generic driver" system-drive guess hides it
+a second time. Symptom is a completely empty storage step. Fixed by folding UAS into
+`isUSB` right after the bus-type refinement.
+
+**Windows prefixes `MSFT30` to the instance-id serial.** Any device advertising the
+Microsoft OS descriptor — UASP bridges do — enumerates as
+`USB\VID_174C&PID_55AA\MSFT30123456794AA4`. macOS (IOKit) and Linux (udev
+`ID_SERIAL_SHORT`) report the bare serial, and `unraidd` derives the licence GUID from
+that. Because the serial is right-aligned into a 16-char field, the 6-char prefix does not
+produce anything obviously malformed — it quietly shifts the real serial out of the top.
+The stick writes and boots perfectly and only the licence fails to validate. Strip it.
+
+**Raw sector writes need an explicit partition-table rescan.** `DiskFormatter` lays down
+the MBR and FAT32 boot sector by writing sectors directly, which Windows does not notice —
+it still believes the disk is blank from the preceding `diskpart clean`, so no volume is
+created and no drive letter assigned. Upstream's format flow ends there so it never cares;
+ours continues into `extractMultiFileRun()`, which needs a mounted drive letter. Symptom is
+"Operating system did not mount FAT32 partition" on a disk `Get-Partition` reports as
+having no partitions at all — which reads like the format failed when only Windows' view
+of it is stale. Call `DiskpartUtil::rescanDisk()` after a successful format.
+
+**The FAT volume label needs a root-directory entry, not just `BS_VolLab`.** The boot
+sector field is the legacy copy; every OS reports the label from a root-directory entry
+carrying `ATTR_VOLUME_ID`. Without it `blkid` says `LABEL_FATBOOT` instead of `LABEL`,
+udev sets no `ID_FS_LABEL`, `/dev/disk/by-label/UNRAID` never appears, and Windows
+`vol` says "has no label" — which is what `make_bootable.bat` gates on.
+
+Related: **`make_bootable` is never run for the user, deliberately.** Every failure path
+in that script prints a message and then `goto:end`, exiting with errorlevel 0, so a
+checked exit code proves nothing. UEFI boot comes from `EFI/boot/` in the release, so the
+drive boots as written; the legacy BIOS boot sector is opt-in and the Done step names the
+script. Do not reintroduce an automatic call.
 
 ## Building on macOS (development)
 
