@@ -1048,6 +1048,28 @@ std::vector<DeviceDescriptor> ListStorageDevices()
             // Refine classification based on bus type (these are our constants, case-sensitive OK)
             device.isCard = (device.busType == "SD" || device.busType == "MMC" || device.busType == "UFS");
 
+            // UNRAID: a UASP bridge -- ASMedia ASM2115 and friends, i.e. most USB3
+            // enclosures and a good number of plain sticks -- is driven by Windows
+            // through the SCSI enumerator, so the enumerator-keyed isUSB above is
+            // false for it even though busType is authoritatively "USB". Upstream
+            // notices this, but only below, as isUAS, which is too late for the two
+            // things that matter here:
+            //
+            //   * the system-drive rule immediately following, whose stated intent
+            //     is that USB devices are never system drives -- without this a
+            //     UASP stick is non-removable on a generic driver and so is guessed
+            //     to be a system drive and hidden by the default filter;
+            //   * this brand hides non-USB targets entirely (usbOnlyStorage), and
+            //     the GUID derivation below is gated on isUSB.
+            //
+            // Observed: an ASMT 2115 enclosure enumerating as SCSI\DISK left the
+            // storage step completely empty on Windows. The authoritative
+            // systemDisks override still runs last, so a UASP disk you actually
+            // booted from stays protected.
+            if (equalsIgnoreCase(device.enumerator, "SCSI") && device.busType == "USB") {
+                device.isUSB = true;
+            }
+
             // SD/MMC/UFS cards and USB devices should never be system drives
             if (!device.isCard && !device.isUSB) {
                 device.isSystem = device.isSystem || isSystemDevice(device.mountpoints);
