@@ -22,6 +22,11 @@ if(IMAGER_BRAND STREQUAL "unraid")
     set(_brand_org_name       "Lime Technology")
     set(_brand_org_domain     "unraid.net")
     set(_brand_copyright_from "2020")
+    # Windows install path and Start-menu group. Upstream hardcodes "Imager" and
+    # "Raspberry Pi", both of which are user-visible -- the install directory shows
+    # up in Explorer, UAC prompts and Add/Remove Programs.
+    set(_brand_win_subdir     "Unraid USB Creator")
+    set(_brand_win_menu_group "Unraid")
 else()
     set(_brand_app_name       "Raspberry Pi Imager")
     set(_brand_exe_name       "rpi-imager")
@@ -31,6 +36,9 @@ else()
     set(_brand_org_name       "Raspberry Pi")
     set(_brand_org_domain     "raspberrypi.com")
     set(_brand_copyright_from "2020")
+    # Defaults preserve upstream's installer layout exactly for -DIMAGER_BRAND=rpi.
+    set(_brand_win_subdir     "Imager")
+    set(_brand_win_menu_group "Raspberry Pi")
 endif()
 
 set(IMAGER_APP_NAME   "${_brand_app_name}"   CACHE STRING "Product display name")
@@ -38,6 +46,8 @@ set(IMAGER_EXE_NAME   "${_brand_exe_name}"   CACHE STRING "Installed executable 
 set(IMAGER_BUNDLE_ID  "${_brand_bundle_id}"  CACHE STRING "macOS bundle id / Linux desktop id")
 set(IMAGER_VENDOR     "${_brand_vendor}"     CACHE STRING "Copyright holder")
 set(IMAGER_URL_SCHEME "${_brand_url_scheme}" CACHE STRING "Custom URL scheme")
+set(IMAGER_WIN_INSTALL_SUBDIR   "${_brand_win_subdir}"     CACHE STRING "Windows install dir under {autopf}\\<vendor>")
+set(IMAGER_WIN_START_MENU_GROUP "${_brand_win_menu_group}" CACHE STRING "Windows Start-menu group")
 # QSettings location — changing these migrates user settings, keep stable per brand.
 set(IMAGER_ORG_NAME   "${_brand_org_name}"   CACHE STRING "QSettings organisation name")
 set(IMAGER_ORG_DOMAIN "${_brand_org_domain}" CACHE STRING "QSettings organisation domain")

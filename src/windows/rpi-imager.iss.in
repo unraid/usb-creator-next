@@ -15,8 +15,11 @@ AppPublisher={#MyAppPublisher}
 AppPublisherURL={#RaspberryPiSoftwareURL}
 AppSupportURL={#ImagerRepoIssuesURL}
 AppUpdatesURL={#ImagerRepoRootURL}
-DefaultDirName={autopf}\{#MyAppPublisher}\Imager
-DefaultGroupName=Raspberry Pi
+; UNRAID: install dir and Start-menu group are user-visible (Explorer, UAC prompts,
+; Add/Remove Programs), so they come from the branding layer rather than being
+; hardcoded. The defaults reproduce upstream's layout for -DIMAGER_BRAND=rpi.
+DefaultDirName={autopf}\{#MyAppPublisher}\@IMAGER_WIN_INSTALL_SUBDIR@
+DefaultGroupName=@IMAGER_WIN_START_MENU_GROUP@
 AllowNoIcons=yes
 LicenseFile=@CMAKE_BINARY_DIR@\deploy\license.txt
 OutputDir=@CMAKE_BINARY_DIR@\installer
