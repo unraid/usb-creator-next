@@ -242,7 +242,23 @@ WizardStepBase {
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.WordWrap
             }
-        }        
+
+            // UNRAID: the drive boots on any UEFI machine as written -- that comes
+            // from EFI/boot/ in the release. make_bootable installs the legacy BIOS
+            // boot sector on top, which only older BIOS-only hardware needs, so it
+            // is left for the user to run rather than run silently on their behalf.
+            FocusableText {
+                id: legacyBootInstruction
+                text: qsTr("This drive boots on UEFI systems as-is. For older BIOS-only systems, run %1 from the drive as administrator.").arg(BrandSteps.makeBootableScript)
+                font.pointSize: Style.fontSizeDescription
+                font.family: Style.fontFamily
+                color: Style.textMetadataColor
+                Layout.fillWidth: true
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.WordWrap
+                visible: BrandSteps.usbOnlyStorage
+            }
+        }
     }
     ]
     
