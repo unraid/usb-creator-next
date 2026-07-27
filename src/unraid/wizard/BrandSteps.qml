@@ -60,4 +60,16 @@ QtObject {
     readonly property string serverNameLabel: qsTr("Server name")
     readonly property string networkConfigLabel: qsTr("Network")
     readonly property string wifiLabel: qsTr("Wi\u2011Fi")
+
+    // Helper that installs the legacy BIOS boot sector, shipped in the root of
+    // the drive. Never run on the user's behalf -- UEFI boot needs nothing extra,
+    // and running it silently hid its failures. The Done step names it so anyone
+    // on BIOS-only hardware knows what to run.
+    readonly property string makeBootableScript: {
+        switch (Qt.platform.os) {
+        case "windows": return "make_bootable.bat"
+        case "osx":     return "make_bootable_mac"
+        default:        return "make_bootable_linux"
+        }
+    }
 }

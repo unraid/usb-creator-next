@@ -423,6 +423,41 @@ Result<void> DiskFormatter::WriteRootDirectory(
     return Result<void>(FormatError::kFileWriteError);
   }
   
+  // UNRAID: give the volume a real label, not just the boot sector's BS_VolLab.
+  //
+  // The label written into the boot sector above is the legacy/informational
+  // copy. The one every OS actually reports comes from a directory entry in the
+  // root directory carrying ATTR_VOLUME_ID (0x08). Without it:
+  //
+  //   * Windows "vol E:" answers "has no label" -- and Unraid's own
+  //     make_bootable.bat gates on exactly that, printing
+  //     "ERROR - volume label must be UNRAID" and then goto:end, which exits
+  //     with errorlevel 0. So the boot sector never gets installed and the
+  //     caller sees a successful exit code: a stick that reports "Write
+  //     complete!" and then does not boot.
+  //   * blkid reports LABEL_FATBOOT instead of LABEL, so udev sets no
+  //     ID_FS_LABEL and /dev/disk/by-label/UNRAID is never created.
+  //
+  // Verified on a stick written by rc.7 before this fix: blkid gave
+  // LABEL_FATBOOT="UNRAID", by-label had no UNRAID entry, and the root
+  // directory contained no ldlinux.sys because make_bootable.bat had bailed.
+  if (!config.volume_label.empty()) {
+    std::uint8_t* entry = root_cluster.data();
+
+    // 8.3 short-name field: 11 bytes, space padded, no dot. Anything past 11
+    // characters is truncated, matching how the boot-sector copy is built.
+    std::fill_n(entry, 11, static_cast<std::uint8_t>(' '));
+    const std::size_t label_len = std::min<std::size_t>(config.volume_label.size(), 11);
+    for (std::size_t i = 0; i < label_len; ++i) {
+      entry[i] = static_cast<std::uint8_t>(config.volume_label[i]);
+    }
+
+    entry[11] = 0x08;  // ATTR_VOLUME_ID
+
+    // Bytes 12..31 (reserved, timestamps, cluster, size) stay zero -- the
+    // buffer is zero-initialised, and a volume-label entry needs none of them.
+  }
+
   std::uint64_t offset = static_cast<std::uint64_t>(root_cluster_sector) * kSectorSize;
   FileError error = file_ops_->WriteAtOffset(offset, root_cluster.data(), root_cluster_size);
   if (error != FileError::kSuccess) {

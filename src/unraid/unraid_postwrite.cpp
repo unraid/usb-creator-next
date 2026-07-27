@@ -311,19 +311,23 @@ bool finalizeFlashDrive(const QString &mountPoint,
         }
     }
 
-#ifdef Q_OS_WIN
-    // 4. Install the boot sector. Windows only — see header.
-    QProcess proc;
-    proc.setWorkingDirectory(mountPoint);
-    proc.start(QStringLiteral("cmd.exe"),
-               {QStringLiteral("/C"), QStringLiteral("echo Y | make_bootable.bat")});
-    if (!proc.waitForFinished(120000) || proc.exitCode() != 0) {
-        if (errorOut) {
-            *errorOut = QObject::tr("Failed to make the drive bootable (make_bootable.bat)");
-        }
-        return false;
-    }
-#endif
+    // UNRAID: make_bootable is deliberately NOT run for the user.
+    //
+    // It installs the legacy BIOS boot sector via syslinux. UEFI boot does not
+    // need it -- that comes from EFI/boot/ in the release itself -- so the stick
+    // this produces boots on any modern machine as-is, and the script is only
+    // wanted for older BIOS-only hardware.
+    //
+    // The previous behaviour ran make_bootable.bat automatically on Windows and
+    // treated a zero exit code as success. That is not a signal worth having:
+    // every failure path in the script (not administrator, syslinux.exe absent,
+    // volume label not UNRAID) prints a message and then "goto:end", falling off
+    // the end with errorlevel 0. A stick that never got a boot sector was
+    // reported as written successfully, and the user found out only when it
+    // refused to boot.
+    //
+    // Leaving it opt-in removes that whole class of silent failure. The Done
+    // step tells the user how to run it if they need legacy boot.
 
     return true;
 }

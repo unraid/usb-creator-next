@@ -25,13 +25,15 @@ inline constexpr const char *kInitFormat = "UNRAID";
  *
  *   1. patch `config/ident.cfg`   — server name
  *   2. patch `config/network.cfg` — DHCP or static addressing
- *   3. restore `syslinux/` and the `make_bootable*` helpers from our resources,
+ *   3. patch `config/wireless.cfg` — Wi-Fi, when configured
+ *   4. restore `syslinux/` and the `make_bootable*` helpers from our resources,
  *      for releases whose zip omits them
- *   4. on Windows only, run `make_bootable.bat` to install the boot sector
  *
- * Step 4 is Windows-only, matching existing shipped behaviour: on macOS and
- * Linux the user runs `make_bootable_mac` / `make_bootable_linux` themselves,
- * because installing a boot sector needs privileges the app does not hold.
+ * Note that `make_bootable` is deliberately never run for the user, on any
+ * platform. It installs the legacy BIOS boot sector; UEFI boot comes from
+ * `EFI/boot/` in the release itself, so the drive this produces boots on modern
+ * hardware without it. Users who need BIOS boot run the script themselves, and
+ * the Done step tells them how.
  *
  * @param mountPoint  Directory the FAT32 volume is mounted at.
  * @param settings    Wizard customisation values (servername, dhcp, ipaddr, ...).
