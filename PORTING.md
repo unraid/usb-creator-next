@@ -140,11 +140,39 @@ a second time. Symptom is a completely empty storage step. Fixed by folding UAS 
 
 **Windows prefixes `MSFT30` to the instance-id serial.** Any device advertising the
 Microsoft OS descriptor — UASP bridges do — enumerates as
-`USB\VID_174C&PID_55AA\MSFT30123456794AA4`. macOS (IOKit) and Linux (udev
-`ID_SERIAL_SHORT`) report the bare serial, and `unraidd` derives the licence GUID from
-that. Because the serial is right-aligned into a 16-char field, the 6-char prefix does not
-produce anything obviously malformed — it quietly shifts the real serial out of the top.
-The stick writes and boots perfectly and only the licence fails to validate. Strip it.
+`USB\VID_174C&PID_55AA\MSFT30123456794AA4`. macOS (IOKit) reports the bare serial, and so
+does the authority we have to match (see below). Because `strncpy_guid()` right-aligns the
+serial into a 16-char field and *discards from the beginning* when it overflows, the
+6-char prefix does not produce anything obviously malformed — it quietly shifts the real
+serial out of the top: `MSFT30123456794AA4` (18) becomes `FT30123456794AA4`, i.e.
+`174C-55AA-FT30-123456794AA4` instead of `174C-55AA-0000-123456794AA4`. The stick writes
+and boots perfectly and only the licence fails to validate. Strip it.
+
+### What the GUID must match, exactly
+
+`unraidd` does **not** read the udev database for the block device. `get_flash_info()`
+(`regis.c`) shells out to:
+
+```
+/sbin/udevadm test-builtin usb_id <syspath-of-/sys/block/sdX>
+```
+
+and takes `ID_VENDOR_ID` (width 4), `ID_MODEL_ID` (width 4) and `ID_SERIAL_SHORT`
+(width 16) from *that* output, normalising each through `strncpy_guid()`: strip blanks,
+uppercase, left-pad `'0'` when short, discard the leading excess when long.
+
+This distinction matters and is easy to get wrong. Querying `udevadm info` on the block
+device can report something completely different — on a SAT-capable UAS bridge the
+persistent-storage rules run `ata_id` and store the *inner* drive's identifiers
+(`ID_BUS=ata`, the SSD's ATA serial, no `ID_VENDOR_ID` at all). Forcing the `usb_id`
+builtin bypasses all of that and reads the USB descriptor, which is exactly why the GUID
+is stable regardless of what bridge chip is in the enclosure — and why our reading the USB
+descriptor on each platform is the right thing to do.
+
+Verified on an ASMT 2115 enclosure: `udevadm test-builtin usb_id` gives
+`ID_VENDOR_ID=174c`, `ID_MODEL_ID=55aa`, `ID_SERIAL_SHORT=123456794AA4` →
+`174C-55AA-0000-123456794AA4`, matching what the creator displays on macOS and Windows.
+To check parity by hand on a booted server, run that command rather than `udevadm info`.
 
 **Raw sector writes need an explicit partition-table rescan.** `DiskFormatter` lays down
 the MBR and FAT32 boot sector by writing sectors directly, which Windows does not notice —
