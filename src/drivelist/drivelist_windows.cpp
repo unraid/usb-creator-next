@@ -504,6 +504,28 @@ void populateUsbIdentity(DEVINST diskDevInst, DeviceDescriptor* device)
             if (amp != std::string::npos) {
                 sn.erase(amp);
             }
+
+            // UNRAID: Windows prefixes "MSFT30" to the instance-id serial of any
+            // device that advertises the Microsoft OS descriptor, which UASP
+            // bridges do. macOS (IOKit kUSBSerialNumberString) and Linux (udev
+            // ID_SERIAL_SHORT) both report the bare descriptor serial, and unraidd
+            // derives the licence GUID from that -- so leaving the prefix on gives
+            // a GUID that can never match the one the booted server reports, and
+            // the failure is silent: the stick writes and boots fine, the key just
+            // does not validate.
+            //
+            // Observed on an ASMT 2115 --
+            //   USB\VID_174C&PID_55AA\MSFT30123456794AA4
+            // yielded 174C-55AA-FT30-123456794AA4 where macOS gave
+            // 174C-55AA-0000-123456794AA4. The serial is right-aligned into a
+            // 16-char field, so the 6-char prefix silently shifts the real serial
+            // out of the top of it rather than producing anything obviously wrong.
+            static const std::string kMsOsDescriptorPrefix = "MSFT30";
+            if (sn.size() > kMsOsDescriptorPrefix.size() &&
+                sn.compare(0, kMsOsDescriptorPrefix.size(), kMsOsDescriptorPrefix) == 0) {
+                sn.erase(0, kMsOsDescriptorPrefix.size());
+            }
+
             device->serialNumber = sn;
 
             std::transform(device->vid.begin(), device->vid.end(), device->vid.begin(),
