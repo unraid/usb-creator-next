@@ -127,6 +127,31 @@ void DriveFormatThread::run()
     } else {
         emit eventDriveFormat(formatDurationMs, true);
         qDebug() << "Cross-platform disk formatter succeeded in" << formatDurationMs << "ms";
+
+#ifdef Q_OS_WIN
+        // UNRAID: DiskFormatter lays down the MBR and FAT32 boot sector by writing
+        // raw sectors to the physical drive, which Windows does not notice on its
+        // own -- it still believes the disk is blank from the diskpart "clean" that
+        // preceded us, so no volume is created and no drive letter is assigned.
+        //
+        // Upstream never trips over this because its format flow ends right here:
+        // the stick is FAT32 and Windows will catch up eventually or on replug. The
+        // Unraid flow continues straight into extractMultiFileRun(), which needs a
+        // mounted drive letter to extract into, and otherwise fails with
+        // "Operating system did not mount FAT32 partition" -- on a disk that
+        // Get-Partition reports as having no partitions at all, which makes it look
+        // like the format failed when in fact only Windows' view of it is stale.
+        //
+        // rescanDisk() is upstream's own helper for precisely this: it issues
+        // IOCTL_DISK_UPDATE_PROPERTIES, and the comment there already spells out
+        // that without it "no drive letter is assigned to the new partitions".
+        const DiskpartUtil::DiskpartResult rescan = DiskpartUtil::rescanDisk(_device);
+        if (!rescan.success) {
+            qDebug() << "Post-format disk rescan failed:" << rescan.errorMessage
+                     << "- the volume may take longer than usual to appear";
+        }
+#endif
+
         emit success();
     }
 }

@@ -589,7 +589,23 @@ void DownloadExtractThread::extractMultiFileRun()
     QByteArray canonicalDevice = PlatformQuirks::getEjectDevicePath(_filename).toLower().toUtf8();
 
     /* See if OS auto-mounted the device */
-    for (int tries = 0; tries < 3; tries++)
+    // UNRAID: three one-second tries is plenty on macOS and Linux, where the
+    // automounter reacts to the new partition almost immediately. Windows has to
+    // notice the freshly written partition table first (see the post-format rescan
+    // in DriveFormatThread) and only then assign a drive letter, which regularly
+    // takes longer than three seconds. When it does not finish in time the failure
+    // surfaces as "Operating system did not mount FAT32 partition", which reads
+    // like the format failed rather than like a timeout, so it is worth waiting.
+    //
+    // Also exit as soon as the mountpoint appears rather than always sleeping the
+    // whole window -- upstream's loop has no early break, so every write paid the
+    // full three seconds even when the volume was ready after one.
+#ifdef Q_OS_WIN
+    constexpr int kMountTries = 30;
+#else
+    constexpr int kMountTries = 3;
+#endif
+    for (int tries = 0; tries < kMountTries; tries++)
     {
         QThread::sleep(1);
         auto l = Drivelist::ListStorageDevices();
@@ -601,6 +617,9 @@ void DownloadExtractThread::extractMultiFileRun()
                 break;
             }
         }
+
+        if (!folder.isEmpty())
+            break;
     }
 
 #ifdef Q_OS_LINUX
