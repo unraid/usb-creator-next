@@ -17,15 +17,13 @@ else()
     set(MACOSX_BUNDLE_ICON_FILE "AppIcon")
     set(MACOSX_BUNDLE_COPYRIGHT "${IMAGER_COPYRIGHT}")
 
-    # UNRAID: OUTPUT_NAME names the .app directory, and Finder shows that name
-    # rather than CFBundleName -- so it has to be the display name, spaces and
-    # all ("Unraid USB Creator.app"), which is the usual macOS convention. Using
-    # the slug here would put "unraid-usb-creator" in the user's Applications
-    # folder. Windows and Linux keep IMAGER_EXE_NAME, where spaces are unwelcome.
-    # The CMake target stays 'rpi-imager' so upstream references keep resolving.
+    # UNRAID: OUTPUT_NAME is set once by unraid_apply_branding()
+    # (cmake/UnraidBranding.cmake), which gives macOS the display name rather
+    # than the slug -- it names the .app directory and Finder shows that, not
+    # CFBundleName. Only the bundle flag is platform-specific enough to live
+    # here. See PORTING.md.
     set_target_properties(${PROJECT_NAME} PROPERTIES
-        MACOSX_BUNDLE YES
-        OUTPUT_NAME "${APP_NAME}")
+        MACOSX_BUNDLE YES)
 
     set(APP_BUNDLE_PATH "${CMAKE_BINARY_DIR}/${APP_NAME}.app")
     set(DMG_PATH "${CMAKE_BINARY_DIR}/${APP_NAME}.dmg")

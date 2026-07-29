@@ -121,10 +121,54 @@ if(IMAGER_BRAND STREQUAL "unraid")
     set(ENABLE_TELEMETRY OFF CACHE BOOL "Enable sending telemetry" FORCE)
 endif()
 
+# AppImage output basename. linuxdeploy names its output after the desktop
+# entry's Name= with spaces replaced by underscores, so derive it here rather
+# than letting create-appimage.sh keep a third hand-maintained copy of the
+# product name.
+string(REPLACE " " "_" _brand_appimage_name "${IMAGER_APP_NAME}")
+set(IMAGER_APPIMAGE_NAME "${_brand_appimage_name}" CACHE STRING "AppImage output basename")
+
+# UNRAID: apply the product identity to a built target.
+#
+# This exists so there is exactly ONE place that renames the shipped artefact.
+# Each platform's PlatformPackaging.cmake used to call set_target_properties
+# itself, and Linux was simply never given one -- so the binary installed under
+# the CMake target name while the desktop entry and the AppImage's AppRun both
+# looked for the product name. That shipped green and broke on first launch for
+# anyone on Linux. Applying it once makes "renamed on two platforms out of
+# three" impossible to express rather than merely easy to miss.
+#
+# macOS deliberately differs: OUTPUT_NAME names the .app directory and Finder
+# shows that rather than CFBundleName, so it takes the display name, spaces and
+# all ("Unraid USB Creator.app"). Windows and Linux take the slug, where spaces
+# on a command line are unwelcome.
+#
+# See PORTING.md, "Branding layer".
+function(unraid_apply_branding target)
+    if(BUILD_CLI_ONLY)
+        # The CLI build sets its own OUTPUT_NAME and ships nothing
+        # product-facing to rename.
+        return()
+    endif()
+
+    if(APPLE)
+        set_target_properties(${target} PROPERTIES OUTPUT_NAME "${IMAGER_APP_NAME}")
+    else()
+        set_target_properties(${target} PROPERTIES OUTPUT_NAME "${IMAGER_EXE_NAME}")
+    endif()
+endfunction()
+
 # Expose the identity to C++ as branding.h in the build tree.
 configure_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/cmake/branding.h.in"
     "${CMAKE_CURRENT_BINARY_DIR}/branding.h"
+    @ONLY)
+
+# ...and to packaging shell scripts as branding.env, so they consume these
+# values rather than re-declaring them. See branding.env.in.
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/branding.env.in"
+    "${CMAKE_BINARY_DIR}/branding.env"
     @ONLY)
 
 message(STATUS "Branding: ${IMAGER_APP_NAME} (${IMAGER_BUNDLE_ID}), executable '${IMAGER_EXE_NAME}'")

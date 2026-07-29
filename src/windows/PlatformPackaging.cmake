@@ -125,9 +125,8 @@ endif()
 
 file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/deploy")
 
-# UNRAID: the shipped executable is renamed via OUTPUT_NAME so users see the
-# product name, while the CMake target stays upstream's. See PORTING.md.
-set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "${IMAGER_EXE_NAME}")
+# UNRAID: the executable rename now happens once, in unraid_apply_branding()
+# (cmake/UnraidBranding.cmake), rather than per-platform here. See PORTING.md.
 
 add_custom_command(TARGET ${PROJECT_NAME}
     POST_BUILD
