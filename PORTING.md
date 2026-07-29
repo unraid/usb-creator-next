@@ -64,6 +64,44 @@ upstream's values. The platform packaging files read those variables instead of 
 
 This is deliberately small and generic — it is a change we could reasonably offer upstream.
 
+### Two rules that keep it from drifting
+
+Branding is roughly a third of our entire upstream patch surface, and it is where our worst
+shipped bug came from, so it has structure rather than convention holding it together.
+
+**The rename is applied in exactly one place.** `unraid_apply_branding(<target>)` in
+`UnraidBranding.cmake`, called once from `src/CMakeLists.txt` right after `add_executable`. Do
+not add `set_target_properties(... OUTPUT_NAME ...)` to a platform packaging file. Each platform
+used to do its own, Linux was never given one, and the result was an AppImage whose `AppRun`
+looked for a binary that had been installed under the upstream target name — built green, dead on
+first launch. One call site makes "renamed on two platforms out of three" unrepresentable.
+
+macOS intentionally gets `IMAGER_APP_NAME` where the others get `IMAGER_EXE_NAME`: `OUTPUT_NAME`
+names the `.app` directory and Finder shows that rather than `CFBundleName`, so it wants the
+display name with spaces. That difference lives inside the function.
+
+**Packaging scripts read the identity, they never declare it.** `UnraidBranding.cmake` generates
+`branding.env` into the build tree (see `cmake/branding.env.in`); `create-appimage.sh` sources it
+after configuring and derives everything — AppRun's exec target, the desktop file, the output
+filename — from those values. It previously kept its own hardcoded copies of the exe name and
+desktop id, which is how it and the build came to disagree about what the binary was called.
+
+The same pattern already existed for the Windows installer templates
+(`installer_extra_vars.cmake`) and for C++ (`branding.h`). If a new script needs a product name,
+extend `branding.env.in` — do not re-declare it.
+
+To build stock upstream, set the brand, never the individual names:
+
+```bash
+IMAGER_BRAND=rpi ./create-appimage.sh     # derives Raspberry_Pi_Imager / rpi-imager
+```
+
+**Assert the artefact, not the intent.** A name that is merely *computed* correctly proves
+nothing; the check that matters is that the thing the launcher points at exists.
+`create-appimage.sh` fails the build if `AppRun`'s exec target is missing, and
+`create_styled_dmg.sh` fails if the `.app` bundle is not where it expects. Both bugs above would
+have been caught by the former. Keep that habit for any new packaging path.
+
 ## Rebasing onto a new upstream release
 
 ```bash

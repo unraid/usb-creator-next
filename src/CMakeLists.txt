@@ -397,6 +397,11 @@ if(BUILD_CLI_ONLY)
     set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "rpi-imager-cli")
 endif()
 
+# UNRAID: the one place the product identity is applied to the built artefact.
+# Defined in cmake/UnraidBranding.cmake; see the comment there for why this is
+# centralised rather than left to each platform's PlatformPackaging.cmake.
+unraid_apply_branding(${PROJECT_NAME})
+
 # Create an rpi-imager_lupdate target
 qt_add_lupdate(TS_FILES ${TRANSLATIONS} SOURCE_TARGETS ${PROJECT_NAME} OPTIONS -no-obsolete -locations none)
 
