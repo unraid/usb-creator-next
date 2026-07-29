@@ -31,6 +31,18 @@ add_custom_target(generate_metainfo
 add_dependencies(generate_metainfo generate_version)
 add_dependencies(${PROJECT_NAME} generate_metainfo)
 
+# UNRAID: ship the binary under the product name, as Windows and macOS already
+# do (see their PlatformPackaging.cmake). The CMake target keeps upstream's name
+# per PORTING.md rule 1; only the installed artefact is renamed.
+#
+# Without this the desktop entry installed below points Exec= at
+# /usr/bin/unraid-usb-creator while the binary lands as /usr/bin/rpi-imager, so
+# the launcher is dead on a plain install and the AppImage's AppRun cannot find
+# what to exec. Left alone for BUILD_CLI_ONLY, which sets its own OUTPUT_NAME.
+if(NOT BUILD_CLI_ONLY)
+    set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "${IMAGER_EXE_NAME}")
+endif()
+
 install(TARGETS ${PROJECT_NAME} DESTINATION bin)
 
 if(BUILD_CLI_ONLY)
