@@ -193,7 +193,7 @@ jobs:
           azure-client-id: ${{ secrets.AZURE_SIGNING_CLIENT_ID }}
           azure-client-secret: ${{ secrets.AZURE_SIGNING_CLIENT_SECRET }}
           endpoint: ${{ secrets.AZURE_SIGNING_ENDPOINT }}
-          signing-account-name: ${{ secrets.AZURE_SIGNING_ACCOUNT }}
+          trusted-signing-account-name: ${{ secrets.AZURE_SIGNING_ACCOUNT }}
           certificate-profile-name: ${{ secrets.AZURE_SIGNING_PROFILE }}
           files-folder: ${{ github.workspace }}\build
           files-folder-filter: exe
@@ -211,7 +211,7 @@ jobs:
           azure-client-id: ${{ secrets.AZURE_SIGNING_CLIENT_ID }}
           azure-client-secret: ${{ secrets.AZURE_SIGNING_CLIENT_SECRET }}
           endpoint: ${{ secrets.AZURE_SIGNING_ENDPOINT }}
-          signing-account-name: ${{ secrets.AZURE_SIGNING_ACCOUNT }}
+          trusted-signing-account-name: ${{ secrets.AZURE_SIGNING_ACCOUNT }}
           certificate-profile-name: ${{ secrets.AZURE_SIGNING_PROFILE }}
           files-folder: ${{ github.workspace }}\build\installer
           files-folder-filter: exe
