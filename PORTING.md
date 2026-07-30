@@ -400,21 +400,25 @@ Alternatives if Azure proves impractical: Certum Open Source (~€30/yr, but the
 certificate names an individual rather than the company) or DigiCert / SSL.com cloud
 signing. Each replaces only the two signing steps; Configure and Build are unchanged.
 
-**Azure gotcha worth knowing before committing to it:** the certificate subject is
-taken from the Azure *billing account*, and a billing account whose `accountType` is
-`Individual` can only ever validate an individual identity — it cannot produce a
-`Lime Technology, Inc.` certificate. That type is fixed when the billing account is
-created and cannot be changed afterwards, so the account must be signed up as an
-organisation from the start, with the legal name matching the business registration
-exactly. Check with:
+**The certificate subject comes from the identity validation, not the billing
+account.** Organization identity validation asks for the legal entity directly and
+Microsoft verifies it against public records; the billing account's `accountType`
+does not gate it. Verified empirically: our billing account is `accountType:
+Individual` and it issued
 
-```bash
-az rest --method get --url "https://management.azure.com/providers/Microsoft.Billing/billingAccounts/<id>?api-version=2020-05-01" \
-  --query "properties.{type:accountType,soldTo:soldTo.companyName}"
+```
+CN="Lime Technology, Inc.", O="Lime Technology, Inc.", L=San Diego, S=California, C=US
 ```
 
-Updating the sold-to name alone does **not** change `accountType` — the portal will
-happily show the new company name while the gating field stays `Individual`.
+on a `PublicTrust` profile. If you read the Artifact Signing quickstart's note about
+identity details being "automatically sourced from your Azure billing account", note
+that it opens *"For a Public Identity for individual identity validation…"* — that
+scope applies to **individual** validation. Do not generalise it to organisations; an
+earlier version of this document did, and it was wrong.
+
+The subject string is fixed when the certificate profile is created, so get the legal
+name exactly right — including punctuation like the trailing period in
+`Lime Technology, Inc.` — before creating the profile.
 
 Note that OV certificates do not immediately silence SmartScreen; reputation accrues
 with download volume. Only EV gets instant reputation, and EV needs a hardware token
