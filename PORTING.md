@@ -341,22 +341,62 @@ secrets keep working:
 
 ### Windows code signing
 
-The Windows job has the signing path wired but **dormant**: with no
-`WINDOWS_CERT_BASE64` secret it builds unsigned exactly as before, and warns in the
-job summary. Populate `WINDOWS_CERT_BASE64` (a base64 PFX) and
-`WINDOWS_CERT_PASSWORD` and it signs.
+The Windows job signs via **Azure Artifact Signing** (renamed from Trusted Signing in
+January 2026) and is wired but **dormant**: with the secrets unset it builds unsigned
+exactly as before and warns in the job summary. Nothing fails.
 
-The certificate is imported into the Windows store rather than left as a file,
-because upstream's installer signs with `signtool sign ... /a`, which selects from
-the store.
+Set these six repository secrets to activate it:
 
-That PFX path only works for a certificate you already hold. Since June 2023 the
-CA/Browser Forum requires code-signing keys on FIPS 140-2 Level 2 hardware, so newly
-issued certificates cannot be a bare PFX. For a new certificate the realistic options
-are Azure Trusted Signing (~$10/month, names the organisation), Certum Open Source
-(~€30/yr, but the certificate names an individual, not the company), or DigiCert /
-SSL.com cloud signing. Each replaces only the "Import signing certificate" step —
-Configure and Build are unchanged.
+| Secret | Where it comes from |
+|---|---|
+| `AZURE_SIGNING_TENANT_ID` | Entra tenant (directory) ID |
+| `AZURE_SIGNING_CLIENT_ID` | App registration (service principal) client ID |
+| `AZURE_SIGNING_CLIENT_SECRET` | Client secret for that app registration |
+| `AZURE_SIGNING_ENDPOINT` | Region endpoint, e.g. `https://wus2.codesigning.azure.net` — must match the region the Signing Account was created in |
+| `AZURE_SIGNING_ACCOUNT` | Artifact Signing account name |
+| `AZURE_SIGNING_PROFILE` | Certificate profile name |
+
+The service principal needs the **Code Signing Certificate Profile Signer** role on
+the Signing Account, or every call returns 403.
+
+**Order matters, and it is not the obvious one.** The application binary is signed
+*before* Inno packages it, and the installer is signed *after*. Signing only the
+installer leaves an unsigned executable inside it — and that inner binary is what the
+user actually runs, so it is what SmartScreen judges and what supplies the UAC
+publisher string. Do not collapse these into one step.
+
+`IMAGER_SIGNED_APP` is deliberately **not** set on this path. That switch drives
+upstream's `signtool sign /a`, which selects a certificate from the Windows store;
+Artifact Signing has no importable certificate at all — the key lives in Microsoft's
+HSM and signing is a service call. The two mechanisms are mutually exclusive.
+
+A "Verify signature" step runs `Get-AuthenticodeSignature` and fails the build unless
+the status is `Valid`. The signing action exiting zero is not sufficient evidence: a
+signature can be present but untrusted, which still ships a binary users get warned
+about.
+
+Since June 2023 the CA/Browser Forum requires code-signing keys on FIPS 140-2 Level 2
+hardware, so a newly issued certificate cannot be a bare PFX — the old
+`WINDOWS_CERT_BASE64` approach only ever worked for a certificate you already held.
+Alternatives if Azure proves impractical: Certum Open Source (~€30/yr, but the
+certificate names an individual rather than the company) or DigiCert / SSL.com cloud
+signing. Each replaces only the two signing steps; Configure and Build are unchanged.
+
+**Azure gotcha worth knowing before committing to it:** the certificate subject is
+taken from the Azure *billing account*, and a billing account whose `accountType` is
+`Individual` can only ever validate an individual identity — it cannot produce a
+`Lime Technology, Inc.` certificate. That type is fixed when the billing account is
+created and cannot be changed afterwards, so the account must be signed up as an
+organisation from the start, with the legal name matching the business registration
+exactly. Check with:
+
+```bash
+az rest --method get --url "https://management.azure.com/providers/Microsoft.Billing/billingAccounts/<id>?api-version=2020-05-01" \
+  --query "properties.{type:accountType,soldTo:soldTo.companyName}"
+```
+
+Updating the sold-to name alone does **not** change `accountType` — the portal will
+happily show the new company name while the gating field stays `Individual`.
 
 Note that OV certificates do not immediately silence SmartScreen; reputation accrues
 with download volume. Only EV gets instant reputation, and EV needs a hardware token

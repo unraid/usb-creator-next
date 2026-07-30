@@ -127,68 +127,120 @@ jobs:
       - name: Put MinGW on PATH
         run: echo "$IQTA_TOOLS/mingw1310_64/bin" >> "$GITHUB_PATH"
 
-      # Code signing is dormant until a certificate exists. With no
-      # WINDOWS_CERT_BASE64 secret the build is simply unsigned, exactly as
-      # before -- nothing here fails on an unsigned build.
+      # Code signing via Azure Artifact Signing (renamed from Trusted Signing in
+      # January 2026). Dormant until the six AZURE_SIGNING_* secrets exist: with
+      # none set the build is simply unsigned, exactly as before, and nothing
+      # here fails.
       #
-      # Upstream's installer signs via `signtool sign ... /a`, which picks the
-      # certificate out of the Windows store rather than taking a file, so the
-      # PFX has to be imported rather than just written to disk.
+      # Why not the old signtool path: upstream signs during the build via
+      # `signtool sign /a`, which picks a certificate out of the Windows store.
+      # Artifact Signing has no importable certificate -- the key lives in
+      # Microsoft's HSM and signing is a service call -- so IMAGER_SIGNED_APP is
+      # deliberately NOT set and signing happens as its own step instead. That
+      # also matches CA/Browser Forum rules since June 2023: new certificates
+      # cannot be issued as a bare PFX at all, so a cloud service is the only
+      # route for a cert issued today.
       #
-      # This is the path for a PFX you already hold. Cloud signing services
-      # (Azure Trusted Signing, Certum SimplySign, DigiCert KeyLocker) replace
-      # just this step with their own action; the Configure/Build steps below
-      # do not change. New certificates cannot be issued as a bare PFX any more
-      # -- CA/Browser Forum rules require the key on FIPS 140-2 Level 2
-      # hardware -- so a cloud provider is the likely route unless the existing
-      # certificate predates June 2023.
+      # ORDER MATTERS. The app binary is signed BEFORE Inno packages it, and the
+      # installer is signed after. Signing only the installer would leave an
+      # unsigned executable inside it, which is what the user actually runs --
+      # SmartScreen and the UAC publisher string both key off that inner binary.
+      #
       # The emptiness check lives inside the script on purpose: a step's own
       # env: is not visible to its own if:, and the secrets context cannot be
       # used in if: at all, so gating this at the YAML level silently never runs.
-      - name: Import signing certificate
+      - name: Check signing configuration
         id: winsign
         if: inputs.signed
         env:
-          WINDOWS_CERT_BASE64: ${{ secrets.WINDOWS_CERT_BASE64 }}
-          WINDOWS_CERT_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}
+          AZURE_SIGNING_ENDPOINT: ${{ secrets.AZURE_SIGNING_ENDPOINT }}
+          AZURE_SIGNING_ACCOUNT: ${{ secrets.AZURE_SIGNING_ACCOUNT }}
+          AZURE_SIGNING_PROFILE: ${{ secrets.AZURE_SIGNING_PROFILE }}
+          AZURE_SIGNING_CLIENT_ID: ${{ secrets.AZURE_SIGNING_CLIENT_ID }}
         shell: pwsh
         run: |
-          if ([string]::IsNullOrWhiteSpace($env:WINDOWS_CERT_BASE64)) {
-              Write-Host "No WINDOWS_CERT_BASE64 secret set; building unsigned."
-              exit 0
+          $missing = @()
+          foreach ($n in 'AZURE_SIGNING_ENDPOINT','AZURE_SIGNING_ACCOUNT','AZURE_SIGNING_PROFILE','AZURE_SIGNING_CLIENT_ID') {
+              if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($n))) { $missing += $n }
           }
-          $pfx = Join-Path $env:RUNNER_TEMP "codesign.pfx"
-          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:WINDOWS_CERT_BASE64))
-          $pass = ConvertTo-SecureString -String $env:WINDOWS_CERT_PASSWORD -AsPlainText -Force
-          Import-PfxCertificate -FilePath $pfx -CertStoreLocation Cert:\CurrentUser\My -Password $pass
-          Remove-Item $pfx -Force
-          "signing=true" >> $env:GITHUB_OUTPUT
+          if ($missing.Count -gt 0) {
+              Write-Host "Artifact Signing not configured (missing: $($missing -join ', ')); building unsigned."
+              "signing=false" >> $env:GITHUB_OUTPUT
+          } else {
+              "signing=true" >> $env:GITHUB_OUTPUT
+          }
 
       - name: Configure
         run: |
-          EXTRA=()
-          if [ "${{ steps.winsign.outputs.signing }}" = "true" ]; then
-            EXTRA+=(-DIMAGER_SIGNED_APP=ON)
-          fi
           cmake -S src -B build -G "MinGW Makefiles" \
             -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" \
-            -DENABLE_INNO_INSTALLER=ON \
-            "${EXTRA[@]}"
+            -DENABLE_INNO_INSTALLER=ON
 
       - name: Build
         run: cmake --build build -j 4
+
+      # Sign the application binary before it is packaged. files-folder is used
+      # rather than a hardcoded filename because the executable is named from
+      # IMAGER_EXE_NAME (see src/cmake/UnraidBranding.cmake) -- hardcoding it
+      # here would silently stop matching the day the brand name changes.
+      # Non-recursive on purpose: the deployed Qt DLLs live in subdirectories
+      # and do not need signing.
+      - name: Sign application binary
+        if: inputs.signed && steps.winsign.outputs.signing == 'true'
+        uses: azure/artifact-signing-action@v0
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_SIGNING_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_SIGNING_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_SIGNING_CLIENT_SECRET }}
+          endpoint: ${{ secrets.AZURE_SIGNING_ENDPOINT }}
+          signing-account-name: ${{ secrets.AZURE_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ secrets.AZURE_SIGNING_PROFILE }}
+          files-folder: ${{ github.workspace }}\build
+          files-folder-filter: exe
+          files-folder-recurse: false
 
       # Inno Setup ships on the windows-latest image.
       - name: Build installer
         run: cmake --build build --target inno_installer
 
+      - name: Sign installer
+        if: inputs.signed && steps.winsign.outputs.signing == 'true'
+        uses: azure/artifact-signing-action@v0
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_SIGNING_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_SIGNING_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_SIGNING_CLIENT_SECRET }}
+          endpoint: ${{ secrets.AZURE_SIGNING_ENDPOINT }}
+          signing-account-name: ${{ secrets.AZURE_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ secrets.AZURE_SIGNING_PROFILE }}
+          files-folder: ${{ github.workspace }}\build\installer
+          files-folder-filter: exe
+          files-folder-recurse: false
+
+      # Verify rather than trust the action's exit code: a signature that is
+      # present but untrusted still ships a binary users get warned about.
+      - name: Verify signature
+        if: inputs.signed && steps.winsign.outputs.signing == 'true'
+        shell: pwsh
+        run: |
+          $failed = $false
+          Get-ChildItem "build\installer\*.exe" | ForEach-Object {
+              $sig = Get-AuthenticodeSignature $_.FullName
+              Write-Host "$($_.Name): $($sig.Status) -- $($sig.SignerCertificate.Subject)"
+              if ($sig.Status -ne 'Valid') { $failed = $true }
+          }
+          if ($failed) {
+              Write-Error "Signature verification failed."
+              exit 1
+          }
+
       - name: Report signing status
         shell: bash
         run: |
           if [ "${{ steps.winsign.outputs.signing }}" = "true" ]; then
-            echo "Installer was signed."
+            echo "Installer was signed via Azure Artifact Signing."
           else
-            echo "::warning::Windows installer is UNSIGNED - users will see a SmartScreen warning. Set the WINDOWS_CERT_BASE64 and WINDOWS_CERT_PASSWORD secrets to enable signing."
+            echo "::warning::Windows installer is UNSIGNED - users will see 'Unknown publisher' in the UAC prompt and a SmartScreen warning. Set the AZURE_SIGNING_* secrets to enable signing."
           fi
 
       - uses: actions/upload-artifact@v4
