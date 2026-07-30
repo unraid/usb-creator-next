@@ -356,8 +356,26 @@ Set these six repository secrets to activate it:
 | `AZURE_SIGNING_ACCOUNT` | Artifact Signing account name |
 | `AZURE_SIGNING_PROFILE` | Certificate profile name |
 
-The service principal needs the **Code Signing Certificate Profile Signer** role on
-the Signing Account, or every call returns 403.
+The service principal needs the **Artifact Signing Certificate Profile Signer** role
+on the Signing Account, or every call returns 403. (Note the name: the January 2026
+rename changed the role too — `Code Signing Certificate Profile Signer` no longer
+exists and `az role assignment create` fails outright with it.)
+
+Provisioned so far, via `az` with the `artifact-signing` extension:
+
+```
+resource group : rg-unraid-signing        (westus2)
+signing account: limetech-signing         sku Basic
+endpoint       : https://wus2.codesigning.azure.net/
+app registration: unraid-usb-creator-signing
+                  appId 9cebc08d-a72c-49af-affb-9854265d5da5
+                  holds Artifact Signing Certificate Profile Signer on the account
+```
+
+Identity validation has no CLI command and must be created in the portal; the
+certificate profile then references it via
+`az artifact-signing certificate-profile create --identity-validation-id`, which is
+what supplies the certificate subject name.
 
 **Order matters, and it is not the obvious one.** The application binary is signed
 *before* Inno packages it, and the installer is signed *after*. Signing only the
