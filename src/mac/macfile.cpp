@@ -4,6 +4,7 @@
  */
 
 #include "macfile.h"
+#include "branding.h" // UNRAID
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -37,7 +38,12 @@ MacFile::authOpenResult MacFile::authOpen(const QByteArray &filename)
     
     // Create authorization environment with custom prompt
     // This provides better context in the authorization dialog
-    QString promptText = QCoreApplication::translate("MacFile", "Raspberry Pi Imager needs to access the disk to write the image.");
+    // UNRAID: this string is the macOS authorization dialog the user sees at the
+    // moment they grant raw disk access -- the point where the product name
+    // matters most. It named upstream's product until now. %1 comes from the
+    // branding layer so it cannot drift from the app's actual name.
+    QString promptText = QCoreApplication::translate("MacFile", "%1 needs to access the disk to write the image.")
+                             .arg(QStringLiteral(IMAGER_APP_NAME));
     QByteArray promptBytes = promptText.toUtf8();
     const char *promptKey = "prompt";
     AuthorizationItem envItems[] = {
