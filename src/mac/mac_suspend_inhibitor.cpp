@@ -1,10 +1,11 @@
 #include "mac_suspend_inhibitor.h"
+#include "branding.h" // UNRAID
 
 #include <IOKit/pwr_mgt/IOPMLib.h>
 
 MacSuspendInhibitor::MacSuspendInhibitor()
 {
-    CFStringRef name = CFSTR("Raspberry Pi Imager");
+    CFStringRef name = CFSTR(IMAGER_APP_NAME); // UNRAID
 
     // Prevent system sleep
     auto result = IOPMAssertionCreateWithName(
