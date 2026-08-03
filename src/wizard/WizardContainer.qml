@@ -70,6 +70,11 @@ Item {
     // Whether selected OS supports Raspberry Raspberry Pi Connect customization
     // UNRAID: brand gates this off; upstream assignments still run but cannot enable it.
     property bool piConnectAvailable: false
+    // UNRAID: the Device step is shown only when the OS list is reachable AND the
+    // brand actually has a device to choose. Everywhere upstream tested
+    // hasNetworkConnectivity to decide whether Device exists, test this instead.
+    readonly property bool deviceStepShown: hasNetworkConnectivity && BrandSteps.deviceSelectionAvailable // UNRAID
+
     readonly property bool piConnectAllowed: piConnectAvailable && BrandSteps.piConnectAvailable // UNRAID
     // Whether the current write target is a fastboot storage device.
     // Set by StorageSelectionStep on selection; consumed by the
@@ -182,7 +187,7 @@ Item {
         // Language selection step is shown first if requested, then device selection (if online) or OS selection (if offline).
         if (showLanguageSelection) {
             currentStep = stepLanguageSelection
-        } else if (hasNetworkConnectivity) {
+        } else if (deviceStepShown) { // UNRAID
             currentStep = stepDeviceSelection
         } else {
             currentStep = stepOSSelection
@@ -217,7 +222,7 @@ Item {
             // When OS list becomes available after starting offline, navigate to device
             // selection so the user can choose their target device (now that the list is available).
             // Guard: don't interrupt an active write operation.
-            if (root.hasNetworkConnectivity && root.currentStep === root.stepOSSelection && !root.isWriting) {
+            if (root.deviceStepShown && root.currentStep === root.stepOSSelection && !root.isWriting) { // UNRAID
                 console.log("OS list now available - navigating to device selection")
                 root.jumpToStep(root.stepDeviceSelection)
             }
@@ -226,7 +231,7 @@ Item {
 
     // Wizard step names for sidebar (grouped for cleaner display)
     // When offline, skip Device selection
-    readonly property var stepNames: hasNetworkConnectivity ? [
+    readonly property var stepNames: deviceStepShown ? [ // UNRAID
         qsTr("Device"),
         qsTr("OS"), 
         qsTr("Storage"),
@@ -256,21 +261,21 @@ Item {
     // Helper function to map wizard step to sidebar index
     function getSidebarIndex(wizardStep) {
         // When offline, device selection is skipped, so adjust indices
-        var offset = hasNetworkConnectivity ? 0 : -1
+        var offset = deviceStepShown ? 0 : -1 // UNRAID
         
         if (wizardStep === stepDeviceSelection) {
             // Device is at index 0 when online, not shown when offline
-            return hasNetworkConnectivity ? 0 : -1
+            return deviceStepShown ? 0 : -1 // UNRAID
         } else if (wizardStep === stepOSSelection) {
-            return hasNetworkConnectivity ? 1 : 0
+            return deviceStepShown ? 1 : 0 // UNRAID
         } else if (wizardStep === stepStorageSelection) {
-            return hasNetworkConnectivity ? 2 : 1
+            return deviceStepShown ? 2 : 1 // UNRAID
         } else if (wizardStep >= firstCustomizationStep && wizardStep <= getLastCustomizationStep()) {
-            return hasNetworkConnectivity ? 3 : 2 // Customization group
+            return deviceStepShown ? 3 : 2 // Customization group // UNRAID
         } else if (wizardStep === stepWriting) {
-            return hasNetworkConnectivity ? 4 : 3 // Writing
+            return deviceStepShown ? 4 : 3 // Writing // UNRAID
         } else if (wizardStep === stepDone) {
-            return hasNetworkConnectivity ? 5 : 4 // Done
+            return deviceStepShown ? 5 : 4 // Done // UNRAID
         }
         return 0
     }
@@ -413,7 +418,7 @@ Item {
     // Map sidebar index back to the first wizard step in that group
     function getWizardStepFromSidebarIndex(sidebarIndex) {
         // When offline, device selection is not shown, so indices shift
-        if (hasNetworkConnectivity) {
+        if (deviceStepShown) { // UNRAID
             switch (sidebarIndex) {
                 case 0: return stepDeviceSelection
                 case 1: return stepOSSelection
@@ -786,7 +791,7 @@ Item {
             // Skip device selection if offline (no network = no device list available)
             // Start with language selection if requested, otherwise device selection if online, or OS selection if offline
             initialItem: root.showLanguageSelection ? languageSelectionStep : 
-                        (root.hasNetworkConnectivity ? deviceSelectionStep : osSelectionStep)
+                        (root.deviceStepShown ? deviceSelectionStep : osSelectionStep) // UNRAID
             
             // Smooth transitions between steps
             pushEnter: Transition {
@@ -943,7 +948,7 @@ Item {
                     prevIndex--
                 }
                 // Skip device selection if offline (it would be empty/useless)
-                if (prevIndex === stepDeviceSelection && !hasNetworkConnectivity) {
+                if (prevIndex === stepDeviceSelection && !deviceStepShown) { // UNRAID
                     // Can't go back further, stay at current step
                     return
                 }
@@ -961,7 +966,7 @@ Item {
     function jumpToStep(stepIndex) {
         if (stepIndex >= 0 && stepIndex < root.totalSteps) {
             // Prevent jumping to device selection when offline
-            if (stepIndex === stepDeviceSelection && !hasNetworkConnectivity) {
+            if (stepIndex === stepDeviceSelection && !deviceStepShown) { // UNRAID
                 console.log("Cannot jump to device selection when offline")
                 return
             }
@@ -1006,7 +1011,7 @@ Item {
             onNextClicked: {
                 // After choosing language, jump to first real wizard step
                 // Skip device selection if offline
-                if (root.hasNetworkConnectivity) {
+                if (root.deviceStepShown) { // UNRAID
                     root.jumpToStep(root.stepDeviceSelection)
                 } else {
                     root.jumpToStep(root.stepOSSelection)
@@ -1029,7 +1034,7 @@ Item {
         OSSelectionStep {
             wizardContainer: root
             // Hide back button when offline (device selection was skipped)
-            showBackButton: root.hasNetworkConnectivity
+            showBackButton: root.deviceStepShown // UNRAID
             appOptionsButton: optionsButton
             onNextClicked: root.nextStep()
             onBackClicked: root.previousStep()
@@ -1559,7 +1564,7 @@ Item {
     function resetWizard() {
         // Reset all wizard state to initial values
         // Start at OS selection if offline, device selection if online
-        currentStep = hasNetworkConnectivity ? 0 : 1
+        currentStep = deviceStepShown ? 0 : 1 // UNRAID
         permissibleStepsBitmap = 1  // Reset to only Device step permissible
         writeAnotherMode = false
         selectedDeviceName = ""
@@ -1599,7 +1604,7 @@ Item {
         
         // Navigate back to the first step (device selection if online, OS selection if offline)
         wizardStack.clear()
-        wizardStack.push(hasNetworkConnectivity ? deviceSelectionStep : osSelectionStep)
+        wizardStack.push(deviceStepShown ? deviceSelectionStep : osSelectionStep) // UNRAID
     }
     
     function resetToWriteStep() {

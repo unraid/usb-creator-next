@@ -52,6 +52,17 @@ QtObject {
     readonly property bool connectForOrganisationsAvailable: false
     readonly property bool telemetryAvailable: false
 
+    // Upstream's first step picks the target hardware (Raspberry Pi 2/3/4/5) and
+    // uses it to filter the OS list. Unraid has exactly one target, so the step
+    // asks a question with a single answer -- and because it precedes storage
+    // selection, "Select your device" reads as though it means the USB drive,
+    // which the user has often not even plugged in yet.
+    //
+    // Upstream already knows how to run without it: when the OS list is
+    // unavailable the step is dropped and every sidebar index shifts by one.
+    // This reuses that path rather than adding a second one.
+    readonly property bool deviceSelectionAvailable: false
+
     // Unraid images are always written to USB flash; other media cannot hold a
     // licence GUID, so the storage step filters to USB only.
     readonly property bool usbOnlyStorage: true
