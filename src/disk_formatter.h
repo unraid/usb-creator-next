@@ -160,6 +160,34 @@ class DiskFormatter {
       std::uint64_t file_size_bytes);
 
  private:
+  // UNRAID: zero this much at each end of the device before writing our own
+  // MBR. See WipeResidualSignatures().
+  static constexpr std::uint64_t kResidualWipeBytes = 1024 * 1024;
+
+  // UNRAID: destroy leftover partitioning/filesystem metadata from whatever was
+  // on the drive before us.
+  //
+  // We only write an MBR at LBA 0 and FAT32 from sector 8192, so anything
+  // outside those ranges survives -- including the parts that make Windows
+  // disbelieve our partition table. A GPT disk keeps a *backup* header in the
+  // very last sector with its entry array just before it, and ZFS writes four
+  // labels, two of them at the tail of the device. `diskpart clean` and the
+  // direct-IOCTL fast path clear the primary structures but are not reliable
+  // about the backup GPT.
+  //
+  // Observed with drives previously used by TrueNAS (GPT + ZFS): Disk
+  // Management shows our new partition correctly, but the volume never mounts,
+  // so the write fails with "Operating system did not mount FAT32 partition".
+  // Wiping with Rufus first is what made it work, because Rufus zeroes both
+  // ends. On the pre-2.0 tool the same drives appeared to write successfully
+  // and then failed to boot with "no system", which is the same residue
+  // surfacing later and less visibly.
+  //
+  // 1 MiB at each end covers the protective MBR, the primary GPT header and
+  // entries (LBA 1-33), the backup GPT (last 33 sectors), and the tail ZFS
+  // labels, for ~2 MiB of writes.
+  Result<void> WipeResidualSignatures(std::uint64_t device_size_bytes) const;
+
   static constexpr std::uint32_t kSectorSize = 512;
   static constexpr std::uint32_t kPartitionStartSector = 8192;  // 4MB offset
   static constexpr std::uint8_t kFat32PartitionType = 0x0C;    // FAT32 LBA
