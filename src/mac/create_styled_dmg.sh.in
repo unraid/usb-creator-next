@@ -184,15 +184,44 @@ fi
 # Create DMG using create-dmg
 echo "Creating DMG with create-dmg..."
 
+# UNRAID: the window must match the background image, or the artwork is scaled
+# and the icons no longer land on the drop targets drawn in it. Ours is 800x400
+# while this was hardcoded to 600x400, which left the two white wells visibly
+# empty with the icons sitting up and to the left of them.
+#
+# Derive the window from the image rather than hardcoding a second copy of its
+# dimensions, so a future background of a different size cannot silently
+# reintroduce the same mismatch. Icons are then centred on the wells, which sit
+# at 1/4 and 3/4 of the width.
+WINDOW_W=600
+WINDOW_H=400
+if [ -f "$DMG_BACKGROUND_PATH" ]; then
+    BG_W=$(sips -g pixelWidth "$DMG_BACKGROUND_PATH" 2>/dev/null | awk '/pixelWidth/{print $2}')
+    BG_H=$(sips -g pixelHeight "$DMG_BACKGROUND_PATH" 2>/dev/null | awk '/pixelHeight/{print $2}')
+    if [ -n "$BG_W" ] && [ -n "$BG_H" ]; then
+        WINDOW_W=$BG_W
+        WINDOW_H=$BG_H
+    fi
+fi
+
+# Wells are centred horizontally at a quarter and three quarters of the width.
+# Vertically the icon sits slightly above centre so its filename label stays
+# inside the well rather than spilling onto the dark background below it.
+ICON_X=$(( WINDOW_W / 4 ))
+DROP_X=$(( WINDOW_W * 3 / 4 ))
+ICON_Y=$(( WINDOW_H / 2 ))
+
+echo "DMG window ${WINDOW_W}x${WINDOW_H}; icons at ${ICON_X},${ICON_Y} and ${DROP_X},${ICON_Y}"
+
 # Build create-dmg command
 CREATE_DMG_CMD=(
     create-dmg
     --volname "@IMAGER_APP_NAME@ @IMAGER_VERSION_STR@"
     --window-pos 200 120
-    --window-size 600 400
+    --window-size "$WINDOW_W" "$WINDOW_H"
     --icon-size 128
-    --icon "${APP_NAME}.app" 150 200
-    --app-drop-link 450 200
+    --icon "${APP_NAME}.app" "$ICON_X" "$ICON_Y"
+    --app-drop-link "$DROP_X" "$ICON_Y"
 )
 
 # Add background image if it exists
