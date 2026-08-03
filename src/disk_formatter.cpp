@@ -126,6 +126,13 @@ Result<void> DiskFormatter::FormatDrive(const std::string& device_path) {
     return Result<void>(ConvertError(error));
   }
 
+  // UNRAID: clear stale partitioning/filesystem metadata before laying down our
+  // own MBR, or leftovers (notably a backup GPT in the last sector) can make
+  // Windows refuse to mount the FAT32 volume we are about to create.
+  if (auto result = WipeResidualSignatures(device_size_bytes); !result) {
+    return result;
+  }
+
   // Write MBR
   if (auto result = WriteMbr(device_size_bytes); !result) {
     return result;
@@ -160,6 +167,63 @@ Result<void> DiskFormatter::FormatFile(
 
   // Write FAT32 filesystem
   return WriteFat32(kPartitionStartSector, partition_size_sectors);
+}
+
+// UNRAID: see the comment on the declaration in disk_formatter.h for why this
+// exists and what it is protecting against.
+Result<void> DiskFormatter::WipeResidualSignatures(
+    std::uint64_t device_size_bytes) const {
+
+  const std::uint64_t total_sectors = device_size_bytes / kSectorSize;
+  if (total_sectors == 0) {
+    return Result<void>(FormatError::kInvalidParameters);
+  }
+
+  std::uint64_t wipe_sectors = kResidualWipeBytes / kSectorSize;
+
+  // On a device too small to hold two non-overlapping wipe regions, just clear
+  // the whole thing once rather than writing the middle twice.
+  const bool wipe_whole_device = (total_sectors <= wipe_sectors * 2);
+  if (wipe_whole_device) {
+    wipe_sectors = total_sectors;
+  }
+
+  AlignedBuffer zeros(static_cast<std::size_t>(wipe_sectors * kSectorSize));
+  if (!zeros.valid()) {
+    // Not fatal on its own -- the format below may still succeed on a drive
+    // with no stale metadata -- but say so, because it is the likely
+    // explanation if the mount then fails.
+    std::cout << "Could not allocate buffer to wipe residual signatures; "
+                 "continuing without it" << std::endl;
+    return Result<void>();
+  }
+  std::memset(zeros.data(), 0, static_cast<std::size_t>(wipe_sectors * kSectorSize));
+
+  FileError error = file_ops_->WriteAtOffset(
+      0, zeros.data(), static_cast<std::size_t>(wipe_sectors * kSectorSize));
+  if (error != FileError::kSuccess) {
+    std::cout << "Failed to wipe start of device. Error: "
+              << static_cast<int>(error) << std::endl;
+    return Result<void>(ConvertError(error));
+  }
+
+  if (!wipe_whole_device) {
+    // Sector-aligned so the write stays aligned for O_DIRECT / raw devices.
+    const std::uint64_t tail_offset = (total_sectors - wipe_sectors) * kSectorSize;
+    error = file_ops_->WriteAtOffset(
+        tail_offset, zeros.data(),
+        static_cast<std::size_t>(wipe_sectors * kSectorSize));
+    if (error != FileError::kSuccess) {
+      std::cout << "Failed to wipe end of device (backup GPT / ZFS labels live "
+                   "here). Error: " << static_cast<int>(error) << std::endl;
+      return Result<void>(ConvertError(error));
+    }
+  }
+
+  std::cout << "Wiped residual signatures from "
+            << (wipe_whole_device ? "the whole device" : "both ends of the device")
+            << std::endl;
+  return Result<void>();
 }
 
 Result<void> DiskFormatter::WriteMbr(
