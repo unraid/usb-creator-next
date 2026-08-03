@@ -199,12 +199,15 @@ Result<void> DiskFormatter::WipeResidualSignatures(
   }
   std::memset(zeros.data(), 0, static_cast<std::size_t>(wipe_sectors * kSectorSize));
 
+  // Best-effort throughout. This wipe fixes a specific broken case (stale GPT /
+  // ZFS residue); it must not turn a drive that would otherwise format fine into
+  // a failure. The MBR and FAT32 writes that follow are the real gate -- if the
+  // device genuinely cannot be written, they will say so.
   FileError error = file_ops_->WriteAtOffset(
       0, zeros.data(), static_cast<std::size_t>(wipe_sectors * kSectorSize));
   if (error != FileError::kSuccess) {
-    std::cout << "Failed to wipe start of device. Error: "
-              << static_cast<int>(error) << std::endl;
-    return Result<void>(ConvertError(error));
+    std::cout << "Could not wipe start of device (error "
+              << static_cast<int>(error) << "); continuing" << std::endl;
   }
 
   if (!wipe_whole_device) {
@@ -214,9 +217,11 @@ Result<void> DiskFormatter::WipeResidualSignatures(
         tail_offset, zeros.data(),
         static_cast<std::size_t>(wipe_sectors * kSectorSize));
     if (error != FileError::kSuccess) {
-      std::cout << "Failed to wipe end of device (backup GPT / ZFS labels live "
-                   "here). Error: " << static_cast<int>(error) << std::endl;
-      return Result<void>(ConvertError(error));
+      // Worth logging loudly: this is where the backup GPT and ZFS labels live,
+      // so if the mount later fails on a previously-NAS drive, this is why.
+      std::cout << "Could not wipe end of device (error "
+                << static_cast<int>(error)
+                << "); backup GPT / ZFS labels may survive" << std::endl;
     }
   }
 
