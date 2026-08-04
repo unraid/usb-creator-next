@@ -125,8 +125,14 @@ WizardStepBase {
                 columnSpacing: Style.formColumnSpacing
                 rowSpacing: Style.spacingSmall
 
+                // UNRAID: this brand does not run the device-selection step, so
+                // selectedDeviceName is never set and the row rendered a permanent
+                // "Device: No device selected" -- reported from QA as confusing on
+                // both this summary and the Done screen. Gated on the same flag that
+                // drops the step, so the two cannot disagree.
                 FocusableText {
                     id: deviceLabel
+                    visible: BrandSteps.deviceSelectionAvailable // UNRAID
                     text: CommonStrings.device
                     font.pointSize: Style.fontSizeDescription
                     font.family: Style.fontFamily
@@ -136,6 +142,7 @@ WizardStepBase {
 
                 MarqueeText {
                     id: deviceValue
+                    visible: BrandSteps.deviceSelectionAvailable // UNRAID
                     text: root.wizardContainer.selectedDeviceName || CommonStrings.noDeviceSelected
                     font.pointSize: Style.fontSizeDescription
                     font.family: Style.fontFamilyBold

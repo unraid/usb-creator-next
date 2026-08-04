@@ -66,8 +66,11 @@ WizardStepBase {
                 columnSpacing: Style.formColumnSpacing
                 rowSpacing: Style.spacingSmall
                 
+                // UNRAID: see the matching comment in WritingStep.qml -- without this
+                // the Done screen ends the run on "Device: No device selected".
                 FocusableText {
                     id: deviceLabel
+                    visible: BrandSteps.deviceSelectionAvailable // UNRAID
                     text: CommonStrings.device
                     font.pointSize: Style.fontSizeDescription
                     font.family: Style.fontFamily
@@ -76,6 +79,7 @@ WizardStepBase {
                 }
                 Text {
                     id: deviceValue
+                    visible: BrandSteps.deviceSelectionAvailable // UNRAID
                     text: root.wizardContainer.selectedDeviceName || CommonStrings.noDeviceSelected
                     font.pointSize: Style.fontSizeDescription
                     font.family: Style.fontFamilyBold
