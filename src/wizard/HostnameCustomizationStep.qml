@@ -20,6 +20,13 @@ WizardStepBase {
     // UNRAID: written to config/ident.cfg as NAME= and used as the server's
     // network name; it is not a Raspberry Pi hostname.
     readonly property string serverNameHelp: qsTr("The name this Unraid server appears as on your network. It should contain only letters, numbers, and hyphens.")
+    // UNRAID: Unraid always needs a server name -- it becomes NAME= in
+    // config/ident.cfg and the name the server answers to on the network. There
+    // is no sensible empty value, so Next stays disabled until one is present.
+    // The field is prefilled with the Unraid default below, so this only blocks
+    // someone who deliberately clears it.
+    nextButtonEnabled: fieldHostname.text.trim().length > 0
+
     showSkipButton: true
     nextButtonAccessibleDescription: qsTr("Save server name and continue to next customisation step") // UNRAID
     backButtonAccessibleDescription: qsTr("Return to previous step")
@@ -42,6 +49,12 @@ WizardStepBase {
         if (wizardContainer.customizationSettings.hostname) {
             fieldHostname.text = wizardContainer.customizationSettings.hostname
             wizardContainer.hostnameConfigured = true
+        } else {
+            // UNRAID: "Tower" is Unraid's own default server name, so a user who
+            // does not care gets the same result as a stock install rather than
+            // having to invent something. Only applied when nothing was carried
+            // over from a previous run.
+            fieldHostname.text = "Tower"
         }
     }
 
