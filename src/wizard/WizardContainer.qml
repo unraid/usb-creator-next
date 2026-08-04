@@ -928,6 +928,23 @@ Item {
         }
     }
     
+    // UNRAID: single source of truth for "does this brand show this step?".
+    //
+    // nextStep() skipped six gated steps on the way forward while previousStep()
+    // skipped only three, so Back walked straight onto Localisation, Wi-Fi or
+    // Remote access -- Raspberry Pi pages this brand never exposes going
+    // forward. Both directions must agree, so they consult this.
+    function isStepEnabled(stepIndex) {
+        if (stepIndex === stepDeviceSelection) return deviceStepShown
+        if (stepIndex === stepLocaleCustomization) return BrandSteps.localisationAvailable
+        if (stepIndex === stepWifiCustomization) return BrandSteps.wifiAvailable
+        if (stepIndex === stepRemoteAccess) return BrandSteps.remoteAccessAvailable
+        if (stepIndex === stepSecureBootCustomization) return secureBootAllowed
+        if (stepIndex === stepPiConnectCustomization) return piConnectAllowed
+        if (stepIndex === stepIfAndFeatures) return ccRpiAvailable && ifAndFeaturesAllowed
+        return true
+    }
+
     function previousStep() {
         if (root.currentStep > 0) {
             var prevIndex = root.currentStep - 1
@@ -937,19 +954,15 @@ Item {
             if (root.currentStep === stepWriting && !customizationSupported) {
                 prevIndex = stepStorageSelection
             } else {
-                // Skip interfaces and features if OS doesn't support it or no capabilities are available
-                if (prevIndex == stepIfAndFeatures && (!ccRpiAvailable || !ifAndFeaturesAllowed)) { // UNRAID
+                // UNRAID: walk back past every step this brand does not show,
+                // rather than testing a fixed handful once each. The old chain
+                // missed Localisation, Wi-Fi and Remote access, and being
+                // single-pass could not clear two adjacent hidden steps.
+                while (prevIndex >= 0 && !isStepEnabled(prevIndex)) {
                     prevIndex--
                 }
-                if (prevIndex === stepPiConnectCustomization && !piConnectAllowed) { // UNRAID
-                    prevIndex--
-                }
-                if (prevIndex === stepSecureBootCustomization && !secureBootAllowed) { // UNRAID
-                    prevIndex--
-                }
-                // Skip device selection if offline (it would be empty/useless)
-                if (prevIndex === stepDeviceSelection && !deviceStepShown) { // UNRAID
-                    // Can't go back further, stay at current step
+                if (prevIndex < 0) {
+                    // Nothing behind us that this brand shows; stay put.
                     return
                 }
             }
