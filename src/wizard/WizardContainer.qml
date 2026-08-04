@@ -142,8 +142,14 @@ Item {
     readonly property int stepStorageSelection: 2
     readonly property int stepHostnameCustomization: 3
     readonly property int stepLocaleCustomization: 4
-    readonly property int stepUserCustomization: 5
-    readonly property int stepWifiCustomization: 6
+    // UNRAID: Wi-Fi is asked before addressing, the reverse of upstream. The
+    // addressing step needs to know whether Wi-Fi was set up: if it was, it
+    // collects a second static address for wlan0 rather than reusing the wired
+    // one, which previously put the same IP on br0 and wlan0. Only the values are
+    // swapped -- every reference goes through these constants, including the
+    // step-to-component mapping, so nothing else has to move.
+    readonly property int stepWifiCustomization: 5
+    readonly property int stepUserCustomization: 6
     readonly property int stepRemoteAccess: 7
     readonly property int stepSecureBootCustomization: 8
     readonly property int stepPiConnectCustomization: 9
@@ -292,53 +298,67 @@ Item {
                     // customisation group would claim steps the wizard never enters.
                     : BrandSteps.remoteAccessAvailable
                         ? stepRemoteAccess
-                        : BrandSteps.wifiAvailable
-                            ? stepWifiCustomization
-                            : stepUserCustomization
+                        // UNRAID: addressing now follows Wi-Fi, so it is the last
+                        // customisation step this brand enters.
+                        : BrandSteps.networkConfigAvailable
+                            ? stepUserCustomization
+                            : stepWifiCustomization
     }
 
-    function getCustomizationSubstepLabels() {
-        // Only return labels if customization is supported
+    // UNRAID: one ordered list of {label, step} pairs, and the single source of
+    // truth for which sidebar row is which step.
+    //
+    // Upstream derived that mapping by comparing the displayed label against a
+    // hardcoded string in three separate places. That is brittle by construction:
+    // the sidebar shows brand labels ("Server name", "Network"), so the
+    // comparisons against qsTr("Hostname") / qsTr("User") never matched and
+    // sidebar highlighting and click-to-navigate were silently dead for every
+    // customisation substep. Any relabel or retranslation breaks it the same way,
+    // with no error to notice.
+    //
+    // Carrying the step index alongside the label removes the guesswork -- callers
+    // ask for the step rather than reconstructing it from a display string.
+    function getCustomizationSubsteps() {
         if (!customizationSupported) {
             return []
         }
-        
-        // UNRAID: the base steps are brand-gated and brand-labelled rather than
-        // deleted, so this stays a small edit to upstream's list. See BrandSteps.qml.
-        var labels = []
-        if (BrandSteps.serverNameAvailable) { labels.push(BrandSteps.serverNameLabel) }
-        if (BrandSteps.localisationAvailable) { labels.push(qsTr("Localisation")) }
-        if (BrandSteps.networkConfigAvailable) { labels.push(BrandSteps.networkConfigLabel) }
-        if (BrandSteps.wifiAvailable) { labels.push(BrandSteps.wifiLabel) }
-        if (BrandSteps.remoteAccessAvailable) { labels.push(qsTr("Remote access")) }
-        if (secureBootAllowed) { // UNRAID
-            labels.push(qsTr("Secure Boot"))
-        }
-        if (piConnectAllowed) { // UNRAID
-            labels.push(qsTr("Raspberry Pi Connect"))
-        }
-        if (ccRpiAvailable && ifAndFeaturesAllowed) { // UNRAID
-            labels.push(qsTr("Interfaces & Features"))
-        }
 
-        return labels
+        // Declaration order here IS the sidebar order.
+        var substeps = []
+        if (BrandSteps.serverNameAvailable) { substeps.push({ label: BrandSteps.serverNameLabel, step: stepHostnameCustomization }) }
+        if (BrandSteps.localisationAvailable) { substeps.push({ label: qsTr("Localisation"), step: stepLocaleCustomization }) }
+        // Wi-Fi precedes addressing -- see the step constants.
+        if (BrandSteps.wifiAvailable) { substeps.push({ label: BrandSteps.wifiLabel, step: stepWifiCustomization }) }
+        if (BrandSteps.networkConfigAvailable) { substeps.push({ label: BrandSteps.networkConfigLabel, step: stepUserCustomization }) }
+        if (BrandSteps.remoteAccessAvailable) { substeps.push({ label: qsTr("Remote access"), step: stepRemoteAccess }) }
+        if (secureBootAllowed) { substeps.push({ label: qsTr("Secure Boot"), step: stepSecureBootCustomization }) }
+        if (piConnectAllowed) { substeps.push({ label: qsTr("Raspberry Pi Connect"), step: stepPiConnectCustomization }) }
+        if (ccRpiAvailable && ifAndFeaturesAllowed) { substeps.push({ label: qsTr("Interfaces & Features"), step: stepIfAndFeatures }) }
+
+        return substeps
+    }
+
+    // Kept for the sidebar Repeater's model.
+    function getCustomizationSubstepLabels() {
+        return getCustomizationSubsteps().map(function(s) { return s.label })
     }
 
     function isCustomizationSubstepConfigured(subIndex) {
-        // Map the display index to the actual step based on what's available
-        var labels = getCustomizationSubstepLabels()
-        if (subIndex >= labels.length) return false
-        
-        var stepLabel = labels[subIndex]
-        if (stepLabel === BrandSteps.serverNameLabel) return hostnameConfigured // UNRAID
-        if (stepLabel === qsTr("Localisation")) return localeConfigured
-        if (stepLabel === BrandSteps.networkConfigLabel) return userConfigured // UNRAID
-        if (stepLabel === BrandSteps.wifiLabel) return wifiConfigured // UNRAID
-        if (stepLabel === qsTr("Remote access")) return sshEnabled
-        if (stepLabel === qsTr("Secure Boot")) return secureBootEnabled
-        if (stepLabel === qsTr("Raspberry Pi Connect")) return piConnectEnabled
-        if (stepLabel === qsTr("Interfaces & Features")) return (ifI2cEnabled || ifSpiEnabled || if1WireEnabled || (ifSerial !== "" && ifSerial !== "Disabled") || featUsbGadgetEnabled)
-        
+        // UNRAID: keyed on the step, not on the displayed label.
+        var substeps = getCustomizationSubsteps()
+        if (subIndex >= substeps.length) return false
+
+        switch (substeps[subIndex].step) {
+        case stepHostnameCustomization: return hostnameConfigured
+        case stepLocaleCustomization: return localeConfigured
+        case stepUserCustomization: return userConfigured
+        case stepWifiCustomization: return wifiConfigured
+        case stepRemoteAccess: return sshEnabled
+        case stepSecureBootCustomization: return secureBootEnabled
+        case stepPiConnectCustomization: return piConnectEnabled
+        case stepIfAndFeatures: return (ifI2cEnabled || ifSpiEnabled || if1WireEnabled || (ifSerial !== "" && ifSerial !== "Disabled") || featUsbGadgetEnabled)
+        }
+
         return false
     }
 
@@ -602,20 +622,13 @@ Item {
                                             return false
                                         }
                                         
-                                        // Map current step to display index by finding which label matches
-                                        var labels = root.getCustomizationSubstepLabels()
-                                        if (subItem.index >= labels.length) return false
-                                        
-                                        var currentStepLabel = ""
-                                        if (root.currentStep === root.stepHostnameCustomization) currentStepLabel = qsTr("Hostname")
-                                        else if (root.currentStep === root.stepLocaleCustomization) currentStepLabel = qsTr("Localisation")
-                                        else if (root.currentStep === root.stepUserCustomization) currentStepLabel = qsTr("User")
-                                        else if (root.currentStep === root.stepWifiCustomization) currentStepLabel = qsTr("Wi‑Fi")
-                                        else if (root.currentStep === root.stepRemoteAccess) currentStepLabel = qsTr("Remote access")
-                                        else if (root.currentStep === root.stepPiConnectCustomization) currentStepLabel = qsTr("Raspberry Pi Connect")
-                                        else if (root.currentStep === root.stepIfAndFeatures) currentStepLabel = qsTr("Interfaces & Features")
-                                        
-                                        return labels[subItem.index] === currentStepLabel
+                                        // UNRAID: the row knows its own step, so this is a
+                                        // direct comparison rather than a round trip
+                                        // through display strings.
+                                        var substeps = root.getCustomizationSubsteps()
+                                        if (subItem.index >= substeps.length) return false
+
+                                        return substeps[subItem.index].step === root.currentStep
                                     }
                                     property bool isConfigured: root.isCustomizationSubstepConfigured(subItem.index)
                                     property bool isClickable: root.customizationSupported && !root.isWriting && root.currentStep > root.stepOSSelection && (
@@ -640,21 +653,12 @@ Item {
                                         enabled: subItem.isClickable
                                         cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
                                         onClicked: {
-                                            // Map display index to actual step index based on available labels
-                                            var labels = root.getCustomizationSubstepLabels()
-                                            if (subItem.index >= labels.length) return
-                                            
-                                            var stepLabel = labels[subItem.index]
-                                            var target = root.firstCustomizationStep // default to hostname
-                                            
-                                            if (stepLabel === qsTr("Hostname")) target = root.stepHostnameCustomization
-                                            else if (stepLabel === qsTr("Localisation")) target = root.stepLocaleCustomization
-                                            else if (stepLabel === qsTr("User")) target = root.stepUserCustomization
-                                            else if (stepLabel === qsTr("Wi‑Fi")) target = root.stepWifiCustomization
-                                            else if (stepLabel === qsTr("Remote access")) target = root.stepRemoteAccess
-                                            else if (stepLabel === qsTr("Raspberry Pi Connect")) target = root.stepPiConnectCustomization
-                                            else if (stepLabel === qsTr("Interfaces & Features")) target = root.stepIfAndFeatures
-                                            
+                                            // UNRAID: take the step straight off the row.
+                                            var substeps = root.getCustomizationSubsteps()
+                                            if (subItem.index >= substeps.length) return
+
+                                            var target = substeps[subItem.index].step
+
                                             // Allow navigation to permissible steps or backward navigation within customization
                                             if (root.currentStep !== target && (root.isStepPermissible(target) || target < root.currentStep)) {
                                                 root.jumpToStep(target)

@@ -245,21 +245,49 @@ bool finalizeFlashDrive(const QString &mountPoint,
         cfg += QStringLiteral("PASSWORD=\"%1\"\n").arg(password);
         cfg += QStringLiteral("AUTOJOIN=\"yes\"\n");
 
-        // IPv4 follows the same DHCP choice as the wired step, so a
-        // static-addressed server does not silently come up on DHCP over Wi-Fi.
-        const QString mask = settings.value(QStringLiteral("netmask"),
-                                            QStringLiteral("255.255.255.0")).toString();
-        cfg += QStringLiteral("DHCP4=\"%1\"\n").arg(useDhcp ? QStringLiteral("yes")
-                                                             : QStringLiteral("no"));
-        cfg += QStringLiteral("IP4=\"%1\"\n").arg(useDhcp ? QString()
-                                                           : settings.value(QStringLiteral("ipaddr")).toString());
-        cfg += QStringLiteral("MASK4=\"%1\"\n").arg(mask);
-        cfg += QStringLiteral("GATEWAY4=\"%1\"\n").arg(useDhcp ? QString()
-                                                                : settings.value(QStringLiteral("gateway")).toString());
-        cfg += QStringLiteral("DNS4=\"%1\"\n").arg(useDhcp ? QStringLiteral("no")
-                                                            : QStringLiteral("yes"));
-        cfg += QStringLiteral("SERVER4=\"%1\"\n").arg(useDhcp ? QString()
-                                                               : settings.value(QStringLiteral("dns")).toString());
+        // Wi-Fi addressing uses its OWN address, never the wired one.
+        //
+        // This previously mirrored the wired choice so a static-addressed server
+        // would not silently come up on DHCP over Wi-Fi. That was wrong: it wrote
+        // the same IPADDR, NETMASK and GATEWAY into both network.cfg and
+        // wireless.cfg, and the server booted with the identical /24 address live
+        // on br0 and wlan0 at once. QA measured exactly that -- default routes via
+        // br0 (metric 1) and wlan0 (metric 3004), and a duplicate-address check
+        // naming both interfaces. Route metrics do not make that safe; it is still
+        // a duplicate IP, with the ARP and asymmetric-routing problems that follow.
+        //
+        // The wizard now asks Wi-Fi before addressing and, when both are in play,
+        // collects a second address for wlan0 and rejects one equal to the wired
+        // address. If that address is absent -- Wi-Fi configured but addressing
+        // left on DHCP -- Wi-Fi takes DHCP as well. It is never given the wired
+        // address.
+        const QString wifiIp = settings.value(QStringLiteral("wifiIpaddr")).toString().trimmed();
+        const QString wifiGateway = settings.value(QStringLiteral("wifiGateway")).toString().trimmed();
+        const QString wifiDns = settings.value(QStringLiteral("wifiDns")).toString().trimmed();
+        const QString wifiMask = settings.value(QStringLiteral("wifiNetmask"),
+                                                QStringLiteral("255.255.255.0")).toString();
+
+        // Belt and braces: even if the wizard let one through, refuse to write the
+        // wired address onto wlan0.
+        const QString wiredIp = settings.value(QStringLiteral("ipaddr")).toString().trimmed();
+        const bool wifiStatic = !useDhcp && !wifiIp.isEmpty() && wifiIp != wiredIp;
+
+        if (!useDhcp && !wifiIp.isEmpty() && wifiIp == wiredIp) {
+            qWarning() << "Unraid: Wi-Fi address matches the wired address" << wiredIp
+                       << "-- falling back to DHCP for Wi-Fi rather than assigning it twice";
+        }
+        if (wifiStatic) {
+            qInfo() << "Unraid: Wi-Fi static address" << wifiIp << "(wired is" << wiredIp << ")";
+        }
+
+        cfg += QStringLiteral("DHCP4=\"%1\"\n").arg(wifiStatic ? QStringLiteral("no")
+                                                                : QStringLiteral("yes"));
+        cfg += QStringLiteral("IP4=\"%1\"\n").arg(wifiStatic ? wifiIp : QString());
+        cfg += QStringLiteral("MASK4=\"%1\"\n").arg(wifiMask);
+        cfg += QStringLiteral("GATEWAY4=\"%1\"\n").arg(wifiStatic ? wifiGateway : QString());
+        cfg += QStringLiteral("DNS4=\"%1\"\n").arg(wifiStatic ? QStringLiteral("yes")
+                                                               : QStringLiteral("no"));
+        cfg += QStringLiteral("SERVER4=\"%1\"\n").arg(wifiStatic ? wifiDns : QString());
 
         // IPv6 defaults, matching a stock configured server. The wizard does not
         // offer IPv6, but the webGUI expects these keys to exist.
