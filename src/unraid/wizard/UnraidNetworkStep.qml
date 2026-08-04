@@ -34,6 +34,16 @@ WizardStepBase {
     // a user only reaches the static fields deliberately.
     property bool useDhcp: true
 
+    // UNRAID: shared by the wired and Wi-Fi netmask pickers so the two cannot
+    // drift apart.
+    readonly property var netmaskOptions: [
+        "255.255.0.0", "255.255.128.0", "255.255.192.0", "255.255.224.0",
+        "255.255.240.0", "255.255.248.0", "255.255.252.0", "255.255.254.0",
+        "255.255.255.0", "255.255.255.128", "255.255.255.192",
+        "255.255.255.224", "255.255.255.240", "255.255.255.248",
+        "255.255.255.252"
+    ]
+
     readonly property bool staticFieldsValid:
         fieldIpAddr.acceptableInput && fieldGateway.acceptableInput && fieldDns.acceptableInput
 
@@ -112,92 +122,57 @@ WizardStepBase {
                 }
             }
 
+            // UNRAID: one label column, with the wired address and (when Wi-Fi is
+            // set up) the Wi-Fi address side by side.
+            //
+            // Stacking the two groups vertically overflowed the step -- the content
+            // area is a plain Item with no clipping or scrolling, so the extra rows
+            // drew over the title and the navigation buttons. Sharing the labels
+            // halves the height and reads better besides.
+            //
+            // Rows and columns are assigned explicitly: a GridLayout skips
+            // invisible items, so the Wi-Fi column would otherwise reflow into the
+            // wired one whenever Wi-Fi is not configured.
             GridLayout {
                 Layout.fillWidth: true
-                columns: 2
+                columns: 3
                 columnSpacing: Style.spacingMedium
                 rowSpacing: Style.formRowSpacing
                 enabled: !root.useDhcp
                 opacity: enabled ? 1.0 : 0.5
 
-                WizardFormLabel { text: qsTr("IP address:") }
+                // Column headers, only meaningful once there are two columns.
+                Item { Layout.row: 0; Layout.column: 0; visible: root.wifiConfigured }
+                WizardDescriptionText {
+                    Layout.row: 0; Layout.column: 1
+                    visible: root.wifiConfigured
+                    text: qsTr("Wired")
+                    font.family: Style.fontFamilyBold
+                    font.bold: true
+                }
+                WizardDescriptionText {
+                    Layout.row: 0; Layout.column: 2
+                    visible: root.wifiConfigured
+                    text: BrandSteps.wifiLabel
+                    font.family: Style.fontFamilyBold
+                    font.bold: true
+                }
+
+                WizardFormLabel { Layout.row: 1; Layout.column: 0; text: qsTr("IP address:") }
                 ImTextField {
                     id: fieldIpAddr
+                    Layout.row: 1; Layout.column: 1
                     onTextChanged: root.commitSettings()
                     Layout.fillWidth: true
                     placeholderText: "192.168.1.10"
                     font.pointSize: Style.fontSizeInput
                     validator: RegularExpressionValidator { regularExpression: root.ipv4Regex }
-                    Accessible.description: qsTr("Fixed IPv4 address for this server")
+                    Accessible.description: qsTr("Fixed IPv4 address for the wired connection")
                 }
-
-                WizardFormLabel { text: qsTr("Netmask:") }
-                ComboBox {
-                    id: fieldNetmask
-                    Layout.fillWidth: true
-                    font.family: Style.fontFamily
-                    font.pointSize: Style.fontSizeInput
-                    model: ["255.255.0.0", "255.255.128.0", "255.255.192.0", "255.255.224.0",
-                            "255.255.240.0", "255.255.248.0", "255.255.252.0", "255.255.254.0",
-                            "255.255.255.0", "255.255.255.128", "255.255.255.192",
-                            "255.255.255.224", "255.255.255.240", "255.255.255.248",
-                            "255.255.255.252"]
-                    currentIndex: -1
-                    Component.onCompleted: currentIndex = find("255.255.255.0")
-                    onCurrentTextChanged: root.commitSettings()
-                    Accessible.description: qsTr("Subnet mask for this server")
-                }
-
-                WizardFormLabel { text: qsTr("Gateway:") }
-                ImTextField {
-                    id: fieldGateway
-                    onTextChanged: root.commitSettings()
-                    Layout.fillWidth: true
-                    placeholderText: "192.168.1.1"
-                    font.pointSize: Style.fontSizeInput
-                    validator: RegularExpressionValidator { regularExpression: root.ipv4Regex }
-                    Accessible.description: qsTr("Router address for this server")
-                }
-
-                WizardFormLabel { text: qsTr("DNS server:") }
-                ImTextField {
-                    id: fieldDns
-                    onTextChanged: root.commitSettings()
-                    Layout.fillWidth: true
-                    placeholderText: "192.168.1.1"
-                    font.pointSize: Style.fontSizeInput
-                    validator: RegularExpressionValidator { regularExpression: root.ipv4Regex }
-                    Accessible.description: qsTr("DNS server for this server")
-                }
-            }
-
-            // UNRAID: a second address for wlan0.
-            //
-            // Wi-Fi used to inherit the wired address, which put the same IP on
-            // br0 and wlan0 at the same time -- QA saw both interfaces holding the
-            // identical /24 with default routes through each. An address belongs to
-            // one interface, so when Wi-Fi is set up it gets its own.
-            //
-            // Only shown when the Wi-Fi step was actually filled in, which is why
-            // Wi-Fi is asked first.
-            WizardDescriptionText {
-                visible: !root.useDhcp && root.wifiConfigured
-                text: qsTr("Wi‑Fi address")
-                font.family: Style.fontFamilyBold
-                font.bold: true
-            }
-
-            GridLayout {
-                Layout.fillWidth: true
-                columns: 2
-                columnSpacing: Style.spacingMedium
-                rowSpacing: Style.formRowSpacing
-                visible: !root.useDhcp && root.wifiConfigured
-                enabled: visible
-
-                WizardFormLabel { text: qsTr("IP address:") }
                 ImTextField {
                     id: fieldWifiIpAddr
+                    Layout.row: 1; Layout.column: 2
+                    visible: root.wifiConfigured
                     onTextChanged: root.commitSettings()
                     Layout.fillWidth: true
                     placeholderText: "192.168.1.11"
@@ -206,26 +181,48 @@ WizardStepBase {
                     Accessible.description: qsTr("Fixed IPv4 address for the Wi-Fi connection, which must differ from the wired address")
                 }
 
-                WizardFormLabel { text: qsTr("Netmask:") }
+                WizardFormLabel { Layout.row: 2; Layout.column: 0; text: qsTr("Netmask:") }
                 ComboBox {
-                    id: fieldWifiNetmask
+                    id: fieldNetmask
+                    Layout.row: 2; Layout.column: 1
                     Layout.fillWidth: true
                     font.family: Style.fontFamily
                     font.pointSize: Style.fontSizeInput
-                    model: ["255.255.0.0", "255.255.128.0", "255.255.192.0", "255.255.224.0",
-                            "255.255.240.0", "255.255.248.0", "255.255.252.0", "255.255.254.0",
-                            "255.255.255.0", "255.255.255.128", "255.255.255.192",
-                            "255.255.255.224", "255.255.255.240", "255.255.255.248",
-                            "255.255.255.252"]
+                    model: root.netmaskOptions
+                    currentIndex: -1
+                    Component.onCompleted: currentIndex = find("255.255.255.0")
+                    onCurrentTextChanged: root.commitSettings()
+                    Accessible.description: qsTr("Subnet mask for the wired connection")
+                }
+                ComboBox {
+                    id: fieldWifiNetmask
+                    Layout.row: 2; Layout.column: 2
+                    visible: root.wifiConfigured
+                    Layout.fillWidth: true
+                    font.family: Style.fontFamily
+                    font.pointSize: Style.fontSizeInput
+                    model: root.netmaskOptions
                     currentIndex: -1
                     Component.onCompleted: currentIndex = find("255.255.255.0")
                     onCurrentTextChanged: root.commitSettings()
                     Accessible.description: qsTr("Subnet mask for the Wi-Fi connection")
                 }
 
-                WizardFormLabel { text: qsTr("Gateway:") }
+                WizardFormLabel { Layout.row: 3; Layout.column: 0; text: qsTr("Gateway:") }
+                ImTextField {
+                    id: fieldGateway
+                    Layout.row: 3; Layout.column: 1
+                    onTextChanged: root.commitSettings()
+                    Layout.fillWidth: true
+                    placeholderText: "192.168.1.1"
+                    font.pointSize: Style.fontSizeInput
+                    validator: RegularExpressionValidator { regularExpression: root.ipv4Regex }
+                    Accessible.description: qsTr("Router address for the wired connection")
+                }
                 ImTextField {
                     id: fieldWifiGateway
+                    Layout.row: 3; Layout.column: 2
+                    visible: root.wifiConfigured
                     onTextChanged: root.commitSettings()
                     Layout.fillWidth: true
                     placeholderText: "192.168.1.1"
@@ -234,9 +231,21 @@ WizardStepBase {
                     Accessible.description: qsTr("Router address for the Wi-Fi connection")
                 }
 
-                WizardFormLabel { text: qsTr("DNS server:") }
+                WizardFormLabel { Layout.row: 4; Layout.column: 0; text: qsTr("DNS server:") }
+                ImTextField {
+                    id: fieldDns
+                    Layout.row: 4; Layout.column: 1
+                    onTextChanged: root.commitSettings()
+                    Layout.fillWidth: true
+                    placeholderText: "192.168.1.1"
+                    font.pointSize: Style.fontSizeInput
+                    validator: RegularExpressionValidator { regularExpression: root.ipv4Regex }
+                    Accessible.description: qsTr("DNS server for the wired connection")
+                }
                 ImTextField {
                     id: fieldWifiDns
+                    Layout.row: 4; Layout.column: 2
+                    visible: root.wifiConfigured
                     onTextChanged: root.commitSettings()
                     Layout.fillWidth: true
                     placeholderText: "192.168.1.1"
@@ -254,15 +263,15 @@ WizardStepBase {
             }
 
             WizardDescriptionText {
-                // UNRAID: the static address applies to the wired connection only.
-                // One address cannot be given to two interfaces, so Wi-Fi uses DHCP
-                // -- say so here rather than letting someone assume otherwise. See
-                // the Wi-Fi section of unraid_postwrite.cpp.
+                // UNRAID: each interface gets its own address -- see the Wi-Fi
+                // section of unraid_postwrite.cpp for why they must differ.
                 text: root.useDhcp
                       ? qsTr("The server will request an address from your router when it boots.")
-                      : qsTr("These settings are written to config/network.cfg on the flash drive, "
-                             + "and apply to the wired connection. If you also set up Wi-Fi, it will "
-                             + "use DHCP, because one address cannot be assigned to two interfaces.")
+                      : root.wifiConfigured
+                        ? qsTr("Written to config/network.cfg and config/wireless.cfg on the flash "
+                               + "drive. Each connection needs its own address -- the same one "
+                               + "cannot be used for both.")
+                        : qsTr("These settings are written to config/network.cfg on the flash drive.")
             }
         }
     }
