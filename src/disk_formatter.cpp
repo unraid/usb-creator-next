@@ -188,13 +188,23 @@ Result<void> DiskFormatter::WipeResidualSignatures(
     wipe_sectors = total_sectors;
   }
 
+  // UNRAID: report through FileOperationsLog, not std::cout. The Windows
+  // executable is built with the WIN32 subsystem (see src/CMakeLists.txt), so it
+  // has no console and anything written to std::cout is discarded -- on the one
+  // platform where this wipe matters. FileOperationsLog reaches qDebug, which
+  // --log-file captures, so a failing wipe can actually be diagnosed from a
+  // tester's log rather than inferred.
+  FileOperationsLog("Wiping residual signatures: device_size=" +
+                    std::to_string(device_size_bytes) + " bytes, wiping " +
+                    std::to_string(wipe_sectors * kSectorSize) + " bytes at each end");
+
   AlignedBuffer zeros(static_cast<std::size_t>(wipe_sectors * kSectorSize));
   if (!zeros.valid()) {
     // Not fatal on its own -- the format below may still succeed on a drive
     // with no stale metadata -- but say so, because it is the likely
     // explanation if the mount then fails.
-    std::cout << "Could not allocate buffer to wipe residual signatures; "
-                 "continuing without it" << std::endl;
+    FileOperationsLog("Could not allocate buffer to wipe residual signatures; "
+                      "continuing without it");
     return Result<void>();
   }
   std::memset(zeros.data(), 0, static_cast<std::size_t>(wipe_sectors * kSectorSize));
@@ -203,11 +213,15 @@ Result<void> DiskFormatter::WipeResidualSignatures(
   // ZFS residue); it must not turn a drive that would otherwise format fine into
   // a failure. The MBR and FAT32 writes that follow are the real gate -- if the
   // device genuinely cannot be written, they will say so.
+  bool head_ok = true;
+  bool tail_ok = true;
+
   FileError error = file_ops_->WriteAtOffset(
       0, zeros.data(), static_cast<std::size_t>(wipe_sectors * kSectorSize));
   if (error != FileError::kSuccess) {
-    std::cout << "Could not wipe start of device (error "
-              << static_cast<int>(error) << "); continuing" << std::endl;
+    head_ok = false;
+    FileOperationsLog("Could not wipe start of device (error " +
+                      std::to_string(static_cast<int>(error)) + "); continuing");
   }
 
   if (!wipe_whole_device) {
@@ -219,15 +233,18 @@ Result<void> DiskFormatter::WipeResidualSignatures(
     if (error != FileError::kSuccess) {
       // Worth logging loudly: this is where the backup GPT and ZFS labels live,
       // so if the mount later fails on a previously-NAS drive, this is why.
-      std::cout << "Could not wipe end of device (error "
-                << static_cast<int>(error)
-                << "); backup GPT / ZFS labels may survive" << std::endl;
+      tail_ok = false;
+      FileOperationsLog("Could not wipe end of device at offset " +
+                        std::to_string(tail_offset) + " (error " +
+                        std::to_string(static_cast<int>(error)) +
+                        "); backup GPT / ZFS labels may survive");
     }
   }
 
-  std::cout << "Wiped residual signatures from "
-            << (wipe_whole_device ? "the whole device" : "both ends of the device")
-            << std::endl;
+  FileOperationsLog(std::string("Residual signature wipe finished: ") +
+                    (wipe_whole_device ? "whole device" : "both ends") +
+                    ", start=" + (head_ok ? "ok" : "FAILED") +
+                    ", end=" + (tail_ok ? "ok" : "FAILED"));
   return Result<void>();
 }
 
