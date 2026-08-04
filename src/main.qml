@@ -106,6 +106,10 @@ ApplicationWindow {
         onActivated: {
             console.log("Opening debug options dialog...")
             debugOptionsLoader.active = true
+            if (!debugOptionsLoader.item) { // UNRAID: see onAppOptionsRequested
+                console.warn("Debug Options failed to instantiate; loader status=" + debugOptionsLoader.status)
+                return
+            }
             debugOptionsLoader.item.initialize()
             debugOptionsLoader.item.open()
         }
@@ -130,7 +134,16 @@ ApplicationWindow {
             }
 
             onAppOptionsRequested: {
+                // UNRAID: the Loader is lazy, so `item` is only populated once the
+                // component has been instantiated. Dereferencing it blind turns any
+                // instantiation failure into a bare TypeError with no context, and
+                // leaves the Loader active but never opened -- which presents as the
+                // button silently doing nothing. Fail loudly instead.
                 appOptionsLoader.active = true
+                if (!appOptionsLoader.item) {
+                    console.warn("App Options failed to instantiate; loader status=" + appOptionsLoader.status)
+                    return
+                }
                 appOptionsLoader.item.initialize()
                 appOptionsLoader.item.open()
             }
