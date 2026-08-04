@@ -36,8 +36,12 @@ Button {
     contentItem: Text {
         text: control.text
         font: control.font
+        // UNRAID: was hardcoded to Style.raspberryRed on hover/focus, which read
+        // fine against upstream's dark hovered background but is red-on-orange
+        // once the brand makes the button orange. Style already defines the
+        // correct paired colour; this just uses it.
         color: control.enabled
-               ? (control.activeFocus || control.hovered ? Style.raspberryRed : Style.button2ForegroundColor)
+               ? (control.activeFocus || control.hovered ? Style.button2HoveredForegroundColor : Style.button2ForegroundColor)
                : Qt.rgba(0, 0, 0, 0.3)
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
