@@ -37,9 +37,27 @@ WizardStepBase {
     readonly property bool staticFieldsValid:
         fieldIpAddr.acceptableInput && fieldGateway.acceptableInput && fieldDns.acceptableInput
 
+    // UNRAID: whether the Wi-Fi step was filled in. Drives the second address
+    // group below -- Wi-Fi is asked first so this is already known.
+    readonly property bool wifiConfigured:
+        wizardContainer && wizardContainer.customizationSettings
+        && (wizardContainer.customizationSettings.wifiSSID || "") !== ""
+
+    readonly property bool wifiStaticFieldsValid:
+        fieldWifiIpAddr.acceptableInput && fieldWifiGateway.acceptableInput
+        && fieldWifiDns.acceptableInput
+
+    // Two interfaces holding one address is the bug this exists to prevent, so
+    // an identical address is rejected rather than quietly written to both.
+    readonly property bool wifiAddressClashes:
+        fieldWifiIpAddr.text !== "" && fieldWifiIpAddr.text === fieldIpAddr.text
+
     // DHCP needs no input; static addressing must be complete before Next unlocks,
-    // since a partial network.cfg would leave the server unreachable.
-    nextButtonEnabled: useDhcp || staticFieldsValid
+    // since a partial network.cfg would leave the server unreachable. When Wi-Fi is
+    // also configured its address must be complete and distinct.
+    nextButtonEnabled: useDhcp
+                       || (staticFieldsValid
+                           && (!wifiConfigured || (wifiStaticFieldsValid && !wifiAddressClashes)))
 
     Component.onCompleted: {
         var s = wizardContainer.customizationSettings
@@ -52,6 +70,15 @@ WizardStepBase {
         if (s.netmask) {
             var i = fieldNetmask.find(s.netmask)
             if (i >= 0) fieldNetmask.currentIndex = i
+        }
+        // UNRAID: restore the Wi-Fi address too, so going back and forward does
+        // not silently drop it.
+        if (s.wifiIpaddr) fieldWifiIpAddr.text = s.wifiIpaddr
+        if (s.wifiGateway) fieldWifiGateway.text = s.wifiGateway
+        if (s.wifiDns) fieldWifiDns.text = s.wifiDns
+        if (s.wifiNetmask) {
+            var wi = fieldWifiNetmask.find(s.wifiNetmask)
+            if (wi >= 0) fieldWifiNetmask.currentIndex = wi
         }
     }
 
@@ -144,10 +171,98 @@ WizardStepBase {
                 }
             }
 
+            // UNRAID: a second address for wlan0.
+            //
+            // Wi-Fi used to inherit the wired address, which put the same IP on
+            // br0 and wlan0 at the same time -- QA saw both interfaces holding the
+            // identical /24 with default routes through each. An address belongs to
+            // one interface, so when Wi-Fi is set up it gets its own.
+            //
+            // Only shown when the Wi-Fi step was actually filled in, which is why
+            // Wi-Fi is asked first.
             WizardDescriptionText {
+                visible: !root.useDhcp && root.wifiConfigured
+                text: qsTr("Wi‑Fi address")
+                font.family: Style.fontFamilyBold
+                font.bold: true
+            }
+
+            GridLayout {
+                Layout.fillWidth: true
+                columns: 2
+                columnSpacing: Style.spacingMedium
+                rowSpacing: Style.formRowSpacing
+                visible: !root.useDhcp && root.wifiConfigured
+                enabled: visible
+
+                WizardFormLabel { text: qsTr("IP address:") }
+                ImTextField {
+                    id: fieldWifiIpAddr
+                    onTextChanged: root.commitSettings()
+                    Layout.fillWidth: true
+                    placeholderText: "192.168.1.11"
+                    font.pointSize: Style.fontSizeInput
+                    validator: RegularExpressionValidator { regularExpression: root.ipv4Regex }
+                    Accessible.description: qsTr("Fixed IPv4 address for the Wi-Fi connection, which must differ from the wired address")
+                }
+
+                WizardFormLabel { text: qsTr("Netmask:") }
+                ComboBox {
+                    id: fieldWifiNetmask
+                    Layout.fillWidth: true
+                    font.family: Style.fontFamily
+                    font.pointSize: Style.fontSizeInput
+                    model: ["255.255.0.0", "255.255.128.0", "255.255.192.0", "255.255.224.0",
+                            "255.255.240.0", "255.255.248.0", "255.255.252.0", "255.255.254.0",
+                            "255.255.255.0", "255.255.255.128", "255.255.255.192",
+                            "255.255.255.224", "255.255.255.240", "255.255.255.248",
+                            "255.255.255.252"]
+                    currentIndex: -1
+                    Component.onCompleted: currentIndex = find("255.255.255.0")
+                    onCurrentTextChanged: root.commitSettings()
+                    Accessible.description: qsTr("Subnet mask for the Wi-Fi connection")
+                }
+
+                WizardFormLabel { text: qsTr("Gateway:") }
+                ImTextField {
+                    id: fieldWifiGateway
+                    onTextChanged: root.commitSettings()
+                    Layout.fillWidth: true
+                    placeholderText: "192.168.1.1"
+                    font.pointSize: Style.fontSizeInput
+                    validator: RegularExpressionValidator { regularExpression: root.ipv4Regex }
+                    Accessible.description: qsTr("Router address for the Wi-Fi connection")
+                }
+
+                WizardFormLabel { text: qsTr("DNS server:") }
+                ImTextField {
+                    id: fieldWifiDns
+                    onTextChanged: root.commitSettings()
+                    Layout.fillWidth: true
+                    placeholderText: "192.168.1.1"
+                    font.pointSize: Style.fontSizeInput
+                    validator: RegularExpressionValidator { regularExpression: root.ipv4Regex }
+                    Accessible.description: qsTr("DNS server for the Wi-Fi connection")
+                }
+            }
+
+            // The whole point of the second address is that it is a different one.
+            WizardDescriptionText {
+                visible: !root.useDhcp && root.wifiConfigured && root.wifiAddressClashes
+                text: qsTr("The Wi‑Fi address must be different from the wired address.")
+                color: Style.raspberryRed
+            }
+
+            WizardDescriptionText {
+                // UNRAID: the static address applies to the wired connection only.
+                // One address cannot be given to two interfaces, so Wi-Fi uses DHCP
+                // -- say so here rather than letting someone assume otherwise. See
+                // the Wi-Fi section of unraid_postwrite.cpp.
                 text: root.useDhcp
                       ? qsTr("The server will request an address from your router when it boots.")
-                      : qsTr("These settings are written to config/network.cfg on the flash drive.")
+                      : qsTr("These settings are written to config/network.cfg on the flash drive, "
+                             + "and apply to the wired connection. If you also set up Wi-Fi, it will "
+                             + "use DHCP, because one address cannot be assigned to two interfaces.")
             }
         }
     }
@@ -185,6 +300,21 @@ WizardStepBase {
             s.gateway = fieldGateway.text
             s.dns = fieldDns.text
             s.static = true
+        }
+
+        // UNRAID: the Wi-Fi address is separate and only meaningful when Wi-Fi was
+        // set up and addressing is static. Cleared otherwise, so wireless.cfg falls
+        // back to DHCP rather than picking up a stale address from an earlier pass.
+        if (!root.useDhcp && root.wifiConfigured && !root.wifiAddressClashes) {
+            s.wifiIpaddr = fieldWifiIpAddr.text
+            s.wifiNetmask = fieldWifiNetmask.currentText
+            s.wifiGateway = fieldWifiGateway.text
+            s.wifiDns = fieldWifiDns.text
+        } else {
+            s.wifiIpaddr = ""
+            s.wifiNetmask = ""
+            s.wifiGateway = ""
+            s.wifiDns = ""
         }
 
         wizardContainer.customizationSettings = s
