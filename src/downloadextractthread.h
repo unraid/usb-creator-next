@@ -84,6 +84,11 @@ protected:
 
     void _pushQueue(const char *data, size_t len);
     void _cancelExtract();
+    // UNRAID: block until _extractThread has returned. Called from run() so the
+    // wait happens on this worker thread rather than in the destructor on the
+    // GUI thread. See the comment on run() in the .cpp.
+    void _joinExtractThread();
+    virtual void run() override;
     virtual void _onDevicePrepared() override;
     virtual size_t _writeData(const char *buf, size_t len) override;
     virtual void _onDownloadSuccess() override;
