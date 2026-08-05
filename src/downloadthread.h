@@ -277,6 +277,12 @@ protected:
 
     CURL *_c;
     curl_off_t _startOffset;
+    // UNRAID: recovery from a server that refuses byte ranges. See the
+    // CURLE_RANGE_ERROR handling in run() and _curl_write_callback().
+    curl_off_t _consumedOffset = 0;   // body bytes handed to _writeData so far
+    curl_off_t _skipRemaining = 0;    // body bytes still to be discarded on a restart
+    bool _rangeUnsupported = false;   // server answered 200 to a Range request
+    int _rangeRestartCount = 0;       // guards against re-downloading forever
     std::atomic<std::uint64_t> _lastDlTotal, _lastDlNow, _extractTotal, _verifyTotal, _lastVerifyNow, _bytesWritten;
     std::uint64_t _lastFailureOffset;
     qint64 _sectorsStart;

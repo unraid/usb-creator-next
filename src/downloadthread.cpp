@@ -24,6 +24,7 @@
 #include <regex>
 #include <future>
 #include <chrono>
+#include <algorithm>
 #include <QDebug>
 #include <QProcess>
 #include <QSettings>
@@ -187,7 +188,33 @@ void DownloadThread::setUserAgent(const QByteArray &ua)
 /* Curl write callback function, let it call the object oriented version */
 size_t DownloadThread::_curl_write_callback(char *ptr, size_t size, size_t nmemb, void *userdata)
 {
-    return static_cast<DownloadThread *>(userdata)->_writeData(ptr, size * nmemb);
+    DownloadThread *self = static_cast<DownloadThread *>(userdata);
+    size_t len = size * nmemb;
+
+    // UNRAID: when a resume was refused we restart the request from byte 0 and
+    // throw away everything we have already delivered, so that _writeData() keeps
+    // seeing one unbroken byte stream. Zero cost on the normal path.
+    if (self->_skipRemaining > 0)
+    {
+        size_t skip = static_cast<size_t>(
+            std::min<curl_off_t>(self->_skipRemaining, static_cast<curl_off_t>(len)));
+        self->_skipRemaining -= static_cast<curl_off_t>(skip);
+        ptr += skip;
+        len -= skip;
+        if (len == 0)
+            return size * nmemb;  // all of it discarded; tell curl we took it
+    }
+
+    size_t written = self->_writeData(ptr, len);
+    if (written == len)
+    {
+        self->_consumedOffset += static_cast<curl_off_t>(len);
+        // Report the whole callback buffer as consumed, including any prefix we
+        // discarded above, or curl aborts with CURLE_WRITE_ERROR.
+        return size * nmemb;
+    }
+    self->_consumedOffset += static_cast<curl_off_t>(written);
+    return written;
 }
 
 int DownloadThread::_curl_xferinfo_callback(void *userdata, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow)
@@ -741,11 +768,23 @@ void DownloadThread::run()
     /* Deal with badly configured HTTP servers that terminate the connection quickly
        if connections stalls for some seconds while kernel commits buffers to slow SD card.
        And also reconnect if we detect from our end that transfer stalled for more than one minute */
+    // UNRAID: CURLE_RANGE_ERROR is in this list because a resume can be refused
+    // outright. Larry's macOS rc.26 run lost the connection at 58%
+    //   HTTP connection lost. Error: Transferred a partial file
+    // and the resume that followed came back "HTTP/2 200" instead of a 206 (the
+    // response carried no accept-ranges header either), so curl reported
+    //   Error downloading: HTTP server doesn't seem to support byte ranges.
+    //   Cannot resume. - Server IP: 172.67.69.176   [server: cloudflare]
+    // and a 20 minute write was lost. The real fix is Range support on that
+    // object; until the CDN/origin provides it, recover by re-fetching from the
+    // start and discarding what we already have (see the handler below).
+    const int kMaxRangeRestarts = 3;
     while (ret == CURLE_PARTIAL_FILE || ret == CURLE_OPERATION_TIMEDOUT
            || (ret == CURLE_HTTP2_STREAM && _lastDlNow != _lastFailureOffset)
            || (ret == CURLE_HTTP2 && _lastDlNow != _lastFailureOffset)
            || (ret == CURLE_RECV_ERROR && _lastDlNow != _lastFailureOffset)
-           || (ret == CURLE_SSL_CONNECT_ERROR && !http2SslFallback) )
+           || (ret == CURLE_SSL_CONNECT_ERROR && !http2SslFallback)
+           || (ret == CURLE_RANGE_ERROR && _consumedOffset > 0) )
     {
         time_t t = time(NULL);
         qDebug() << "HTTP connection lost. Error:" << curl_easy_strerror(ret) << "Time:" << t;
@@ -788,15 +827,48 @@ void DownloadThread::run()
         
         _lastFailureTime = t;
 
-        _startOffset = _lastDlNow;
-        _lastFailureOffset = _lastDlNow;
-        curl_easy_setopt(_c, CURLOPT_RESUME_FROM_LARGE, _startOffset);
+        // UNRAID: once we know this server ignores Range, stop asking. Re-request
+        // the whole object and throw away the bytes we have already delivered, so
+        // the decompressor and the device keep seeing one continuous stream. It
+        // costs the bandwidth we had already spent, but it is the only way to
+        // finish a write against an origin that does not do ranges — and a
+        // mismatch would still be caught by the existing SHA256 check.
+        if (ret == CURLE_RANGE_ERROR)
+            _rangeUnsupported = true;
+
+        if (_rangeUnsupported)
+        {
+            if (_rangeRestartCount >= kMaxRangeRestarts)
+            {
+                qDebug() << "Giving up after" << _rangeRestartCount
+                         << "restarts against a server that does not support byte ranges";
+                ret = CURLE_RANGE_ERROR;  // report the underlying cause, not the last symptom
+                break;
+            }
+            _rangeRestartCount++;
+            _skipRemaining = _consumedOffset;
+            _startOffset = 0;
+            _lastFailureOffset = _lastDlNow;
+            curl_easy_setopt(_c, CURLOPT_RESUME_FROM_LARGE, static_cast<curl_off_t>(0));
+            qDebug() << "Server does not support byte ranges; restarting the download from the"
+                     << "beginning and discarding the first" << _skipRemaining
+                     << "bytes (restart" << _rangeRestartCount << "of" << kMaxRangeRestarts << ")";
+        }
+        else
+        {
+            _startOffset = _lastDlNow;
+            _lastFailureOffset = _lastDlNow;
+            curl_easy_setopt(_c, CURLOPT_RESUME_FROM_LARGE, _startOffset);
+        }
 
         ret = curl_easy_perform(_c);
     }
 
-    curl_easy_cleanup(_c);
-
+    // UNRAID: the handle is *not* cleaned up here. Both arms of the switch below
+    // call curl_easy_getinfo() on it — the timing metrics on success, and the
+    // "Server IP: ..." suffix on failure, which is where Larry's dialog text came
+    // from — and doing that after curl_easy_cleanup() reads freed memory. The
+    // cleanup now happens after the switch. (Upstream rpi-imager bug.)
     switch (ret)
     {
         case CURLE_OK:
@@ -857,6 +929,7 @@ void DownloadThread::run()
             deleteDownloadedFile();
             break;
         default:
+        {
             deleteDownloadedFile();
             QString errorMsg;
 
@@ -870,8 +943,29 @@ void DownloadThread::run()
             if (curl_easy_getinfo(_c, CURLINFO_PRIMARY_IP, &ipstr) == CURLE_OK && ipstr && ipstr[0])
                 errorMsg += QString(" - Server IP: ")+ipstr;
 
+            // UNRAID: "HTTP server doesn't seem to support byte ranges. Cannot
+            // resume." tells the user nothing they can act on. We only get here
+            // after the restart-from-scratch recovery above has been used up, so
+            // say what actually happened.
+            if (ret == CURLE_RANGE_ERROR)
+            {
+                _onDownloadError(tr("The download kept being interrupted and this server does not "
+                                    "support resuming a partial download, so it had to be restarted "
+                                    "from the beginning each time.\n\n"
+                                    "This usually means the connection to the server is unstable, or "
+                                    "the storage device is too slow to keep up with the download. "
+                                    "Please try again.")
+                                 + QStringLiteral("\n\n") + errorMsg);
+                break;
+            }
+
             _onDownloadError(tr("Error downloading: %1").arg(errorMsg));
+            break;
+        }
     }
+
+    curl_easy_cleanup(_c);
+    _c = nullptr;
 }
 
 size_t DownloadThread::_writeData(const char *buf, size_t len)
