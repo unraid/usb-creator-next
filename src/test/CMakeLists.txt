@@ -785,3 +785,26 @@ add_custom_target(test_block_batcher
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     COMMENT "Running block batcher tests"
 )
+
+# UNRAID: libarchive reports some real device-write failures as warning-class
+# results. Boot media must treat all negative write statuses as terminal.
+add_executable(archive_write_result_test
+    ${CMAKE_CURRENT_SOURCE_DIR}/../unraid/archive_write_result.h
+    archive_write_result_test.cpp
+)
+
+target_link_libraries(archive_write_result_test PRIVATE
+    Catch2::Catch2WithMain
+)
+
+target_include_directories(archive_write_result_test PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+)
+
+target_compile_features(archive_write_result_test PRIVATE cxx_std_20)
+target_compile_options(archive_write_result_test PRIVATE
+    -Wall -Wextra -Wpedantic
+    $<$<CONFIG:Debug>:-g -O0>
+)
+
+catch_discover_tests(archive_write_result_test)

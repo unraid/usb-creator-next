@@ -5,6 +5,7 @@
 
 #include "downloadextractthread.h"
 #include "block_batcher.h" // UNRAID: coalesces libarchive data blocks into large writes
+#include "unraid/archive_write_result.h" // UNRAID: write warnings are terminal for boot media
 #include "unraid/unraid_postwrite.h" // UNRAID: post-extract customisation
 #include "config.h"
 #include "platformquirks.h"
@@ -794,6 +795,9 @@ void DownloadExtractThread::extractMultiFileRun()
 
         if (QProcess::execute("mount", args) != 0)
         {
+            // UNRAID: an error signal alone must not be followed by download success.
+            _extractFailed = true;
+            DownloadThread::cancelDownload();
             emit error(tr("Error mounting FAT32 partition"));
             return;
         }
@@ -813,6 +817,9 @@ void DownloadExtractThread::extractMultiFileRun()
 
     if (folder.isEmpty())
     {
+        // UNRAID: an error signal alone must not be followed by download success.
+        _extractFailed = true;
+        DownloadThread::cancelDownload();
         emit error(tr("Operating system did not mount FAT32 partition"));
         return;
     }
@@ -821,6 +828,8 @@ void DownloadExtractThread::extractMultiFileRun()
 
     if (!QDir::setCurrent(folder))
     {
+        // UNRAID: an error signal alone must not be followed by download success.
+        _extractFailed = true;
         DownloadThread::cancelDownload();
         emit error(tr("Error changing to directory '%1'").arg(folder));
         return;
@@ -899,9 +908,8 @@ void DownloadExtractThread::extractMultiFileRun()
         {
           _checkResult(r, a);
           r = archive_write_header(ext, entry);
-          if (r < ARCHIVE_OK)
-              qDebug() << archive_error_string(ext);
-          else if (archive_entry_size(entry) > 0)
+          Unraid::requireArchiveWriteSuccess(r, archive_error_string(ext)); // UNRAID: incomplete boot media is never recoverable.
+          if (archive_entry_size(entry) > 0)
           {
               //checkResult(copyData(a, ext), a);
               const void *buff;
@@ -921,16 +929,23 @@ void DownloadExtractThread::extractMultiFileRun()
                   ++blockCount;
                   blockBytes += size;
 
-                  _checkResult(batcher.Add(buff, size, offset), ext);
+                  Unraid::requireArchiveWriteSuccess(batcher.Add(buff, size, offset),
+                                                     archive_error_string(ext));
 
                   _bytesWritten += size;
               }
               // The entry's tail is still buffered; it must go out before
               // archive_write_finish_entry() closes the file.
-              _checkResult(batcher.Flush(), ext);
+              Unraid::requireArchiveWriteSuccess(batcher.Flush(), archive_error_string(ext));
           }
-          _checkResult(archive_write_finish_entry(ext), ext);
+          Unraid::requireArchiveWriteSuccess(archive_write_finish_entry(ext),
+                                             archive_error_string(ext));
         }
+
+        // UNRAID: close flushes libarchive's final filesystem state. A drive can vanish
+        // after its last data block, so this is part of the write operation and
+        // must succeed before finalisation or a success signal is allowed.
+        Unraid::requireArchiveWriteSuccess(archive_write_close(ext), archive_error_string(ext));
 
         // UNRAID: records what libarchive actually handed us, so the value of the
         // batching above can be judged from a log rather than assumed.
@@ -983,7 +998,9 @@ void DownloadExtractThread::extractMultiFileRun()
             }
         }
 
-        emit success();
+        // UNRAID: success is decided only after archive cleanup, filesystem sync
+        // and optional ejection below. This keeps the Done screen's "safe to
+        // remove" statement true when it becomes visible.
     }
     catch (exception &e)
     {
@@ -1027,9 +1044,6 @@ void DownloadExtractThread::extractMultiFileRun()
     // Ensure proper cleanup sequence
     
     // 1. Close libarchive handles properly (this should flush any pending writes)
-    if (archive_write_close(ext) != ARCHIVE_OK) {
-        qDebug() << "Warning: Failed to properly close archive write handle";
-    }
     archive_read_free(a);
     archive_write_free(ext);
     
@@ -1054,6 +1068,12 @@ void DownloadExtractThread::extractMultiFileRun()
     }
 #endif
 
+    // UNRAID: the terminal extraction error has already been emitted. Do not
+    // attempt an eject that can replace it with a second, less useful message
+    // when the reason for failure was that the device disappeared.
+    if (_extractFailed || _cancelled)
+        return;
+
     // Give the filesystem a moment to settle after sync before ejecting
     QThread::msleep(500);
 
@@ -1061,8 +1081,19 @@ void DownloadExtractThread::extractMultiFileRun()
     {
         // Use canonical device path for eject (e.g., /dev/disk on macOS, not rdisk)
         QString ejectPath = PlatformQuirks::getEjectDevicePath(_filename);
+        // UNRAID: wait for the synchronous eject attempt to finish before the
+        // completion signal. PlatformQuirks' legacy Windows result does not
+        // reliably distinguish an unrelated volume from a successful eject, so
+        // do not turn that result into a new terminal error here.
         PlatformQuirks::ejectDisk(ejectPath);
     }
+
+    // UNRAID: downloaded archives have a second extraction thread, and
+    // _onDownloadSuccess() is their sole terminal success owner after waiting for
+    // this method to return. LocalFileExtractThread calls this method inline and
+    // therefore still needs the success signal here.
+    if (!_ethreadStarted)
+        emit success();
 }
 
 ssize_t DownloadExtractThread::_on_read(struct archive *, const void **buff)
