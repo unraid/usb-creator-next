@@ -3,51 +3,102 @@
 
 /*
  * SPDX-License-Identifier: Apache-2.0
- * Copyright (C) 2020 Raspberry Pi Ltd
+ * Copyright (C) 2020-2025 Raspberry Pi Ltd
  */
 
 #include <memory>
 
 #include <QJsonArray>
 #include <QJsonDocument>
-#include <QNetworkAccessManager>
 #include <QObject>
 #include <QTimer>
 #include <QUrl>
 #include <QSettings>
+#include <QString>
 #include <QVariant>
+#ifndef CLI_ONLY_BUILD
 #include <QQmlEngine>
-#include <QNetworkReply>
-#include <qjsonarray.h>
-#include <qjsondocument.h>
+#endif
 #include "config.h"
-#include "powersaveblocker.h"
+#include "suspend_inhibitor.h"
 #include "drivelistmodel.h"
 #include "hwlistmodel.h"
 #include "oslistmodel.h"
+#ifndef CLI_ONLY_BUILD
+#include "nativefiledialog.h"
+#include <QWindow>
+#endif
 #include "cachemanager.h"
+#include "device_info.h"
+#include "imageadvancedoptions.h"
+#include "performancestats.h"
+#include "rpiboot/rpiboot_types.h"
 
 class QQmlApplicationEngine;
 class DownloadThread;
 class DownloadExtractThread;
-class QNetworkReply;
 class QTranslator;
+class WriteProgressWatchdog;
+#ifndef CLI_ONLY_BUILD
+class NativeFileDialog;
+#endif
+class RpibootThread;
+class FastbootFlashThread;
 
 class ImageWriter : public QObject
 {
     Q_OBJECT
-    QML_ELEMENT
-    QML_UNCREATABLE("Created by C++")
+#ifndef CLI_ONLY_BUILD
+    QML_NAMED_ELEMENT(ImageWriterSingleton)
+    QML_SINGLETON
+#endif
 public:
-    explicit ImageWriter(QObject *parent = nullptr);
+    enum class WriteState {
+        Idle,
+        Preparing,
+        Writing,
+        Verifying,
+        Finalizing,
+        Cancelling,
+        Succeeded,
+        Failed,
+        Cancelled
+    };
+    Q_ENUM(WriteState)
+
+    // NB: the parent argument is deliberately mandatory (no `= nullptr`).
+    // ImageWriter is a QML_SINGLETON whose instance is supplied by main() via
+    // setQmlInstance()/create(). Qt's qmlRegisterTypesAndRevisions only honours a
+    // create() factory when the type is NOT default-constructible (see
+    // singletonConstructionMode() in qqmlprivate.h) — a default-constructible
+    // singleton is silently `new`-constructed by the engine instead, handing QML a
+    // *second* ImageWriter that never receives the OS list. Keeping this parameter
+    // mandatory forces create() to be used so QML shares the app-owned instance.
+    explicit ImageWriter(QObject *parent);
     virtual ~ImageWriter();
     void setEngine(QQmlApplicationEngine *engine);
 
+#ifndef CLI_ONLY_BUILD
+    // QML singleton factory: returns the single app-owned instance, which main()
+    // supplies via setQmlInstance() before the engine loads. Registered declaratively
+    // as the "ImageWriterSingleton" QML singleton, so it is visible to qmllint/qmlsc
+    // (unlike a runtime qmlRegisterSingletonInstance, which also disturbs the module).
+    static ImageWriter *create(QQmlEngine *engine, QJSEngine *scriptEngine);
+    static void setQmlInstance(ImageWriter *instance) { s_qmlInstance = instance; }
+#endif
+
+    Q_PROPERTY(WriteState writeState READ writeState NOTIFY writeStateChanged)
+    Q_PROPERTY(bool isOsListUnavailable READ isOsListUnavailable NOTIFY osListUnavailableChanged)
+    Q_PROPERTY(bool screenReaderActive READ isScreenReaderActive NOTIFY screenReaderActiveChanged)
+
+    /* Returns true if the extract size is reliably known (false for gz files which can't store sizes >4GB) */
+    Q_INVOKABLE bool isExtractSizeKnown() const { return _extractSizeKnown; }
+
     /* Set URL to download from, and if known download length and uncompressed length */
-    Q_INVOKABLE void setSrc(const QUrl &url, quint64 downloadLen = 0, quint64 extrLen = 0, QByteArray expectedHash = "", bool multifilesinzip = false, QString parentcategory = "", QString osname = "", QByteArray initFormat = "");
+    Q_INVOKABLE void setSrc(const QUrl &url, quint64 downloadLen = 0, quint64 extrLen = 0, QByteArray expectedHash = "", bool multifilesinzip = false, QString parentcategory = "", QString osname = "", QByteArray initFormat = "", QString releaseDate = "", QString bmapUrl = "");
 
     /* Set device to write to */
-    Q_INVOKABLE void setDst(const QString &device, bool guidValid, quint64 deviceSize = 0);
+    Q_INVOKABLE void setDst(const QString &device, quint64 deviceSize = 0);
 
     /* Set verification enabled */
     Q_INVOKABLE void setVerifyEnabled(bool verify);
@@ -61,6 +112,14 @@ public:
     /* Returns true if src and dst are set */
     Q_INVOKABLE bool readyToWrite();
 
+    /* Returns true if running on a Raspberry Pi */
+    Q_INVOKABLE bool isRaspberryPiDevice();
+
+    /* Returns hardware name if running on a Raspberry Pi */
+    Q_INVOKABLE QString getHardwareName();
+
+    Q_INVOKABLE bool createHardwareTags();
+
     /* Start writing */
     Q_INVOKABLE void startWrite();
 
@@ -70,16 +129,15 @@ public:
     /* Skip cache verification and proceed with download */
     Q_INVOKABLE void skipCacheVerification();
 
+    /* Skip only the current post-write verification pass (does not change default setting) */
+    Q_INVOKABLE void skipCurrentVerification();
+
     /* Return true if url is in our local disk cache */
     Q_INVOKABLE bool isCached(const QUrl &url, const QByteArray &sha256);
 
-    /* Start polling the list of available drives */
-    Q_INVOKABLE void startDriveListPolling();
+    /* Drive list polling runs continuously in background */
 
-    /* Stop polling the list of available drives */
-    Q_INVOKABLE void stopDriveListPolling();
-
-    /* Return list of available drives. Call startDriveListPolling() first
+    /* Return list of available drives. Drive polling runs continuously in background.
        Note: If you mark this as Q_INVOKABLE, be sure to parent it to ImageWriter,
        to prevent GC from deleting it.
     */
@@ -94,11 +152,21 @@ public:
     /* Utility function to return filename part from URL */
     Q_INVOKABLE QString fileNameFromUrl(const QUrl &url);
 
-    /* Function to return OS list URL */
-    Q_INVOKABLE QUrl constantOsListUrl() const;
+    /* Function to return current OS list URL in a displayable format */
+    Q_INVOKABLE QString osListUrlForDisplay() const;
 
-    /* Function to return version */
+    /* Function to return current OS list URL (may be customized) */
+    Q_INVOKABLE QUrl osListUrl() const;
+
+    /* Function to return version (for QML - C++ code should use staticVersion()) */
     Q_INVOKABLE QString constantVersion() const;
+
+    /* UNRAID: product display name from the branding layer, so QML strings can
+     * interpolate it instead of hardcoding a brand. See PORTING.md. */
+    Q_INVOKABLE QString appName() const;
+
+    /* Static version - for use without creating an instance */
+    static QString staticVersion();
 
     /* Returns true if version argument is newer than current program */
     Q_INVOKABLE bool isVersionNewer(const QString &version);
@@ -118,17 +186,76 @@ public:
     /** Set the HW filter, for a filtered view of the OS list */
     Q_INVOKABLE void setHWFilterList(const QJsonArray &tags, const bool &inclusive);
 
+    /* Set the capabilities supported by the hardware, for a filtered view of options that require the hardware to have certain capabilities. */
+    Q_INVOKABLE void setHWCapabilitiesList(const QJsonArray &json);
+
+    /* Set the capabilities supported by the hardware, for a filtered view of options that require the software to have certain capabilities. */
+    Q_INVOKABLE void setSWCapabilitiesList(const QString &json);
+    Q_INVOKABLE void setSWCapabilitiesList(const QVariantList &caps);
+
+    /* Get the HW filter list */
+    Q_INVOKABLE QJsonArray getHWFilterList();
+
+    /* Get if the HW filter is in inclusive mode */
+    Q_INVOKABLE bool getHWFilterListInclusive();
+
+    /* Get if both hard and software support a certain feature. If no differentSWCap is provided it will check for cap support in SW and HW lists. */
+    Q_INVOKABLE bool checkHWAndSWCapability(const QString &cap, const QString &differentSWCap = "");
+
+    /* Check if the hardware supports a certain feature. */
+    Q_INVOKABLE bool checkHWCapability(const QString &cap);
+
+    /* Check if the software supports a certain feature. */
+    Q_INVOKABLE bool checkSWCapability(const QString &cap);
+
     /* Utility function to open OS file dialog */
-    Q_INVOKABLE void openFileDialog();
+    Q_INVOKABLE void openFileDialog(const QString &title, const QString &filter);
+
+    /* Expose native file dialog availability to QML */
+    Q_INVOKABLE bool nativeFileDialogAvailable() {
+#ifndef CLI_ONLY_BUILD
+        return NativeFileDialog::areNativeDialogsAvailable();
+#else
+        return false;
+#endif
+    }
+
+    /* Accept selection from QML fallback FileDialog */
+    Q_INVOKABLE void acceptCustomImageFromQml(const QUrl &fileUrl) { onFileSelected(fileUrl.toLocalFile()); }
+
+    /* Generic native open-file dialog for QML callsites (sync) */
+    Q_INVOKABLE QString getNativeOpenFileName(const QString &title = QString(),
+                                             const QString &initialDir = QString(),
+                                             const QString &filter = QString());
+
+    /* Set the main window for modal file dialogs */
+    Q_INVOKABLE void setMainWindow(QObject *window);
+
+    /* Bring the application window to the foreground */
+    void bringWindowToForeground();
+
+    /* Read text file contents */
+    Q_INVOKABLE QString readFileContents(const QString &filePath);
+
+    /* Handle keychain permission response from QML */
+    Q_INVOKABLE void keychainPermissionResponse(bool granted);
 
     /* Return filename part of URL set */
     Q_INVOKABLE QString srcFileName();
+    
+    /* Returns size (bytes) of selected source, if known; 0 if unknown */
+    Q_INVOKABLE quint64 getSelectedSourceSize();
+    /* Format a byte size with an appropriate translated unit (KB/MB/GB/TB) */
+    Q_INVOKABLE QString formatSize(quint64 bytes, int decimals = 1);
 
     /* Returns true if online */
     Q_INVOKABLE bool isOnline();
 
     /* Returns true if run on embedded Linux platform */
-    Q_INVOKABLE bool isEmbeddedMode();
+    Q_INVOKABLE bool isEmbeddedMode() const;
+
+    /* Returns true if window has decorations (title bar visible) */
+    Q_INVOKABLE bool hasWindowDecorations() const;
 
     /* Mount any USB sticks that can contain source images under /media
        Returns true if at least one device was mounted */
@@ -146,20 +273,75 @@ public:
     Q_INVOKABLE QStringList getTimezoneList();
     Q_INVOKABLE QStringList getCountryList();
     Q_INVOKABLE QStringList getKeymapLayoutList();
+    Q_INVOKABLE QStringList getCapitalCitiesList();
+    Q_INVOKABLE QVariantMap getLocaleDataForCapital(const QString &capitalCity);
     Q_INVOKABLE QString getSSID();
     Q_INVOKABLE QString getPSK();
+    Q_INVOKABLE QString getPSKForSSID(const QString &ssid);
 
     Q_INVOKABLE bool getBoolSetting(const QString &key);
+    Q_INVOKABLE QString getStringSetting(const QString &key);
     Q_INVOKABLE void setSetting(const QString &key, const QVariant &value);
-    Q_INVOKABLE void setImageCustomization(const QByteArray &config, const QByteArray &cmdline, const QByteArray &firstrun, const QByteArray &cloudinit, const QByteArray &cloudinitNetwork);
-    Q_INVOKABLE void setSavedCustomizationSettings(const QVariantMap &map);
-    Q_INVOKABLE QVariantMap getSavedCustomizationSettings();
-    Q_INVOKABLE void clearSavedCustomizationSettings();
-    Q_INVOKABLE bool hasSavedCustomizationSettings();
+    Q_INVOKABLE QString getRsaKeyFingerprint(const QString &keyPath);
+
+    // Raspberry Pi Connect organisation registration.
+    //
+    // The API key IS persisted (QSettings) so users don't have to
+    // re-enter it every session, but it is write-only from QML —
+    // once saved, the value is never handed back to the UI.  QML
+    // uses hasConnectOrgRegistration() to decide whether to render
+    // a "key already set" placeholder, and clearConnectOrgRegistration()
+    // to remove it.  The description prefix is not secret and is
+    // returned through getConnectOrgDescription() for edit-in-place.
+    Q_INVOKABLE void setConnectOrgRegistration(const QString &apiKey,
+                                                 const QString &descriptionPrefix);
+    Q_INVOKABLE void setConnectOrgDescription(const QString &descriptionPrefix);
+    Q_INVOKABLE void clearConnectOrgRegistration();
+    Q_INVOKABLE bool hasConnectOrgRegistration() const;
+    Q_INVOKABLE QString getConnectOrgDescription() const;
+    
+    // Debug options (secret menu: Cmd+Option+S on macOS, Ctrl+Alt+S on others)
+    Q_INVOKABLE bool getDebugDirectIO() const;
+    Q_INVOKABLE void setDebugDirectIO(bool enabled);
+    Q_INVOKABLE bool getDebugPeriodicSync() const;
+    Q_INVOKABLE void setDebugPeriodicSync(bool enabled);
+    Q_INVOKABLE bool getDebugVerboseLogging() const;
+    Q_INVOKABLE void setDebugVerboseLogging(bool enabled);
+    Q_INVOKABLE bool getDebugAsyncIO() const;
+    Q_INVOKABLE void setDebugAsyncIO(bool enabled);
+    Q_INVOKABLE int getDebugAsyncQueueDepth() const;
+    Q_INVOKABLE void setDebugAsyncQueueDepth(int depth);
+    Q_INVOKABLE bool getDebugIPv4Only() const;
+    Q_INVOKABLE void setDebugIPv4Only(bool enabled);
+    Q_INVOKABLE bool getDebugSkipEndOfDevice() const;
+    Q_INVOKABLE void setDebugSkipEndOfDevice(bool enabled);
+    Q_INVOKABLE bool getDebugIgnoreDeviceLimits() const;
+    Q_INVOKABLE void setDebugIgnoreDeviceLimits(bool enabled);
+    Q_INVOKABLE bool getDebugRpiboot() const;
+    Q_INVOKABLE void setDebugRpiboot(bool enabled);
+    Q_INVOKABLE QString getDebugCustomFastbootGadget() const;
+    Q_INVOKABLE void setDebugCustomFastbootGadget(const QString &path);
+    Q_INVOKABLE bool getDebugForceSecureBoot() const;
+    Q_INVOKABLE void setDebugForceSecureBoot(bool enabled);
+    Q_INVOKABLE bool getDebugSignFastbootGadget() const;
+    Q_INVOKABLE void setDebugSignFastbootGadget(bool enabled);
+
+    // Customisation API
+    Q_INVOKABLE void applyCustomisationFromSettings(const QVariantMap &settings);  // Main entry: generates scripts from settings
+    Q_INVOKABLE void setImageCustomisation(const QByteArray &config, const QByteArray &cmdline, const QByteArray &firstrun, const QByteArray &cloudinit, const QByteArray &cloudinitNetwork, const ImageOptions::AdvancedOptions opts = {}, const QByteArray &initFormat = {});  // Advanced: bypass generator with pre-made scripts
+    
+    // Persistence API
+    Q_INVOKABLE void setSavedCustomisationSettings(const QVariantMap &map);  // Legacy: prefer setPersistedCustomisationSetting()
+    Q_INVOKABLE QVariantMap getSavedCustomisationSettings();
+    Q_INVOKABLE void setPersistedCustomisationSetting(const QString &key, const QVariant &value);
+    Q_INVOKABLE void removePersistedCustomisationSetting(const QString &key);
+    Q_INVOKABLE void clearSavedCustomisationSettings();
     Q_INVOKABLE bool imageSupportsCustomization();
+    Q_INVOKABLE bool imageSupportsCcRpi();
 
     Q_INVOKABLE QString crypt(const QByteArray &password);
     Q_INVOKABLE QString pbkdf2(const QByteArray &psk, const QByteArray &ssid);
+    Q_INVOKABLE QString wifiSsidOctetsBase64(const QString &ssid) const;
 
     Q_INVOKABLE QStringList getTranslations();
     Q_INVOKABLE QString getCurrentLanguage();
@@ -168,20 +350,98 @@ public:
     Q_INVOKABLE void changeLanguage(const QString &newLanguageName);
     Q_INVOKABLE void changeKeyboard(const QString &newKeymapLayout);
     Q_INVOKABLE bool customRepo();
+    Q_INVOKABLE QString customRepoHost();
+    
+    /* Validate if a string is a valid repository URL (http/https ending with .json or .rpi-imager-manifest) */
+    Q_INVOKABLE bool isValidRepoUrl(const QString &url) const;
+    
+    // Secure Boot CLI override
+    static void setForceSecureBootEnabled(bool enabled);
+    Q_INVOKABLE bool isSecureBootForcedByCliFlag() const;
 
     void replaceTranslator(QTranslator *trans);
     QString detectPiKeyboard();
     Q_INVOKABLE bool hasMouse();
-    Q_INVOKABLE QString getInitFormat();
-    Q_INVOKABLE QString getDstDevice();
-    Q_INVOKABLE bool getDstGuidValid();
-    Q_INVOKABLE bool openUrl(const QString &url);
-    Q_INVOKABLE bool windowsBuild();
+    Q_INVOKABLE void reboot();
+    Q_INVOKABLE void openUrl(const QUrl &url);
+    Q_INVOKABLE bool isScreenReaderActive() const;
+    Q_INVOKABLE void handleIncomingUrl(const QUrl &url);
+    Q_INVOKABLE void overwriteConnectToken(const QString &token);
+    Q_INVOKABLE QString getRuntimeConnectToken() const;
+    Q_INVOKABLE bool verifyAuthKey(const QString &token, bool strict = false) const;
+    Q_INVOKABLE void clearConnectToken();
+    // Clear the runtime Connect token only if it was minted by
+    // requestOrgAuthKey().  Used by the wizard to drop a stale
+    // org-minted key when the user changes storage / OS without
+    // clobbering a per-user token the user typed in themselves.
+    Q_INVOKABLE void discardOrgMintedConnectToken();
+    
+    /* Override OS list refresh schedule (in minutes); pass negative to clear override */
+    Q_INVOKABLE void setOsListRefreshOverride(int intervalMinutes, int jitterMinutes);
+
+    Q_INVOKABLE void refreshOsListFrom(const QUrl &url);
+    Q_INVOKABLE void refreshOsListFromDefaultUrl();
+
+    /* Elevatable bundle (e.g., AppImage) privilege escalation support */
+    Q_INVOKABLE bool isElevatableBundle();
+    Q_INVOKABLE bool hasElevationPolicyInstalled();
+    Q_INVOKABLE bool installElevationPolicy();
+    Q_INVOKABLE void restartWithElevatedPrivileges();
+
+    /* Check if audio notification (beep) is available on this system */
+    Q_INVOKABLE bool isBeepAvailable();
+
+    /* Set an rpiboot device as the write target.
+       `storageTarget` is the block-device name (e.g. "mmcblk0", "nvme0n1")
+       to flash to once the device has been bootstrapped into fastboot
+       mode.  Pass an empty string only when the storage choice is not yet
+       known --- the rpiboot-then-flash path will then fall back to the
+       eMMC (the only universally-present CM storage) and log a warning. */
+    Q_INVOKABLE void setRpibootDevice(const QString &deviceId,
+                                       const QString &storageTarget = QString());
+    /* Returns true if the current target is an rpiboot device */
+    Q_INVOKABLE bool isRpibootDevice() const;
+
+    /* Set a fastboot storage device as the write target */
+    Q_INVOKABLE void setFastbootDevice(const QString &device, quint64 size);
+    /* Returns true if the current target is a fastboot storage device */
+    Q_INVOKABLE bool isFastbootDevice() const;
+
+    // Mint a single-use Raspberry Pi Connect auth key for the
+    // currently configured organisation API key.  Used when the
+    // target is not a fastboot device — the returned secret is
+    // written into the OS image's customisation as if the user had
+    // pasted a per-user token.  Returns a map with:
+    //   ok      bool    — true on success
+    //   secret  string  — "rpoak_..." on success
+    //   error   string  — server message on failure (401 / 422 / other)
+    Q_INVOKABLE QVariantMap requestOrgAuthKey(const QString &description,
+                                               int ttlDays = 1);
+
+    /* Performance data export - opens native save dialog and writes performance data to file.
+       If native dialogs aren't available, emits performanceSaveDialogNeeded for QML fallback. */
+    Q_INVOKABLE bool exportPerformanceData();
+    
+    /* Export performance data to a specific file path (used by QML fallback) */
+    Q_INVOKABLE bool exportPerformanceDataToFile(const QString &filePath);
+    
+    /* Get suggested filename for performance data export */
+    Q_INVOKABLE QString getPerformanceDataFilename();
+    
+    /* Check if performance data is available */
+    Q_INVOKABLE bool hasPerformanceData();
+
+    /* Check if OS list is unavailable - derived from whether we have data (for QML offline UI) */
+    bool isOsListUnavailable() const { return _completeOsList.isEmpty(); }
+
+    /* Get access to performance stats for instrumentation */
+    PerformanceStats* performanceStats() { return _performanceStats; }
 
 signals:
     /* We are emiting signals with QVariant as parameters because QML likes it that way */
 
     void downloadProgress(QVariant dlnow, QVariant dltotal);
+    void writeProgress(QVariant now, QVariant total);
     void verifyProgress(QVariant now, QVariant total);
     void error(QVariant msg);
     void success();
@@ -191,65 +451,181 @@ signals:
     void networkOnline();
     void preparationStatusUpdate(QVariant msg);
     void osListPrepared();
+    void bottleneckStatusChanged(QVariant status, QVariant throughputKBps);
+    void operationWarning(QVariant message);  // Non-fatal warning during operation (e.g., sync fallback)
+    void hwFilterChanged();
     void networkInfo(QVariant msg);
     void cacheVerificationStarted();
     void cacheVerificationFinished();
+    void selectedDeviceRemoved();
+    void writeCancelledDueToDeviceRemoval();
+    void keychainPermissionRequested();
+    void keychainPermissionResponseReceived();
+    void writeStateChanged();
+    void connectTokenReceived(const QString &token);
+    void connectTokenConflictDetected(const QString &token);
+    void connectTokenCleared();
+    void repositoryUrlReceived(const QString &url);
+    void customRepoChanged();
+    void customRepoHostChanged();  // Emitted when displayed repo host changes (e.g., after redirect)
+    void cacheStatusChanged();
+    void osListUnavailableChanged();
+    void permissionWarning(QVariant msg);
+    void locationPermissionGranted();
+    void performanceSaveDialogNeeded(const QString &suggestedFilename, const QString &initialDir);
+    void screenReaderActiveChanged();
 
 protected slots:
     void startProgressPolling();
     void stopProgressPolling();
     void pollNetwork();
-    void syncTime();
+    void restartWrite(QString reason);  // Restart write in sync mode after stall
+    
     void onSuccess();
     void onError(QString msg);
     void onFileSelected(QString filename);
     void onCancelled();
     void onFinalizing();
-    void onTimeSyncReply(QNetworkReply *reply);
     void onPreparationStatusUpdate(QString msg);
-    void handleNetworkRequestFinished(QNetworkReply *data);
+    void onOsListFetchComplete(const QByteArray &data, const QUrl &url, const QUrl &effectiveUrl);
+    void onOsListFetchError(const QString &errorMessage, const QUrl &url);
+    void onNetworkConnectionStats(const QString &statsMetadata, const QUrl &url);
     void onSTPdetected();
     void onCacheVerificationProgress(qint64 bytesProcessed, qint64 totalBytes);
     void onCacheVerificationComplete(bool isValid);
+    void onSelectedDeviceRemoved(const QString &device);
+    void onOsListRefreshTimeout();
+    void onRpibootFastbootReady(const QString &fastbootId);
+    void onRpibootError(const QString &msg);
+    void onRpibootDeviceDetected(const QString &deviceId,
+                                  uint8_t busNumber, uint8_t deviceAddress,
+                                  const QList<uint8_t> &portPath, uint16_t productId);
+    void onBootstrapComplete(const QString &portPathKey, const QString &fastbootId);
+    void onBootstrapError(const QString &portPathKey, const QString &msg);
 
 private:
+#ifndef CLI_ONLY_BUILD
+    static ImageWriter *s_qmlInstance;   // app-owned instance returned by create()
+#endif
+    void setWriteState(WriteState state);
+    WriteState writeState() const { return _writeState; }
     // Cache management
-    CacheManager *_cacheManager;
+    CacheManager* _cacheManager;
     bool _waitingForCacheVerification;
+    QElapsedTimer _cacheVerificationTimer;  // Tracks cache verification duration
+    
+    // Keychain permission tracking
+    bool _keychainPermissionGranted;
+    bool _keychainPermissionReceived;
 
     // Recursively walk all the entries with subitems and, for any which
     // refer to an external JSON list, fetch the list and put it in place.
     void fillSubLists(QJsonArray &topLevel);
-    QNetworkAccessManager _networkManager;
+    void queueSublistFetches(const QJsonArray &list, int depth);
+    QHash<QUrl, qint64> _pendingFetchStartTimes;  // Track request start times for performance
     QJsonDocument _completeOsList;
-    QJsonArray _deviceFilter;
+    QJsonArray _deviceFilter, _hwCapabilities, _swCapabilities;
     bool _deviceFilterIsInclusive;
+    std::shared_ptr<DeviceInfo> _device_info;
+
+    QString parseTokenFromUrl(const QUrl &url, bool strictAuthKey = false) const;
 
 protected:
+
+    /* UNRAID: raw customisation map for the Unraid init format. Unraid is not
+     * customised by generating a firstrun/cloud-init payload; the values are
+     * applied to config files on the FAT partition after extraction, so the map
+     * has to survive as far as the write thread. */
+    QVariantMap _unraidSettings;
+
     QUrl _src, _repo;
-    QString _dst, _parentCategory, _osName, _currentLang, _currentLangcode, _currentKeyboard;
+    QString _dst, _parentCategory, _osName, _osReleaseDate, _currentLang, _currentLangcode, _currentKeyboard, _bmapUrl;
     QByteArray _expectedHash, _cmdline, _config, _firstrun, _cloudinit, _cloudinitNetwork, _initFormat;
+    ImageOptions::AdvancedOptions _advancedOptions;
     quint64 _downloadLen, _extrLen, _devLen, _dlnow, _verifynow;
     DriveListModel _drivelist;
+    bool _selectedDeviceValid;
+    WriteState _writeState;
+    bool _cancelledDueToDeviceRemoval;
     HWListModel _hwlist;
     OSListModel _oslist;
     QQmlApplicationEngine *_engine;
     QTimer _networkchecktimer;
-    PowerSaveBlocker _powersave;
+    QTimer _osListRefreshTimer;
+    QTimer _screenReaderPollTimer;
+    bool _screenReaderActiveCached = false;
+    SuspendInhibitor *_suspendInhibitor;
     DownloadThread *_thread;
-    bool _verifyEnabled, _multipleFilesInZip, _embeddedMode, _online;
+    bool _verifyEnabled, _multipleFilesInZip, _online, _extractSizeKnown;
     QSettings _settings;
-    QMap<QString, QString> _translations;
+    QMap<QString,QString> _translations;
     QTranslator *_trans;
+    int _refreshIntervalOverrideMinutes;
+    int _refreshJitterOverrideMinutes;
+    // Session-only storage for Raspberry Pi Connect token
+    QString _piConnectToken;
+    // True when the current _piConnectToken was minted by us via
+    // requestOrgAuthKey() (rather than typed/pasted by the user).
+    // Lets the wizard drop only its own minted keys on storage / OS
+    // changes without clobbering a user-supplied token.
+    bool _piConnectTokenIsOrgMinted = false;
+    // CLI flag to force enable secure boot regardless of OS capabilities
+    static bool _forceSecureBootEnabled;
+#ifndef CLI_ONLY_BUILD
+    QWindow *_mainWindow;
+#endif
 
-    bool _guidValid;
+    // Performance statistics capture
+    PerformanceStats *_performanceStats;
+    
+    // Progress watchdog - separate component that monitors for stalls
+    WriteProgressWatchdog* _progressWatchdog = nullptr;
+    bool _forceSyncMode = false;  // Force sync I/O on next write (after recovery restart)
+    
+    // Debug options (secret menu)
+    bool _debugDirectIO;
+    bool _debugPeriodicSync;
+    bool _debugVerboseLogging;
+    bool _debugAsyncIO;
+    int _debugAsyncQueueDepth;
+    bool _debugIPv4Only;
+    bool _debugSkipEndOfDevice;
+    bool _debugIgnoreDeviceLimits;
+    bool _debugRpiboot;
+    QString _debugCustomFastbootGadget;
+    bool _debugForceSecureBoot;
+    bool _debugSignFastbootGadget;
+
+    QString _rpibootDeviceId;
+    QString _rpibootStorageTarget;  // block device on the CM to flash after bootstrap (e.g. "mmcblk0", "nvme0n1")
+    bool _isRpibootDevice = false;
+    RpibootThread *_rpibootThread = nullptr;
+    FastbootFlashThread *_fastbootFlashThread = nullptr;
+    rpiboot::SideloadMode _rpibootSideloadMode = rpiboot::SideloadMode::Fastboot;
+
+    // Fastboot storage device selection (pre-bootstrapped)
+    bool _isFastbootDevice = false;
+    QString _fastbootId;
+    QString _fastbootBlockDevice;
+
+    // Auto-bootstrap tracking
+    QSet<QString> _bootstrappingDevices;           // port path keys in progress
+    QMap<QString, RpibootThread*> _activeBootstrapThreads;
+
     void _parseCompressedFile();
     void _parseXZFile();
+    void _parseGzFile();
+    void _parseZstdFile();
     QString _pubKeyFileName();
     QString _privKeyFileName();
     QString _sshKeyDir();
     QString _sshKeyGen();
+    void _applySystemdCustomisationFromSettings(const QVariantMap &s);
+    void _applyCloudInitCustomisationFromSettings(const QVariantMap &s);
     void _continueStartWriteAfterCacheVerification(bool cacheIsValid);
+    void scheduleOsListRefresh();
+    void _handleMemoryAllocationFailure(const char* what);
+    void _handleSetupException(const char* what);
 };
 
 #endif // IMAGEWRITER_H

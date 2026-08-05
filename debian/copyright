@@ -1,12 +1,12 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
-Upstream-Name: unraid-usb-creator
+Upstream-Name: rpi-imager
 Source: 
 
 Files: *
 Copyright: 2020 Raspberry Pi Ltd
 License: Apache-2.0
 
-Files: src/dependencies/mountutils/* src/dependencies/drivelist/*
+Files: src/dependencies/drivelist/*
 Copyright: 2017 Balena.io 
 License: Apache-2.0
 

@@ -1,4 +1,342 @@
-unraid-imager (1.9.6) unstable; urgency=medium
+rpi-imager (2.0.10) unstable; urgency=medium
+
+  * Pi Connect:
+    - Fix Connect sign-in on more Linux systems (#1564)
+  * Secure Boot / rpiboot:
+    - AB-image support in BootloaderImage with signing and extraction
+      tests
+    - Fetch firmware from rpi-eeprom; fixup reboot expectations
+    - Fix CM5 re-provisioning support
+    - Always validate stale cached firmware assets
+    - PAL-ify RSA key fingerprint; fix rpiboot storage handoff
+    - Push key handling behind the PAL
+  * Fastboot:
+    - Set chosen storage as first boot source via EEPROM
+  * OS Customisation:
+    - Enhance SSID handling with octet support and YAML escaping
+    - Vendor capital cities data; stop fetching from REST Countries API
+    - Wizard: improve nextStep logic for "write another" mode
+  * UI:
+    - QML refactor: ImageWriter singleton, cachegen, lazy-loaded options
+      dialogs
+    - Fix keyboard navigation on write confirmation dialog
+    - Disable 'clear customisation' during active writes
+    - Re-bind RSA key visibility for debug options
+    - Prevent ImageWriter double-construction
+    - FocusableText/Heading components for accessibility
+    - Gate OTP programming visibility
+    - Prevent VoiceOver crash on password fields (#1607)
+  * Write Operations:
+    - Don't emit success() after a failed extraction (#1603)
+    - Set extract length when manifest size is given
+    - Omit percent progress when extract size cannot be determined
+  * Windows:
+    - Reliably flag system drives (#1558)
+    - Force disk status refresh on write errors
+  * macOS:
+    - Require macOS 13 as minimum
+    - Scale release label in create-dmg
+    - Fall back to venv for custom background generation
+    - Coalesce unaligned writes/reads to /dev/rdisk* (fixes .img.zst
+      EINVAL)
+    - Prevent mach-port over-release crash (#1632)
+  * Linux:
+    - Build fixes
+  * Embedded:
+    - Move scaling choices into C++
+    - Deploy vendored tree without AppImage
+    - Drop NetworkAccessManagerFactory and OpenSSL
+    - create-embedded.sh: support custom ICU runtime libraries
+  * Dependencies:
+    - Upgrade curl, libarchive, libusb, nghttp2, and xz
+    - Single source of truth for curl user-agent
+  * Build:
+    - Trim unused Qt build features and configuration options
+  * Documentation:
+    - Update os-list-schema; prune bmap spec document
+    - Update bmap-tools repo URL
+  * Performance:
+    - Refactor analyse_performance script
+
+ -- Tom Dewey <tom.dewey@raspberrypi.com>  Fri, 19 Jun 2026 14:35:14 +0100
+
+rpi-imager (2.0.9) unstable; urgency=medium
+
+  * Pi Connect:
+    - New ConnectDeviceRegistrar over HTTPS with on-device signing
+    - Wizard flow for Pi Connect for Organisations enrolment
+    - Organisation registration and provisioning-token tracking
+    - Register device identity with Connect after fastboot flash
+  * Secure Boot / rpiboot:
+    - Rewrite SecureBootProvisioner for in-place CM5 re-provisioning
+    - Add CM5 re-provisioning pipeline in FirmwareManager
+    - New BootloaderImage TLV editor for pieeprom.bin
+    - Bootfiles repacking via replaceEntry + writeToFile
+    - config-sig generation, RSA public-key extraction and
+      bootcode2712 signing
+    - Debug toggles for force-secure-boot and sign-fastboot-gadget
+  * Fastboot:
+    - Capture INFO/TEXT lines for OEM commands
+    - Chunk file_server bulk transfers
+    - Resolve cache before fastboot flash
+    - Pause drive scan during auto-bootstrap
+    - Track naked rpiboot devices separately in the drive list
+    - Fix command truncation
+    - Normalise custom gadget paths so local files can be used
+  * OS Customisation:
+    - cloud-init: drop enable_ssh in favour of systemctl runcmd
+    - cloud-init: use 'user' (not 'users') for user configuration
+    - Fix serial-if disabled handling
+  * UI:
+    - Reduced motion support for accessibility
+    - Make AppOptionsDialog scrollable; move Telemetry to bottom
+    - Align SecureBoot step container styling
+  * Write Operations:
+    - Remove the 512-byte alignment requirement
+    - Better overflow handling in DeviceWrapper for GPT and MBR
+      partitions and FAT partition long filenames
+    - disk_formatter: handle extremely large sectors_per_fat
+    - downloadextractthread: use shared_ptr for the write ringbuffer
+    - cachemanager: fix TOCTOU on directory existence check
+  * Device I/O:
+    - Read per-device I/O limits to inform write tuning
+  * Windows:
+    - Propagate write error handling through FileOperations
+    - Advertise long path, DPI awareness and UTF-8 codepage
+    - Geometric backoff for volume lock; wait for clean completion
+    - Uninstaller preserves user preferences, removes cache and
+      customisation data
+    - Use secure memory erase for WiFi credentials
+  * macOS:
+    - Use secure memory erase for WiFi credentials
+  * Linux:
+    - Prefer kreadconfig6, fall back to kreadconfig5; pick the right
+      binary via KDE_SESSION_VERSION
+    - SuspendInhibitor and launchDetached use explicit search paths
+    - AppImage: exclude libsystemd, libdbus-1, libcap for Linux
+      Desktop AppImages
+  * Embedded:
+    - Use explicit path for the reboot command
+  * Tests:
+    - Relocate disk_formatter_test, add CMake target, build on
+      non-Windows platforms
+  * Licensing:
+    - Add nghttp2, libusb and yescrypt to the licence manifest
+  * i18n: Updated French, Irish and Turkish translation dictionaries
+
+ -- Tom Dewey <tom.dewey@raspberrypi.com>  Fri, 01 May 2026 16:30:00 +0100
+
+rpi-imager (2.0.8) unstable; urgency=medium
+
+  * Fastboot:
+    - Enumerate storage devices
+    - Add mount, unmount, and custom gadget support
+    - Rename stage to download
+    - Retry on transient USB errors
+  * OS Customisation:
+    - Don't set any groups, leave it to the OS
+    - Use explicit runcmds for passwordless sudo
+    - Require active locale selection; no pre-filled defaults
+  * UI:
+    - Refresh clipboard status as text fields show
+  * SSH:
+    - Add state machine for handling PuTTY's multiline SSH keys
+  * Linux:
+    - Explicitly exclude libsystemd
+  * Write Operations:
+    - Increase watchdog stall timeout to 180s to match the async write timeout
+    - Exclude final data sync from write watchdog to avoid false stalls on slow
+      cards
+  * i18n: Updated French, Slovak translation dictionaries
+  * Documentation:
+    - Add a screenshot of the interface
+
+ -- Tom Dewey <tom.dewey@raspberrypi.com>  Wed, 08 Apr 2026 12:00:00 +0100
+
+rpi-imager (2.0.7) unstable; urgency=medium
+
+  * Write Operations:
+    - Prevent re-entry during write operations and improve thread management
+    - Start progress watchdog only after device authorization to avoid false
+      stall detections during macOS authorization dialogs
+  * Local Files:
+    - Load local manifest files directly without confirmation dialog
+    - Improve URL handling to differentiate local file URLs from remote URLs
+  * Drive Enumeration:
+    - Replace vendored drivelist/mountutils dependencies with new
+      platform-specific implementations for macOS, Linux and Windows
+    - Enhance error handling and show UI banner on enumeration failures
+    - Improve code clarity and signal-slot connection syntax
+  * Networking:
+    - Track effective URL after redirects in CurlFetcher for better
+      transparency and security feedback
+  * macOS:
+    - Simplify network status logging in platform quirks
+    - Update disk unmount and eject operations to handle device paths directly
+  * Tests:
+    - Add unit tests for platform-specific quirks
+    - Update drivelist test API definitions via CMake compile definitions
+  * Build:
+    - Update .gitignore to include clangd cache files
+
+ -- Tom Dewey <tom.dewey@raspberrypi.com>  Fri, 13 Feb 2026 15:25:00 +0000
+
+rpi-imager (2.0.6) unstable; urgency=medium
+
+  * UI: Improve ImButton width calculation for better content fitting
+  * i18n: Updated German translation
+
+ -- Tom Dewey <tom.dewey@raspberrypi.com>  Thu, 22 Jan 2026 14:30:00 +0000
+
+rpi-imager (2.0.5) unstable; urgency=medium
+
+  * all platforms: CLI option added to help on GUI builds
+  * macOS:
+    - Add dark mode and Liquid Glass icon support with pre-compiled assets
+    - Add icon compilation script for regenerating icon assets
+  * UI:
+    - Enhance update popup with version tracking functionality
+    - Improve BaseDialog minimum height for better usability
+    - Use indeterminate progressbar for local gzip files without size info
+    - Fixup updatePopupRequested trigger
+  * Local JSON Helper:
+    - Add device capabilities support
+    - Add OS capabilities support
+
+ -- Tom Dewey <tom.dewey@raspberrypi.com>  Tue, 20 Jan 2026 17:00:00 +0000
+
+rpi-imager (2.0.4) unstable; urgency=medium
+
+  * Write Robustness:
+    - Introduce WriteProgressWatchdog to monitor write progress and detect stalls
+    - Implement recovery strategies for async I/O including queue depth reduction
+      and sync fallback mechanisms
+    - Standardize timeout handling for pending writes across all platforms
+    - Add 5-minute emergency timeout as fallback for stalled operations
+  * Performance:
+    - Enhance recovery event handling and monitoring diagnostics
+    - Capture SHA256 hash values in performance profiles for verification diagnostics
+  * Image Handling:
+    - Add support for parsing .gz files to extract uncompressed size information
+    - Improve handling for files larger than 4GB
+  * Disk Formatting:
+    - Fix FAT32 formatting for large drives (>8GB)
+    - Improve root directory handling based on sectors per cluster
+  * Bug Fixes:
+    - Fix external tools (runuser, xdg-open) failing in AppImage due to
+      LD_LIBRARY_PATH conflicts causing PAM module loading errors
+    - Improve thread safety for download cancellation
+    - Enhance error handling for timeout conditions
+    - Use Pathlib to generate file:// URIs in local JSON helper script
+    - Use XDG-compliant canberra-gtk-play and PipeWire for audio notifications
+      on Linux, fixing beep on Raspberry Pi OS which no longer ships PulseAudio control by default
+  * Accessibility:
+    - Bypass confirmation dialog timer when screen reader is active
+  * Build:
+    - Refactor Qt build scripts for improved POSIX compliance and consistency
+    - Add macOS-specific optimizations for universal builds
+
+ -- Tom Dewey <tom.dewey@raspberrypi.com>  Thu, 15 Jan 2026 12:00:00 +0000
+
+rpi-imager (2.0.3) unstable; urgency=medium
+
+  * Networking:
+    - Implement comprehensive network monitoring to detect connectivity changes
+    - Automatic retry of OS list fetching when network is restored
+    - Add CA certificate bundle detection for AppImage compatibility on Linux
+  * Custom Repositories:
+    - Support rpi-imager:// URI scheme for deep-linking to custom repositories
+    - Register .rpi-imager-manifest file type on all platforms
+    - Show custom repository host in window title with security hardening
+  * Counterfeit Card Detection:
+    - Detect and handle counterfeit storage devices that hang during I/O
+    - Add timeout mechanism for critical disk operations
+    - Add debug option to skip end-of-device operations
+  * Performance:
+    - Implement bottleneck detection showing network/decompression/write status
+    - Add detailed write timing breakdown for analysis
+    - Skip periodic sync when direct I/O is enabled
+  * UI:
+    - Add sticky language preference across sessions
+    - Enhance title display with offline status indication
+    - Improve text wrapping and marquee scrolling throughout
+  * Drive Handling:
+    - Add support for NVMe over Fabrics bus type on Windows
+    - Enhance storage bus type recognition and device classification
+  * Customization:
+    - Enhance WiFi configuration for open networks
+    - Add initFormat parameter to CLI setImageCustomisation call
+  * Windows:
+    - Enhance uninstallation to clean up old installation directories
+  * Bug Fixes:
+    - Fix language selection persistence
+    - Fix async write ID overlap with cancellation markers
+    - Fix async cache hash reset on open
+    - Fix unmounting logic and error handling
+    - Fix hardware/software capability case sensitivity
+  * i18n: Updated Spanish, Czech, French, Russian, Portuguese translations
+
+ -- Tom Dewey <tom.dewey@raspberrypi.com>  Mon, 22 Dec 2025 18:00:00 +0000
+
+rpi-imager (2.0.2) unstable; urgency=medium
+
+  * OS customisation:
+    - Fixup init_format validation
+    - Fixup telemetry version string
+    - Update cloud-init user-data generation for Pi Connect
+    - Support SSH public key authentication without username/password
+    - Enhance WiFi configuration for WPA2/WPA3 compatibility
+  * UI:
+    - Improve focus handling for labels in wizard steps
+    - Update accessibility properties for form labels
+    - Enhance ComboBox keyboard navigation and search functionality
+  * macOS: Enhance file dialog with file type selection popup
+  * Linux: Implement privilege escalation support for elevatable bundles
+  * all:
+    - Add file logging support for debugging
+    - Remove O_SYNC flag from file open operations
+
+  -- Tom Dewey <tom.dewey@raspberrypi.com>  Wed, 26 Nov 2025 13:00:00 +0100
+
+rpi-imager (2.0.1) unstable; urgency=medium
+
+  * i18n: Updated Italian translation
+  * Windows: Migrate to modern IFileDialog for file selection
+  * Windows: Fix SSH key file selection filters
+
+  -- Tom Dewey <tom.dewey@raspberrypi.com>  Mon, 24 Nov 2025 13:00:00 +0100
+
+rpi-imager (2.0.0) unstable; urgency=medium
+
+  * UI: Complete redesign, now as a wizard
+  * OS customisation: Add Raspberry Pi Connect step
+  * App Options: Custom repository selection UI
+  * OS customisation: Rebuilt back-end in C++
+  * build: Custom Qt 6.9.3 builds for each platform
+
+  -- Tom Dewey <tom.dewey@raspberrypi.com>  Fri, 10 Oct 2025 17:00:00 +0100
+
+rpi-imager (1.9.7) unstable; urgency=medium
+
+  * OS customisation:
+    - Fixup SSH key duplication in written OS
+    - Fixup 'Beep', 'Eject', 'Telemetry' option persistence
+    - Improve ComboBox behaviours
+  * Storage Device Selection: Begin observing at start of day,
+      improve removal notifications.
+  * windows: Autogenerate manifest version information from the build
+  * windows, macos, linux: Add PlatformQuirks module to deal with host
+      hardware quirks. Today, just used on Windows for nVidia lockups.
+  * all: Add OS list refresh jitter and override
+  * all: Generate timezone data from tzdata
+  * OS customisation: Refactor dialogs, data reset
+  * Cache Management: Fixup destruction segfault
+  * Embedded: Unified build
+  * macOS: Build custom Qt 6.9.1
+
+  -- Tom Dewey <tom.dewey@raspberrypi.com>  Thu, 31 Jul 2025 17:00:00 +0100
+
+rpi-imager (1.9.6) unstable; urgency=medium
 
   * OS customisation:
     - Add Wi-Fi country selection validator
@@ -9,7 +347,7 @@ unraid-imager (1.9.6) unstable; urgency=medium
 
  -- Tom Dewey <tom.dewey@raspberrypi.com>  Mon, 21 Jul 2025 17:00:00 +0100
 
-unraid-imager (1.9.5) unstable; urgency=medium
+rpi-imager (1.9.5) unstable; urgency=medium
 
   * OS customisation:
     - Enhanced validation of SSH keys
@@ -40,7 +378,7 @@ unraid-imager (1.9.5) unstable; urgency=medium
   
  -- Tom Dewey <tom.dewey@raspberrypi.com>  Fri, 11 Jul 2025 17:00:00 +0100
 
-unraid-usb-creator (1.9.4) unstable; urgency=medium
+rpi-imager (1.9.4) unstable; urgency=medium
 
   * Windows: Switch to Inno Setup for installer
   * Windows: Add signing for binaries, installer, and uninstaller
@@ -76,7 +414,7 @@ unraid-usb-creator (1.9.4) unstable; urgency=medium
 
  -- Tom Dewey <tom.dewey@raspberrypi.com>  Fri, 30 May 2025 17:00:00 +0100
 
-unraid-usb-creator (1.9.3) unstable; urgency=medium
+rpi-imager (1.9.3) unstable; urgency=medium
 
   * Windows: Add quiet uninstaller flag
   * Windows: Fixup long filename construction in FAT partitions
@@ -92,7 +430,7 @@ unraid-usb-creator (1.9.3) unstable; urgency=medium
 
  -- Tom Dewey <tom.dewey@raspberrypi.com>  Fri, 07 Mar 2025 14:45:00 +0000
 
-unraid-usb-creator (1.9.2) unstable; urgency=medium
+rpi-imager (1.9.2) unstable; urgency=medium
 
   * Drive List: Expose only physical devices - not volumes
   * i18n: German, Taiwanese, Catalan, Spanish, Slovak
@@ -105,7 +443,7 @@ unraid-usb-creator (1.9.2) unstable; urgency=medium
 
  -- Tom Dewey <tom.dewey@raspberrypi.com>  Wed, 02 Oct 2024 18:57:00 +0000
 
-unraid-usb-creator (1.9.0) unstable; urgency=medium
+rpi-imager (1.9.0) unstable; urgency=medium
 
   * ui: Upgrade to Qt6.7, bringing new controls to everything
   * packaging: Migrate to AppImage-first distribution
@@ -119,7 +457,7 @@ unraid-usb-creator (1.9.0) unstable; urgency=medium
 
  -- Tom Dewey <tom.dewey@raspberrypi.com>  Wed, 4 Sep 2024 18:57:00 +0000
 
-unraid-usb-creator (1.8.5) unstable; urgency=medium
+rpi-imager (1.8.5) unstable; urgency=medium
 
   * Retry downloads on HTTP2 errors.
   * Rename .desktop file to match DBus name, as some GNOME
@@ -129,7 +467,7 @@ unraid-usb-creator (1.8.5) unstable; urgency=medium
 
  -- Floris Bos <bos@je-eigen-domein.nl>  Sat, 20 Jan 2024 16:36:11 +0100
 
-unraid-usb-creator (1.8.4) unstable; urgency=medium
+rpi-imager (1.8.4) unstable; urgency=medium
 
   * OS customisation: Fixed #531, which caused password entry
                       to drop the first character
@@ -141,14 +479,14 @@ unraid-usb-creator (1.8.4) unstable; urgency=medium
 
  -- Floris Bos <bos@je-eigen-domein.nl>  Fri, 22 Dec 2023 16:00:00 +0200
 
-unraid-usb-creator (1.8.3) unstable; urgency=medium
+rpi-imager (1.8.3) unstable; urgency=medium
 
   * Home: Fixed "No filtering" option
   * OS customisation: Fixed no-customisation flow
 
  -- Floris Bos <bos@je-eigen-domein.nl>  Thu, 16 Nov 2023 14:00:00 +0200
 
-unraid-usb-creator (1.8.2) unstable; urgency=medium
+rpi-imager (1.8.2) unstable; urgency=medium
 
   * Home: Device filtering reworked to download OS list eagerly
   * OS List: Fixed 'Recommended' tag annotation
@@ -163,14 +501,14 @@ unraid-usb-creator (1.8.2) unstable; urgency=medium
 
  -- Floris Bos <bos@je-eigen-domein.nl>  Wed, 15 Nov 2023 20:16:16 +0200
 
-unraid-usb-creator (1.8.1) unstable; urgency=medium
+rpi-imager (1.8.1) unstable; urgency=medium
 
   * Hide empty categories when filtering
   * i8n: Updates German translation
 
  -- Floris Bos <bos@je-eigen-domein.nl>  Thu, 19 Oct 2023 20:16:16 +0200
 
-unraid-usb-creator (1.8.0) unstable; urgency=medium
+rpi-imager (1.8.0) unstable; urgency=medium
 
   * Advanced options: Rename to OS customization
   * OS customization: change to tabbed UI
@@ -191,14 +529,14 @@ unraid-usb-creator (1.8.0) unstable; urgency=medium
 
  -- Floris Bos <bos@je-eigen-domein.nl>  Wed, 18 Oct 2023 18:00:00 +0200
 
-unraid-usb-creator (1.7.5) unstable; urgency=medium
+rpi-imager (1.7.5) unstable; urgency=medium
 
   * Bump version number to match bug fix release for Windows.
     (No actual changes from 1.7.4.1 for Linux)
 
  -- Floris Bos <bos@je-eigen-domein.nl>  Mon, 22 May 2023 18:53:22 +0200
 
-unraid-usb-creator (1.7.4.1) unstable; urgency=medium
+rpi-imager (1.7.4.1) unstable; urgency=medium
 
   * Advanced settings: fix creating files on FAT partition that are
     an exact multiple of cluster size.
@@ -208,7 +546,7 @@ unraid-usb-creator (1.7.4.1) unstable; urgency=medium
 
  -- Floris Bos <bos@je-eigen-domein.nl>  Thu, 18 May 2023 15:05:28 +0200 
 
-unraid-usb-creator (1.7.4) unstable; urgency=medium
+rpi-imager (1.7.4) unstable; urgency=medium
 
   * Advanced settings: fix escaping single quotes
   * Advanced settings: default to using username of logged-in user
@@ -220,7 +558,7 @@ unraid-usb-creator (1.7.4) unstable; urgency=medium
 
  -- Floris Bos <bos@je-eigen-domein.nl>  Sun, 20 Nov 2022 17:30:20 +0100
 
-unraid-usb-creator (1.7.3) unstable; urgency=medium
+rpi-imager (1.7.3) unstable; urgency=medium
 
   * Linux: use GnuTLS instead of OpenSSL for computing SHA256
   * Fix persistenting public key authentication setting
@@ -235,7 +573,7 @@ unraid-usb-creator (1.7.3) unstable; urgency=medium
 
  -- Floris Bos <bos@je-eigen-domein.nl>  Thu, 18 Aug 2022 20:04:37 +0200
 
-unraid-usb-creator (1.7.2) unstable; urgency=medium
+rpi-imager (1.7.2) unstable; urgency=medium
 
   * Remove overscan/piwiz supression advanced options
   * gz/xz/zstd custom images: pad if image size is not dividable by 512 byte
@@ -245,14 +583,14 @@ unraid-usb-creator (1.7.2) unstable; urgency=medium
 
  -- Floris Bos <bos@je-eigen-domein.nl>  Thu, 24 Mar 2022 17:58:52 +0100
 
-unraid-usb-creator (1.7.1) unstable; urgency=medium
+rpi-imager (1.7.1) unstable; urgency=medium
 
   * Fix advanced settings being broken if there are saved wifi
     settings and wifiSSIDHidden is not present
 
  -- Floris Bos <bos@je-eigen-domein.nl>  Thu, 03 Feb 2022 18:38:15 +0100
 
-unraid-usb-creator (1.7.0) unstable; urgency=medium
+rpi-imager (1.7.0) unstable; urgency=medium
 
   * Only apply advanced settings if the operating system indicates it
     supports it by "init_format": "cloudinit" | "systemd" in the
@@ -277,14 +615,14 @@ unraid-usb-creator (1.7.0) unstable; urgency=medium
 
  -- Floris Bos <bos@je-eigen-domein.nl>  Wed, 02 Feb 2022 19:47:17 +0100
 
-unraid-usb-creator (1.6.2) unstable; urgency=medium
+rpi-imager (1.6.2) unstable; urgency=medium
 
   * Add website link support
   * Add CLI support 
 
  -- Floris Bos <bos@je-eigen-domein.nl>  Fri, 07 May 2021 13:19:19 +0200
 
-unraid-usb-creator (1.6.1) unstable; urgency=medium
+rpi-imager (1.6.1) unstable; urgency=medium
 
   * When saving advanced options delay modifying files
     on FAT partition until config.txt is visible.
@@ -295,7 +633,7 @@ unraid-usb-creator (1.6.1) unstable; urgency=medium
 
  -- Floris Bos <bos@je-eigen-domein.nl>  Sat, 27 Mar 2021 11:06:56 +0100
 
-unraid-usb-creator (1.6) unstable; urgency=medium
+rpi-imager (1.6) unstable; urgency=medium
 
   * Wayland: fix "Client tried to set invalid geometry" error
   * Add advanced users option screen available under SHIFT-CTRL-X
@@ -307,7 +645,7 @@ unraid-usb-creator (1.6) unstable; urgency=medium
 
  -- Floris Bos <bos@je-eigen-domein.nl>  Fri, 26 Feb 2021 14:32:21 +0100
 
-unraid-usb-creator (1.5) unstable; urgency=medium
+rpi-imager (1.5) unstable; urgency=medium
 
   * More verbose progress/error reporting
   * Reconnect if download stalls for more than one minute
@@ -322,7 +660,7 @@ unraid-usb-creator (1.5) unstable; urgency=medium
 
  -- Floris Bos <bos@je-eigen-domein.nl>  Tue, 24 Nov 2020 10:38:21 +0100
 
-unraid-usb-creator (1.4) unstable; urgency=medium
+rpi-imager (1.4) unstable; urgency=medium
 
   * Add basic accessibility support
   * Add keyboard navigation support
@@ -334,7 +672,7 @@ unraid-usb-creator (1.4) unstable; urgency=medium
 
  -- Floris Bos <bos@je-eigen-domein.nl>  Tue, 30 Jun 2020 00:29:37 +0200
 
-unraid-usb-creator (1.3) unstable; urgency=medium
+rpi-imager (1.3) unstable; urgency=medium
 
   * Remove zero sized drives from list
   * Fix height of drive list
@@ -348,24 +686,24 @@ unraid-usb-creator (1.3) unstable; urgency=medium
 
  -- Floris Bos <bos@je-eigen-domein.nl>  Mon, 25 May 2020 00:45:50 +0200
 
-unraid-usb-creator (1.2) unstable; urgency=medium
+rpi-imager (1.2) unstable; urgency=medium
 
   * Mention version number in title bar.
   * Performance improvements
 
  -- Floris Bos <bos@je-eigen-domein.nl>  Tue, 10 Mar 2020 17:08:11 +0100
 
-unraid-usb-creator (1.1) unstable; urgency=medium
+rpi-imager (1.1) unstable; urgency=medium
 
   * Fix verification on images that are uncompressed or have
     a size that is not dividable by 128 KB.
   * Round instead of floor size of SD card up and show 1 decimal
-  * Executable name changed from imagingutility to unraid-usb-creator
+  * Executable name changed from imagingutility to rpi-imager
 
  -- Floris Bos <bos@je-eigen-domein.nl>  Mon, 09 Mar 2020 12:25:24 +0100
 
-unraid-usb-creator (1.0) unstable; urgency=medium
+rpi-imager (1.0) unstable; urgency=medium
 
   * Initial Release.
 
- -- Unraid Team <https://unraid.net/contact>  Thu, 20 Feb 2020 11:54:04 +0100
+ -- Floris Bos <bos@je-eigen-domein.nl>  Thu, 20 Feb 2020 11:54:04 +0100

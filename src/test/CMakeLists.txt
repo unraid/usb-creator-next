@@ -1,0 +1,804 @@
+# Test configuration for rpi-imager
+# Uses Catch2 and CTest for testing
+
+# Fetch Catch2 for testing
+include(FetchContent)
+
+FetchContent_Declare(
+    Catch2
+    GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+    GIT_TAG v3.5.2
+    FIND_PACKAGE_ARGS NAMES Catch2
+)
+
+FetchContent_MakeAvailable(Catch2)
+
+# Include Catch2 CMake utilities for test discovery
+list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
+include(Catch)
+
+# Add the customization generator test executable
+add_executable(customization_generator_test
+    ${CMAKE_CURRENT_SOURCE_DIR}/../customization_generator.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../customization_generator.cpp
+    customization_generator_test.cpp
+)
+
+# Link against Catch2 and Qt
+target_link_libraries(customization_generator_test PRIVATE 
+    Catch2::Catch2WithMain
+    Qt6::Core
+    Qt6::Network
+)
+
+# Include parent directory for headers
+target_include_directories(customization_generator_test PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+)
+
+target_compile_features(customization_generator_test PRIVATE cxx_std_20)
+target_compile_options(customization_generator_test PRIVATE 
+    -Wall -Wextra -Wpedantic
+    $<$<CONFIG:Debug>:-g -O0>
+)
+
+# Register with CTest for automatic test discovery
+catch_discover_tests(customization_generator_test)
+
+# Also add a custom target for manual running
+add_custom_target(test_customization_generator
+    COMMAND customization_generator_test
+    DEPENDS customization_generator_test
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    COMMENT "Running customization generator tests"
+)
+
+# Determine platform-specific file operations implementation for FAT partition test
+if(WIN32)
+    set(PLATFORM_FILE_OPS
+        ${CMAKE_CURRENT_SOURCE_DIR}/../windows/file_operations_windows.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/../windows/file_operations_windows.cpp
+    )
+elseif(APPLE)
+    set(PLATFORM_FILE_OPS
+        ${CMAKE_CURRENT_SOURCE_DIR}/../mac/file_operations_macos.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/../mac/file_operations_macos.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../mac/macfile.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/../mac/macfile.cpp
+    )
+else()
+    set(PLATFORM_FILE_OPS
+        ${CMAKE_CURRENT_SOURCE_DIR}/../linux/file_operations_linux.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/../linux/file_operations_linux.cpp
+    )
+endif()
+
+# Add the FAT partition test executable (manual test against real filesystem)
+add_executable(fat_partition_test
+    ${CMAKE_CURRENT_SOURCE_DIR}/../devicewrapper.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../devicewrapper.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../devicewrapperpartition.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../devicewrapperpartition.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../devicewrapperblockcacheentry.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../devicewrapperblockcacheentry.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../devicewrapperfatpartition.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../devicewrapperfatpartition.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../file_operations.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../file_operations.cpp
+    ${PLATFORM_FILE_OPS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../fat_partition_test.cpp
+)
+
+# Enable Qt MOC for Q_OBJECT classes
+set_target_properties(fat_partition_test PROPERTIES
+    AUTOMOC ON
+)
+
+# Link Catch2 and Qt libraries
+target_link_libraries(fat_partition_test PRIVATE
+    Catch2::Catch2WithMain
+    Qt6::Core
+)
+
+# Link platform-specific libraries
+if(APPLE)
+    target_link_libraries(fat_partition_test PRIVATE
+        "-framework Security"
+        "-framework DiskArbitration"
+        "-framework CoreFoundation"
+    )
+endif()
+
+# Include parent directory for headers
+target_include_directories(fat_partition_test PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+)
+
+target_compile_features(fat_partition_test PRIVATE cxx_std_20)
+target_compile_options(fat_partition_test PRIVATE 
+    -Wall -Wextra -Wpedantic
+    $<$<CONFIG:Debug>:-g -O0>
+)
+
+# Register with CTest for automatic test discovery
+# Note: These tests are marked with [!mayfail] and [.destructive] tags
+# Run with: ctest -C Debug --output-on-failure
+# Or with environment variable: FAT_TEST_MOUNT_PATH="/Volumes/bootfs 1" ctest
+catch_discover_tests(fat_partition_test)
+
+# Custom target for manual running with mount path argument
+# Usage: FAT_TEST_MOUNT_PATH="/Volumes/bootfs 1" cmake --build . --target test_fat_partition
+add_custom_target(test_fat_partition
+    COMMAND echo "Set FAT_TEST_MOUNT_PATH environment variable and run: ./test/fat_partition_test"
+    COMMAND echo "Example: FAT_TEST_MOUNT_PATH=\"/Volumes/bootfs 1\" ./test/fat_partition_test"
+    DEPENDS fat_partition_test
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    COMMENT "FAT partition test built - set FAT_TEST_MOUNT_PATH to run"
+)
+
+# ============================================================================
+# Drivelist Tests
+# ============================================================================
+
+# Determine platform-specific drivelist implementation
+if(WIN32)
+    set(DRIVELIST_PLATFORM_SOURCES
+        ${CMAKE_CURRENT_SOURCE_DIR}/../drivelist/drivelist_windows.cpp
+    )
+    set(DRIVELIST_PLATFORM_LIBS setupapi)
+elseif(APPLE)
+    set(DRIVELIST_PLATFORM_SOURCES
+        ${CMAKE_CURRENT_SOURCE_DIR}/../drivelist/drivelist_darwin.mm
+    )
+    set(DRIVELIST_PLATFORM_LIBS
+        "-framework DiskArbitration"
+        "-framework IOKit"
+        "-framework Cocoa"
+        "-framework CoreFoundation"
+    )
+else()
+    set(DRIVELIST_PLATFORM_SOURCES
+        ${CMAKE_CURRENT_SOURCE_DIR}/../drivelist/drivelist_linux.cpp
+    )
+    set(DRIVELIST_PLATFORM_LIBS "")
+endif()
+
+# Add the drivelist test executable
+add_executable(drivelist_test
+    ${CMAKE_CURRENT_SOURCE_DIR}/../drivelist/drivelist.h
+    ${DRIVELIST_PLATFORM_SOURCES}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../drivelist/drivelist_test.cpp
+)
+
+# Enable test API for access to parsing functions
+target_compile_definitions(drivelist_test PRIVATE DRIVELIST_ENABLE_TEST_API)
+
+# Link against Catch2, Qt, and platform libraries
+target_link_libraries(drivelist_test PRIVATE
+    Catch2::Catch2WithMain
+    Qt6::Core
+    ${DRIVELIST_PLATFORM_LIBS}
+)
+
+# Include parent directory for headers
+target_include_directories(drivelist_test PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+)
+
+target_compile_features(drivelist_test PRIVATE cxx_std_20)
+target_compile_options(drivelist_test PRIVATE
+    -Wall -Wextra -Wpedantic
+    $<$<CONFIG:Debug>:-g -O0>
+)
+
+# Register with CTest for automatic test discovery
+catch_discover_tests(drivelist_test)
+
+# Custom target for manual running
+add_custom_target(test_drivelist
+    COMMAND drivelist_test
+    DEPENDS drivelist_test
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    COMMENT "Running drivelist tests"
+)
+
+# ============================================================================
+# PlatformQuirks Tests
+# ============================================================================
+
+# Determine platform-specific platformquirks implementation
+if(WIN32)
+    set(PLATFORMQUIRKS_SOURCES
+        ${CMAKE_CURRENT_SOURCE_DIR}/../windows/platformquirks_windows.cpp
+    )
+    set(PLATFORMQUIRKS_LIBS
+        ws2_32
+        iphlpapi
+        wbemuuid
+        ole32
+        oleaut32
+    )
+elseif(APPLE)
+    set(PLATFORMQUIRKS_SOURCES
+        ${CMAKE_CURRENT_SOURCE_DIR}/../mac/platformquirks_macos.mm
+    )
+    set(PLATFORMQUIRKS_LIBS
+        "-framework AppKit"
+        "-framework SystemConfiguration"
+        "-framework DiskArbitration"
+        "-framework CoreFoundation"
+        "-framework CoreServices"  # LSSetDefaultHandlerForURLScheme (registerUriScheme)
+    )
+else()
+    set(PLATFORMQUIRKS_SOURCES
+        ${CMAKE_CURRENT_SOURCE_DIR}/../linux/platformquirks_linux.cpp
+    )
+    set(PLATFORMQUIRKS_LIBS "")
+endif()
+
+# Add the platformquirks test executable
+add_executable(platformquirks_test
+    ${CMAKE_CURRENT_SOURCE_DIR}/../platformquirks.h
+    ${PLATFORMQUIRKS_SOURCES}
+    ${CMAKE_CURRENT_SOURCE_DIR}/platformquirks_test.cpp
+)
+
+# Enable test API for Windows parseDeviceNumber
+target_compile_definitions(platformquirks_test PRIVATE PLATFORMQUIRKS_ENABLE_TEST_API)
+
+# Link against Catch2, Qt, and platform libraries
+target_link_libraries(platformquirks_test PRIVATE
+    Catch2::Catch2WithMain
+    Qt6::Core
+    ${PLATFORMQUIRKS_LIBS}
+)
+
+# Include parent directory for headers
+target_include_directories(platformquirks_test PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+)
+
+target_compile_features(platformquirks_test PRIVATE cxx_std_20)
+target_compile_options(platformquirks_test PRIVATE
+    -Wall -Wextra -Wpedantic
+    $<$<CONFIG:Debug>:-g -O0>
+)
+
+# Register with CTest for automatic test discovery
+catch_discover_tests(platformquirks_test)
+
+# Custom target for manual running
+add_custom_target(test_platformquirks
+    COMMAND platformquirks_test
+    DEPENDS platformquirks_test
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    COMMENT "Running platformquirks tests"
+)
+
+# ============================================================================
+# rpiboot Tests
+# ============================================================================
+
+# rpiboot protocol tests (bootcode loader, file server, types)
+add_executable(rpiboot_protocol_test
+    ${CMAKE_CURRENT_SOURCE_DIR}/../rpiboot/rpiboot_types.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../rpiboot/usb_transport.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../rpiboot/bootcode_loader.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../rpiboot/bootcode_loader.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../rpiboot/file_server.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../rpiboot/file_server.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../rpiboot/bootfiles.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../rpiboot/bootfiles.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../rpiboot/rpiboot_protocol.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../rpiboot/rpiboot_protocol.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../rpiboot/test/mock_usb_transport.h
+    rpiboot_protocol_test.cpp
+)
+
+target_link_libraries(rpiboot_protocol_test PRIVATE
+    Catch2::Catch2WithMain
+    Qt6::Core
+    ${LibArchive_LIBRARIES}
+    ${ZLIB_LIBRARIES}
+    ${LIBLZMA_LIBRARIES}
+    ${ZSTD_LIBRARIES}
+)
+
+target_include_directories(rpiboot_protocol_test PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+    ${LibArchive_INCLUDE_DIR}
+    ${ZLIB_INCLUDE_DIRS}
+    ${LIBLZMA_INCLUDE_DIRS}
+    ${ZSTD_INCLUDE_DIR}
+)
+
+target_compile_features(rpiboot_protocol_test PRIVATE cxx_std_20)
+target_compile_options(rpiboot_protocol_test PRIVATE
+    -Wall -Wextra -Wpedantic
+    $<$<CONFIG:Debug>:-g -O0>
+)
+catch_discover_tests(rpiboot_protocol_test)
+
+add_custom_target(test_rpiboot_protocol
+    COMMAND rpiboot_protocol_test
+    DEPENDS rpiboot_protocol_test
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    COMMENT "Running rpiboot protocol tests"
+)
+
+# Bootfiles (tar extraction) tests
+add_executable(rpiboot_bootfiles_test
+    ${CMAKE_CURRENT_SOURCE_DIR}/../rpiboot/bootfiles.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../rpiboot/bootfiles.cpp
+    rpiboot_bootfiles_test.cpp
+)
+
+target_link_libraries(rpiboot_bootfiles_test PRIVATE
+    Catch2::Catch2WithMain
+    Qt6::Core
+    ${LibArchive_LIBRARIES}
+    ${ZLIB_LIBRARIES}
+    ${LIBLZMA_LIBRARIES}
+    ${ZSTD_LIBRARIES}
+)
+
+target_include_directories(rpiboot_bootfiles_test PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+    ${LibArchive_INCLUDE_DIR}
+    ${ZLIB_INCLUDE_DIRS}
+    ${LIBLZMA_INCLUDE_DIRS}
+    ${ZSTD_INCLUDE_DIR}
+)
+
+target_compile_features(rpiboot_bootfiles_test PRIVATE cxx_std_20)
+target_compile_options(rpiboot_bootfiles_test PRIVATE
+    -Wall -Wextra -Wpedantic
+    $<$<CONFIG:Debug>:-g -O0>
+)
+catch_discover_tests(rpiboot_bootfiles_test)
+
+add_custom_target(test_rpiboot_bootfiles
+    COMMAND rpiboot_bootfiles_test
+    DEPENDS rpiboot_bootfiles_test
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    COMMENT "Running rpiboot bootfiles tests"
+)
+
+# Fastboot protocol tests
+add_executable(fastboot_protocol_test
+    ${CMAKE_CURRENT_SOURCE_DIR}/../rpiboot/usb_transport.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../rpiboot/rpiboot_types.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../rpiboot/test/mock_usb_transport.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../fastboot/fastboot_protocol.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../fastboot/fastboot_protocol.cpp
+    fastboot_protocol_test.cpp
+)
+
+target_link_libraries(fastboot_protocol_test PRIVATE
+    Catch2::Catch2WithMain
+    Qt6::Core
+)
+
+target_include_directories(fastboot_protocol_test PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+)
+
+target_compile_features(fastboot_protocol_test PRIVATE cxx_std_20)
+target_compile_options(fastboot_protocol_test PRIVATE
+    -Wall -Wextra -Wpedantic
+    $<$<CONFIG:Debug>:-g -O0>
+)
+catch_discover_tests(fastboot_protocol_test)
+
+add_custom_target(test_fastboot_protocol
+    COMMAND fastboot_protocol_test
+    DEPENDS fastboot_protocol_test
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    COMMENT "Running fastboot protocol tests"
+)
+
+# Sparse encoder tests
+add_executable(sparse_encoder_test
+    ${CMAKE_CURRENT_SOURCE_DIR}/../fastboot/sparse_encoder.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../fastboot/sparse_encoder.cpp
+    sparse_encoder_test.cpp
+)
+
+target_link_libraries(sparse_encoder_test PRIVATE
+    Catch2::Catch2WithMain
+)
+
+target_include_directories(sparse_encoder_test PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+)
+
+target_compile_features(sparse_encoder_test PRIVATE cxx_std_20)
+target_compile_options(sparse_encoder_test PRIVATE
+    -Wall -Wextra -Wpedantic
+    $<$<CONFIG:Debug>:-g -O0>
+)
+catch_discover_tests(sparse_encoder_test)
+
+add_custom_target(test_sparse_encoder
+    COMMAND sparse_encoder_test
+    DEPENDS sparse_encoder_test
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    COMMENT "Running sparse encoder tests"
+)
+
+# Pieeprom format tests (parse/edit pieeprom.bin, BOOT_ORDER helpers)
+add_executable(pieeprom_test
+    ${CMAKE_CURRENT_SOURCE_DIR}/../fastboot/pieeprom.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../fastboot/pieeprom.cpp
+    pieeprom_test.cpp
+)
+target_link_libraries(pieeprom_test PRIVATE
+    Catch2::Catch2WithMain
+    Qt6::Core
+)
+target_include_directories(pieeprom_test PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+)
+target_compile_features(pieeprom_test PRIVATE cxx_std_20)
+target_compile_options(pieeprom_test PRIVATE
+    -Wall -Wextra -Wpedantic
+    $<$<CONFIG:Debug>:-g -O0>
+)
+catch_discover_tests(pieeprom_test)
+
+add_custom_target(test_pieeprom
+    COMMAND pieeprom_test
+    DEPENDS pieeprom_test
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    COMMENT "Running pieeprom format tests"
+)
+
+# BootloaderImage tests (AB-capable pieeprom: bootsys signing/extraction)
+add_executable(bootloader_image_test
+    ${CMAKE_CURRENT_SOURCE_DIR}/../rpiboot/bootloader_image.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../rpiboot/bootloader_image.cpp
+    bootloader_image_test.cpp
+)
+target_link_libraries(bootloader_image_test PRIVATE
+    Catch2::Catch2WithMain
+    Qt6::Core
+)
+target_include_directories(bootloader_image_test PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+)
+target_compile_features(bootloader_image_test PRIVATE cxx_std_20)
+target_compile_options(bootloader_image_test PRIVATE
+    -Wall -Wextra -Wpedantic
+    $<$<CONFIG:Debug>:-g -O0>
+)
+catch_discover_tests(bootloader_image_test)
+
+add_custom_target(test_bootloader_image
+    COMMAND bootloader_image_test
+    DEPENDS bootloader_image_test
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    COMMENT "Running BootloaderImage (AB pieeprom) tests"
+)
+
+# Fastboot EEPROM wire-protocol tests
+add_executable(fastboot_eeprom_wire_test
+    ${CMAKE_CURRENT_SOURCE_DIR}/../rpiboot/usb_transport.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../rpiboot/rpiboot_types.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../rpiboot/test/mock_usb_transport.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../fastboot/fastboot_protocol.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../fastboot/fastboot_protocol.cpp
+    fastboot_eeprom_wire_test.cpp
+)
+target_link_libraries(fastboot_eeprom_wire_test PRIVATE
+    Catch2::Catch2WithMain
+    Qt6::Core
+)
+target_include_directories(fastboot_eeprom_wire_test PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+)
+target_compile_features(fastboot_eeprom_wire_test PRIVATE cxx_std_20)
+target_compile_options(fastboot_eeprom_wire_test PRIVATE
+    -Wall -Wextra -Wpedantic
+    $<$<CONFIG:Debug>:-g -O0>
+)
+catch_discover_tests(fastboot_eeprom_wire_test)
+
+add_custom_target(test_fastboot_eeprom_wire
+    COMMAND fastboot_eeprom_wire_test
+    DEPENDS fastboot_eeprom_wire_test
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    COMMENT "Running fastboot EEPROM wire tests"
+)
+
+# EEPROM signer tests (in-process .sig builder + cross-check vs rpi-eeprom-digest)
+if(WIN32)
+    set(EEPROM_SIGNER_PLATFORM_SRC
+        ${CMAKE_CURRENT_SOURCE_DIR}/../windows/secureboot_crypto_windows.cpp
+    )
+elseif(APPLE)
+    set(EEPROM_SIGNER_PLATFORM_SRC
+        ${CMAKE_CURRENT_SOURCE_DIR}/../mac/secureboot_crypto_macos.cpp
+    )
+else()
+    set(EEPROM_SIGNER_PLATFORM_SRC
+        ${CMAKE_CURRENT_SOURCE_DIR}/../linux/secureboot_crypto_linux.cpp
+    )
+endif()
+
+add_executable(eeprom_signer_test
+    ${CMAKE_CURRENT_SOURCE_DIR}/../fastboot/eeprom_signer.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../fastboot/eeprom_signer.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../secureboot_crypto.h
+    ${EEPROM_SIGNER_PLATFORM_SRC}
+    eeprom_signer_test.cpp
+)
+target_link_libraries(eeprom_signer_test PRIVATE
+    Catch2::Catch2WithMain
+    Qt6::Core
+)
+if(APPLE)
+    target_link_libraries(eeprom_signer_test PRIVATE
+        "-framework Security" "-framework CoreFoundation"
+    )
+elseif(WIN32)
+    target_link_libraries(eeprom_signer_test PRIVATE
+        crypt32 bcrypt ncrypt
+    )
+endif()
+target_include_directories(eeprom_signer_test PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+)
+target_compile_features(eeprom_signer_test PRIVATE cxx_std_20)
+target_compile_options(eeprom_signer_test PRIVATE
+    -Wall -Wextra -Wpedantic
+    $<$<CONFIG:Debug>:-g -O0>
+)
+catch_discover_tests(eeprom_signer_test)
+
+add_custom_target(test_eeprom_signer
+    COMMAND eeprom_signer_test
+    DEPENDS eeprom_signer_test
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    COMMENT "Running EEPROM signer tests"
+)
+
+# Hardware integration tests (gated by RPIBOOT_TEST_DEVICE env var)
+add_executable(rpiboot_integration_test
+    ${CMAKE_CURRENT_SOURCE_DIR}/../rpiboot/rpiboot_types.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../rpiboot/usb_transport.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../rpiboot/libusb_transport.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../rpiboot/libusb_transport.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../rpiboot/bootcode_loader.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../rpiboot/bootcode_loader.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../rpiboot/file_server.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../rpiboot/file_server.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../rpiboot/bootfiles.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../rpiboot/bootfiles.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../rpiboot/rpiboot_protocol.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../rpiboot/rpiboot_protocol.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../rpiboot/firmware_manager.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../rpiboot/firmware_manager.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../curlnetworkconfig.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../curlnetworkconfig.cpp
+    rpiboot_integration_test.cpp
+)
+
+target_link_libraries(rpiboot_integration_test PRIVATE
+    Catch2::Catch2WithMain
+    Qt6::Core
+    ${LIBUSB_LIBRARIES}
+    ${CURL_LIBRARIES}
+    ${LibArchive_LIBRARIES}
+    ${ZLIB_LIBRARIES}
+    ${LIBLZMA_LIBRARIES}
+    ${ZSTD_LIBRARIES}
+)
+
+target_include_directories(rpiboot_integration_test PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+    ${LIBUSB_INCLUDE_DIR}
+    ${CURL_INCLUDE_DIR}
+    ${LibArchive_INCLUDE_DIR}
+    ${ZLIB_INCLUDE_DIRS}
+    ${LIBLZMA_INCLUDE_DIRS}
+    ${ZSTD_INCLUDE_DIR}
+)
+
+target_compile_features(rpiboot_integration_test PRIVATE cxx_std_20)
+target_compile_options(rpiboot_integration_test PRIVATE
+    -Wall -Wextra -Wpedantic
+    $<$<CONFIG:Debug>:-g -O0>
+)
+catch_discover_tests(rpiboot_integration_test)
+
+add_custom_target(test_rpiboot_integration
+    COMMAND rpiboot_integration_test
+    DEPENDS rpiboot_integration_test
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    COMMENT "Running rpiboot integration tests (requires hardware)"
+)
+
+# Combined target for all rpiboot tests
+add_custom_target(test_rpiboot
+    DEPENDS rpiboot_protocol_test rpiboot_bootfiles_test fastboot_protocol_test sparse_encoder_test
+    COMMENT "Running all rpiboot unit tests"
+)
+
+# ============================================================================
+# Disk Formatter Tests
+# ============================================================================
+
+# Standalone test (not Catch2) — uses POSIX fork/exec for system tool validation
+if(NOT WIN32)
+    add_executable(disk_formatter_test
+        ${CMAKE_CURRENT_SOURCE_DIR}/../disk_formatter.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/../disk_formatter.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../file_operations.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/../file_operations.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../aligned_buffer.h
+        ${PLATFORM_FILE_OPS}
+        disk_formatter_test.cpp
+    )
+
+    # Enable Qt MOC for Q_OBJECT classes (e.g. MacFile on macOS)
+    set_target_properties(disk_formatter_test PROPERTIES AUTOMOC ON)
+
+    target_include_directories(disk_formatter_test PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/..
+    )
+
+    # Qt6::Core needed by platform file_operations (QFile, QDebug)
+    target_link_libraries(disk_formatter_test PRIVATE
+        Qt6::Core
+    )
+
+    target_compile_features(disk_formatter_test PRIVATE cxx_std_20)
+    target_compile_options(disk_formatter_test PRIVATE
+        -Wall -Wextra -Wpedantic
+        $<$<CONFIG:Debug>:-g -O0>
+    )
+
+    if(APPLE)
+        target_link_libraries(disk_formatter_test PRIVATE
+            "-framework Security"
+            "-framework DiskArbitration"
+            "-framework CoreFoundation"
+        )
+    endif()
+
+    add_custom_target(test_disk_formatter
+        COMMAND disk_formatter_test
+        DEPENDS disk_formatter_test
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+        COMMENT "Running disk formatter tests"
+    )
+endif()
+
+# ============================================================================
+# Device I/O Limits Diagnostic Test
+# ============================================================================
+# Reports raw DeviceIOLimits values for all connected drives.
+# Validates the queue-depth and max-transfer heuristics against real hardware.
+
+add_executable(device_io_limits_test
+    ${CMAKE_CURRENT_SOURCE_DIR}/../file_operations.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../file_operations.cpp
+    ${PLATFORM_FILE_OPS}
+    device_io_limits_test.cpp
+)
+
+set_target_properties(device_io_limits_test PROPERTIES AUTOMOC ON)
+
+target_include_directories(device_io_limits_test PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+)
+
+target_link_libraries(device_io_limits_test PRIVATE
+    Catch2::Catch2WithMain
+    Qt6::Core
+)
+
+if(APPLE)
+    target_link_libraries(device_io_limits_test PRIVATE
+        "-framework Security"
+        "-framework DiskArbitration"
+        "-framework CoreFoundation"
+    )
+endif()
+
+target_compile_features(device_io_limits_test PRIVATE cxx_std_20)
+
+catch_discover_tests(device_io_limits_test)
+
+add_custom_target(test_device_io_limits
+    COMMAND device_io_limits_test
+    DEPENDS device_io_limits_test
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    COMMENT "Running device I/O limits diagnostic"
+)
+
+# UNRAID: flash GUID derivation. Pins our algorithm against unraidd's
+# strncpy_guid() (regis.c) — a divergence here silently invalidates user licences.
+add_executable(unraid_guid_test
+    ${CMAKE_CURRENT_SOURCE_DIR}/../unraid/unraid_guid.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../unraid/unraid_guid_test.cpp
+)
+
+# GuidValidator is a QObject with signals, so this target needs moc.
+set_property(TARGET unraid_guid_test PROPERTY AUTOMOC ON)
+
+target_link_libraries(unraid_guid_test PRIVATE
+    Catch2::Catch2WithMain
+    Qt6::Core
+    Qt6::Network
+)
+
+target_include_directories(unraid_guid_test PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+    ${CMAKE_CURRENT_BINARY_DIR}/..
+)
+
+target_compile_features(unraid_guid_test PRIVATE cxx_std_20)
+
+catch_discover_tests(unraid_guid_test)
+
+add_custom_target(test_unraid_guid
+    COMMAND unraid_guid_test
+    DEPENDS unraid_guid_test
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    COMMENT "Running Unraid flash GUID derivation tests"
+)
+
+# UNRAID: BlockBatcher coalesces libarchive data blocks into larger writes during
+# multi-file extraction. Header-only and free of Qt/libarchive, so it tests without
+# a download, a ring buffer or a device attached.
+add_executable(block_batcher_test
+    ${CMAKE_CURRENT_SOURCE_DIR}/../block_batcher.h
+    block_batcher_test.cpp
+)
+
+target_link_libraries(block_batcher_test PRIVATE
+    Catch2::Catch2WithMain
+)
+
+target_include_directories(block_batcher_test PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+)
+
+target_compile_features(block_batcher_test PRIVATE cxx_std_20)
+target_compile_options(block_batcher_test PRIVATE
+    -Wall -Wextra -Wpedantic
+    $<$<CONFIG:Debug>:-g -O0>
+)
+
+catch_discover_tests(block_batcher_test)
+
+add_custom_target(test_block_batcher
+    COMMAND block_batcher_test
+    DEPENDS block_batcher_test
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    COMMENT "Running block batcher tests"
+)
+
+# UNRAID: libarchive reports some real device-write failures as warning-class
+# results. Boot media must treat all negative write statuses as terminal.
+add_executable(archive_write_result_test
+    ${CMAKE_CURRENT_SOURCE_DIR}/../unraid/archive_write_result.h
+    archive_write_result_test.cpp
+)
+
+target_link_libraries(archive_write_result_test PRIVATE
+    Catch2::Catch2WithMain
+)
+
+target_include_directories(archive_write_result_test PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+)
+
+target_compile_features(archive_write_result_test PRIVATE cxx_std_20)
+target_compile_options(archive_write_result_test PRIVATE
+    -Wall -Wextra -Wpedantic
+    $<$<CONFIG:Debug>:-g -O0>
+)
+
+catch_discover_tests(archive_write_result_test)

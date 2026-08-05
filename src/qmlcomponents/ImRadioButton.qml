@@ -1,32 +1,113 @@
 /*
  * SPDX-License-Identifier: Apache-2.0
- * Copyright (C) 2022 Raspberry Pi Ltd
+ * Copyright (C) 2022-2025 Raspberry Pi Ltd
  */
 
-import QtQuick 2.9
-import QtQuick.Controls 2.2
-import QtQuick.Controls.Material 2.2
+pragma ComponentBehavior: Bound
+
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Controls.Material
+import RpiImager
 
 RadioButton {
+    id: control
+    Material.accent: Style.formControlActiveColor
+    font.pointSize: Style.fontSizeSm
+    font.family: Style.fontFamily
     activeFocusOnTab: true
+    focusPolicy: Qt.TabFocus
+    
+    // Allow custom accessibility description
+    property string accessibleDescription: ""
+    
+    // Export the natural/desired width for dialog sizing calculations
+    readonly property real naturalWidth: textMetrics.width + (indicator ? indicator.width : 20) + spacing + leftPadding + rightPadding
+    
+    // Measure text for naturalWidth (control.font is inherited from RadioButton)
+    TextMetrics {
+        id: textMetrics
+        font: control.font
+        text: control.text
+    }
+    
+    // Custom contentItem with text wrapping for long translations
+    contentItem: Text {
+        text: control.text
+        font: control.font
+        color: control.enabled ? Style.formLabelColor : Style.formLabelDisabledColor
+        verticalAlignment: Text.AlignVCenter
+        leftPadding: control.indicator ? (control.indicator.width + control.spacing) : 0
+        wrapMode: Text.WordWrap
+        width: control.availableWidth  // Constrain width so text wraps
+    }
+    
+    // Custom square indicator for embedded mode to avoid circular rendering artifacts
+    Component.onCompleted: {
+        if (ImageWriterSingleton && ImageWriterSingleton.isEmbeddedMode()) {
+            control.indicator = squareIndicatorComponent.createObject(control)
+        }
+    }
+    
+    Component {
+        id: squareIndicatorComponent
+        Rectangle {
+            implicitWidth: 20
+            implicitHeight: 20
+            x: control.leftPadding
+            y: control.height / 2 - height / 2
+            radius: 0  // Square instead of circle
+            border.color: control.checked ? Style.formControlActiveColor : "#bdbebf"
+            border.width: 2
+            color: Style.mainBackgroundColor
+            
+            Rectangle {
+                width: 10
+                height: 10
+                x: 5
+                y: 5
+                radius: 0  // Square dot instead of circle
+                color: Style.formControlActiveColor
+                visible: control.checked
+            }
+        }
+    }
+    
+    // Accessibility properties - combine text with description in name
+    Accessible.role: Accessible.RadioButton
+    Accessible.name: CommonStrings.controlAccessibleName(text, accessibleDescription, enabled)
+    Accessible.description: ""
+    Accessible.checkable: true
+    Accessible.checked: checked
+    Accessible.onPressAction: click()
     
     // Add visual focus indicator
     Rectangle {
         anchors.fill: parent
-        anchors.margins: -4
-        color: "transparent"
-        border.color: parent.activeFocus ? "#0078d4" : "transparent"
-        border.width: 2
-        radius: 4
+        anchors.margins: Style.focusOutlineMargin
+        color: Style.transparent
+        border.color: control.activeFocus ? Style.focusOutlineColor : Style.transparent
+        border.width: Style.focusOutlineWidth
+        radius: Style.cornerRadius(Style.focusOutlineRadius)
         z: -1
     }
     
     Keys.onPressed: (event) => {
         if (event.key === Qt.Key_Space) {
-            toggle()
+            if (!checked)            // prevent unchecking the current one
+                click()              // goes through the normal “mouse click” path
             event.accepted = true
         }
     }
-    Keys.onEnterPressed: toggle()
-    Keys.onReturnPressed: toggle()
+    Keys.onEnterPressed: (event) => {
+        if (!checked)
+            click()
+        event.accepted = true
+    }
+
+    Keys.onReturnPressed: (event) => {
+        if (!checked)
+          click()
+        event.accepted = true
+    }
 }

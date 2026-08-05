@@ -1,0 +1,333 @@
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ * Copyright (C) 2025 Raspberry Pi Ltd
+ */
+
+pragma ComponentBehavior: Bound
+
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+import QtQuick.Window
+import "../../qmlcomponents"
+
+import RpiImager
+
+BaseDialog {
+    id: popup
+    
+    // Dynamic width based on widest radio button or button row
+    // Updates automatically when language/text changes
+    implicitWidth: Math.max(
+        Math.max(radioOfficial.naturalWidth, radioCustomFile.naturalWidth, radioCustomUri.naturalWidth),
+        cancelButton.implicitWidth + saveButton.implicitWidth + Style.spacingMedium * 2
+    ) + Style.cardPadding * 4  // Double padding: contentLayout + optionsLayout margins
+
+    property var wizardContainer: null
+
+    property bool initialized: false
+    property url selectedRepo: ""
+    property string customRepoUri: ""
+    property string originalRepo: ""
+
+    Component.onCompleted: {
+        registerFocusGroup("header", function(){
+            // Only include header text when screen reader is active (otherwise it's not focusable)
+            if (ImageWriterSingleton && ImageWriterSingleton.screenReaderActive) {
+                return [headerText]
+            }
+            return []
+        }, 0)
+        registerFocusGroup("sourceTypes", function(){
+            return [radioOfficial, radioCustomFile, radioCustomUri]
+        }, 1)
+        registerFocusGroup("customFile", function(){
+            return radioCustomFile.checked ? [fieldCustomRepository, browseButton] : []
+        }, 2)
+        registerFocusGroup("customUri", function(){
+            return radioCustomUri.checked ? [fieldCustomUri] : []
+        }, 3)
+        registerFocusGroup("buttons", function(){
+            return [cancelButton, saveButton]
+        }, 4)
+    }
+
+    Connections {
+        target: ImageWriterSingleton
+        function onFileSelected(fileUrl) {
+            popup.selectedRepo = fileUrl
+        }
+    }
+
+    // Header
+    FocusableHeading {
+        id: headerText
+        text: qsTr("Content Repository")
+        font.pointSize: Style.fontSizeLargeHeading
+        font.family: Style.fontFamilyBold
+        font.bold: true
+        color: Style.formLabelColor
+        Layout.fillWidth: true
+        horizontalAlignment: Text.AlignHCenter
+        Accessible.name: text + ", " + qsTr("Choose the source for operating system images")
+        Accessible.ignored: false
+    }
+
+    // Options section
+    Item {
+        Layout.fillWidth: true
+        Layout.preferredHeight: optionsLayout.implicitHeight + Style.cardPadding
+
+        ColumnLayout {
+            id: optionsLayout
+            anchors.fill: parent
+            anchors.margins: Style.cardPadding
+            spacing: Style.spacingMedium
+
+            WizardFormLabel {
+                text: qsTr("Repository source:")
+            }
+
+            ButtonGroup { id: repoGroup }
+
+            ImRadioButton {
+                id: radioOfficial
+                text: qsTr("%1 (default)").arg(ImageWriterSingleton.appName()) // UNRAID
+                accessibleDescription: qsTr("Use the official operating system repository") // UNRAID
+                checked: true
+                ButtonGroup.group: repoGroup
+                Layout.fillWidth: true  // Enable text wrapping for long translations
+            }
+
+            ImRadioButton {
+                id: radioCustomFile
+                text: qsTr("Use custom file")
+                accessibleDescription: qsTr("Load operating system list from a JSON file on your computer")
+                checked: false
+                ButtonGroup.group: repoGroup
+                Layout.fillWidth: true  // Enable text wrapping for long translations
+                onCheckedChanged: {
+                    if (checked) {
+                        Qt.callLater(function() {
+                            fieldCustomRepository.forceActiveFocus()
+                        })
+                    }
+                }
+            }
+
+            ImRadioButton {
+                id: radioCustomUri
+                text: qsTr("Use custom URL")
+                accessibleDescription: qsTr("Download operating system list from a custom web address")
+                checked: false
+                ButtonGroup.group: repoGroup
+                Layout.fillWidth: true  // Enable text wrapping for long translations
+                onCheckedChanged: {
+                    if (checked) {
+                        Qt.callLater(function() {
+                            fieldCustomUri.forceActiveFocus()
+                        })
+                    }
+                }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: Style.spacingMedium
+                visible: radioCustomFile.checked
+
+                ImTextField {
+                    id: fieldCustomRepository
+                    text: popup.selectedRepo !== "" ? UrlFmt.display(popup.selectedRepo) : ""
+                    Layout.fillWidth: true
+                    placeholderText: qsTr("Please select a custom repository json file")
+                    font.pointSize: Style.fontSizeInput
+                    readOnly: true
+                    activeFocusOnTab: true
+                }
+
+                ImButton {
+                    id: browseButton
+                    text: CommonStrings.browse
+                    accessibleDescription: qsTr("Select a custom repository JSON file from your computer")
+                    Layout.minimumWidth: 80
+                    activeFocusOnTab: true
+                    onClicked: {
+                        // Prefer native file dialog via Imager's wrapper, but only if available
+                        if (ImageWriterSingleton.nativeFileDialogAvailable()) {
+                            // Defer opening the native dialog until after the current event completes
+                            Qt.callLater(function () {
+                                ImageWriterSingleton.openFileDialog(qsTr("Select Repository"), CommonStrings.repoFiltersString);
+                            });
+                        } else {
+                            // Fallback to QML dialog (forced non-native)
+                            repoFileDialog.open();
+                        }
+                    }
+                }
+            }
+
+            ImTextField {
+                id: fieldCustomUri
+                visible: radioCustomUri.checked
+                Layout.fillWidth: true
+                text: popup.customRepoUri
+                placeholderText: "https://example.com/repo.json"
+                font.pointSize: Style.fontSizeInput
+                activeFocusOnTab: true
+                inputMethodHints: Qt.ImhUrlCharactersOnly
+
+                // Use ImageWriter's validation method for consistency
+                property bool isValid: ImageWriterSingleton && ImageWriterSingleton.isValidRepoUrl(text)
+            }
+        }
+    }
+
+    // Spacer
+    Item {
+        Layout.fillHeight: true
+    }
+
+    // Buttons section with background
+    Rectangle {
+        Layout.fillWidth: true
+        // Ensure minimum width accommodates buttons
+        Layout.minimumWidth: cancelButton.implicitWidth + saveButton.implicitWidth + Style.spacingMedium * 2 + Style.cardPadding
+        Layout.preferredHeight: buttonRow.implicitHeight + Style.cardPadding
+        color: Style.titleBackgroundColor
+
+        RowLayout {
+            id: buttonRow
+            anchors.fill: parent
+            anchors.margins: Style.cardPadding / 2
+            spacing: Style.spacingMedium
+
+            Item {
+                Layout.fillWidth: true
+            }
+
+            ImButton {
+                id: cancelButton
+                text: CommonStrings.cancel
+                accessibleDescription: qsTr("Close the repository dialog without changing the content source")
+                Layout.minimumWidth: Style.buttonWidthMinimum
+                activeFocusOnTab: true
+                onClicked: {
+                    popup.initialized = false
+                    popup.close();
+                }
+            }
+
+            ImButtonRed {
+                id: saveButton
+                enabled: (radioOfficial.checked
+                         || (radioCustomFile.checked && popup.selectedRepo.toString() !== "")
+                         || (radioCustomUri.checked && fieldCustomUri.isValid))
+                         // Disable while write is in progress to prevent restarting during write
+                         && (ImageWriterSingleton.writeState === ImageWriterSingleton.Idle ||
+                             ImageWriterSingleton.writeState === ImageWriterSingleton.Succeeded ||
+                             ImageWriterSingleton.writeState === ImageWriterSingleton.Failed ||
+                             ImageWriterSingleton.writeState === ImageWriterSingleton.Cancelled)
+                // TODO: only show or enable when settings changed
+                text: qsTr("Apply & Restart")
+                accessibleDescription: qsTr("Apply the new content repository and restart the wizard from the beginning")
+                Layout.minimumWidth: Style.buttonWidthMinimum
+                // Allow button to grow to fit text
+                implicitWidth: Math.max(Style.buttonWidthMinimum, implicitContentWidth + leftPadding + rightPadding)
+                activeFocusOnTab: true
+                onClicked: {
+                    popup.applySettings();
+                    popup.close();
+                }
+                onEnabledChanged: {
+                    // Rebuild focus order when button becomes enabled/disabled
+                    Qt.callLater(popup.rebuildFocusOrder)
+                }
+            }
+        }
+    }
+
+    Connections {
+        target: repoGroup
+        function onCheckedButtonChanged() {
+            popup.rebuildFocusOrder()
+        }
+    }
+
+    function initialize() {
+        if (!initialized) {
+            initialized = true
+
+            if (ImageWriterSingleton.customRepo()) {
+                // Get URL as string to check the scheme
+                var repoStr = ImageWriterSingleton.osListUrl().toString()
+                if (repoStr.startsWith("file:")) {
+                    radioOfficial.checked = false
+                    radioCustomFile.checked = true
+                    radioCustomUri.checked = false
+                    selectedRepo = ImageWriterSingleton.osListUrl()
+                    originalRepo = repoStr
+                } else if (repoStr.startsWith("http:") || repoStr.startsWith("https:")) {
+                    radioOfficial.checked = false
+                    radioCustomFile.checked = false
+                    radioCustomUri.checked = true
+                    customRepoUri = repoStr
+                    originalRepo = repoStr
+                } else {
+                    radioOfficial.checked = true
+                    radioCustomFile.checked = false
+                    radioCustomUri.checked = false
+                    originalRepo = ""
+                }
+            } else {
+                radioOfficial.checked = true
+                radioCustomFile.checked = false
+                radioCustomUri.checked = false
+                selectedRepo = ""
+                customRepoUri = ""
+                originalRepo = ""
+            }
+
+            // Ensure focus order is built after initial state
+            popup.rebuildFocusOrder()
+        }
+    }
+
+    function applySettings() {
+        // Save settings to ImageWriter
+        // Only save repository setting if it has actually changed
+        if (radioOfficial.checked && originalRepo !== "") {
+            ImageWriterSingleton.refreshOsListFromDefaultUrl()
+            // reset wizard to device selection because the repository changed
+            wizardContainer.resetWizard()
+        } else if (radioCustomFile.checked && originalRepo !== selectedRepo.toString()) {
+            ImageWriterSingleton.refreshOsListFrom(selectedRepo)
+            // reset wizard to device selection because the repository changed
+            wizardContainer.resetWizard()
+        } else if (radioCustomUri.checked && originalRepo !== fieldCustomUri.text) {
+            // QML auto-converts string to QUrl for C++ method
+            ImageWriterSingleton.refreshOsListFrom(fieldCustomUri.text)
+            // reset wizard to device selection because the repository changed
+            wizardContainer.resetWizard()
+        }
+        initialized = false
+    }
+
+    onOpened: {
+        initialize()
+    }
+
+    property alias repoFileDialog: repoFileDialog
+
+    ImFileDialog {
+        id: repoFileDialog
+        dialogTitle: qsTr("Select custom repository")
+        nameFilters: CommonStrings.repoFiltersList
+        onAccepted: {
+            popup.selectedRepo = selectedFile;
+        }
+        onRejected:
+        // No-op; user cancelled
+        {}
+    }
+}

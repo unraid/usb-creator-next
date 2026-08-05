@@ -1,0 +1,45 @@
+# Matches the style already present in upstream raspberrypi/rpi-imager sources.
+#
+# The point of this file is DEFENSIVE: it exists so that an editor or agent with
+# "format on save" enabled cannot silently reflow upstream code. Reformatting
+# upstream files is what made the previous fork (v1.9.6) impossible to rebase —
+# see PORTING.md.
+#
+# ColumnLimit is deliberately 0: never re-wrap existing lines.
+
+Language: Cpp
+BasedOnStyle: LLVM
+
+ColumnLimit: 0
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+AccessModifierOffset: -4
+PointerAlignment: Right
+ReferenceAlignment: Right
+
+# Upstream puts braces on the next line for functions/classes/namespaces,
+# but on the same line for control-flow blocks.
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterClass: true
+  AfterStruct: true
+  AfterUnion: true
+  AfterEnum: false
+  AfterFunction: true
+  AfterNamespace: true
+  AfterControlStatement: Never
+  AfterCaseLabel: false
+  BeforeElse: false
+  BeforeCatch: false
+  BeforeWhile: false
+  SplitEmptyFunction: false
+  SplitEmptyRecord: false
+
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+IndentCaseLabels: false
+NamespaceIndentation: All
+SortIncludes: Never
+KeepEmptyLinesAtTheStartOfBlocks: false

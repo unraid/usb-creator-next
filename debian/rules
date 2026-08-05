@@ -1,6 +1,4 @@
 #!/usr/bin/make -f
-# See debhelper(7) (uncomment to enable)
-# output every command that modifies files on the build system.
 export DH_VERBOSE = 1
 
 # Get the list of packages that should be built based on build profiles
@@ -9,6 +7,16 @@ PACKAGES := $(shell dh_listpackages)
 %:
 	dh $@
 
-.PHONY: override_dh_strip 
-override_dh_strip: 
-	dh_strip --exclude=AppImage --exclude=unraid-usb-creator
+.PHONY: override_dh_strip
+override_dh_strip:
+	dh_strip --exclude=rpi-imager
+
+# For the embedded package, install the vendored directory tree produced by
+# create-embedded.sh into the package staging area.
+override_dh_auto_install:
+	dh_auto_install
+ifneq (,$(filter rpi-imager-embedded,$(PACKAGES)))
+	mkdir -p debian/rpi-imager-embedded
+	cp -a debroot-embedded-*/opt debian/rpi-imager-embedded/
+	cp -a debroot-embedded-*/usr debian/rpi-imager-embedded/
+endif

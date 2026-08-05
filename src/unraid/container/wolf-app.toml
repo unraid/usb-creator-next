@@ -1,0 +1,67 @@
+# UNRAID: Wolf app entry for the USB Creator.
+#
+# Append to the [[profiles]] block in /mnt/user/appdata/gow/cfg/config.toml on
+# the server, then restart the wolf container. Keep the indentation: Wolf's TOML
+# nests apps under a profile.
+#
+# ---------------------------------------------------------------------------
+# SECURITY NOTE — read before deploying
+#
+# Unlike Firefox or RetroArch, this app writes raw block devices, so it needs
+# access the other Bigscreen apps deliberately do not have. Two consequences:
+#
+#   1. The USB stick must be plugged into the SERVER. Moonlight does not forward
+#      USB storage, so a stick in the TV client is invisible here.
+#   2. The container can write to any block device it is given, including array
+#      disks. The DeviceCgroupRules below grant block-major 8 (sd*) and 259
+#      (nvme*). Narrow this to specific devices if that is too broad for you --
+#      the app's own USB-only filter is a UI convenience, not a security
+#      boundary.
+#
+# If that trade is not acceptable, run the AppImage directly on the host
+# instead; it is the same binary without the container's device exposure.
+#
+# The /dev bind is deliberately plain, not :rslave. Unraid's /dev is not a
+# shared or slave mount, so Docker rejects rslave outright with
+# "path /dev is mounted on /dev but it is not a shared or slave mount".
+# Verified on the server: with the plain bind the container's lsblk output
+# matches the host's exactly. The cost is that devices hot-plugged after the
+# container starts may not appear, so plug the stick in before launching.
+# ---------------------------------------------------------------------------
+
+    [[profiles.apps]]
+    icon_png_path = 'https://raw.githubusercontent.com/unraid/usb-creator-next/main/src/unraid/icons/unraid512.png'
+    render_node = '/dev/dri/renderD128'
+    start_audio_server = false
+    start_virtual_compositor = true
+    title = 'Unraid USB Creator'
+
+        [profiles.apps.runner]
+        base_create_json = '''{
+  "HostConfig": {
+    "IpcMode": "host",
+    "Privileged": false,
+    "CapAdd": ["SYS_ADMIN", "MKNOD", "SYS_RAWIO"],
+    "DeviceCgroupRules": [
+      "c 13:* rmw",
+      "c 244:* rmw",
+      "b 8:* rmw",
+      "b 259:* rmw"
+    ],
+    "Binds": [
+      "/dev:/dev",
+      "/run/udev:/run/udev:ro"
+    ]
+  }
+}
+'''
+        devices = []
+        env = [
+          'RUN_SWAY=1',
+          'GOW_REQUIRED_DEVICES=/dev/input/* /dev/dri/* /dev/nvidia*',
+        ]
+        image = 'ghcr.io/unraid/usb-creator-bigscreen:latest'
+        mounts = []
+        name = 'WolfUnraidUsbCreator'
+        ports = []
+        type = 'docker'

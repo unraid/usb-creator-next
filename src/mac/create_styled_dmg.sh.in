@@ -6,11 +6,17 @@
 set -e
 
 # Configuration  
-APP_NAME="Raspberry Pi Imager"
-PROJECT_NAME="@CMAKE_PROJECT_NAME@"
-SOURCE_APP_PATH="@CMAKE_BINARY_DIR@/${PROJECT_NAME}.app"
-DMG_APP_PATH="@CMAKE_BINARY_DIR@/${APP_NAME}.app"
-FINAL_DMG_PATH="@CMAKE_BINARY_DIR@/${PROJECT_NAME}-@IMAGER_VERSION_STR@.dmg"
+# UNRAID: was hardcoded to "Raspberry Pi Imager", and derived the source bundle
+# from the CMake target name. Upstream builds rpi-imager.app and renames it into
+# the DMG; we name the bundle after the product up front, so source and
+# destination are the same and no rename is needed.
+APP_NAME="@IMAGER_APP_NAME@"
+SOURCE_APP_PATH="@CMAKE_BINARY_DIR@/${APP_NAME}.app"
+# Staged copy: macdeployqt and codesign mutate this, and it is deleted at the
+# end, so it must NOT alias SOURCE_APP_PATH or the build output is destroyed.
+DMG_STAGING_DIR="@CMAKE_BINARY_DIR@/dmg-staging"
+DMG_APP_PATH="${DMG_STAGING_DIR}/${APP_NAME}.app"
+FINAL_DMG_PATH="@CMAKE_BINARY_DIR@/${APP_NAME}-@IMAGER_VERSION_STR@.dmg"
 DMG_BACKGROUND_PATH="@CMAKE_BINARY_DIR@/dmg_background.png"
 SIGNING_IDENTITY="@IMAGER_SIGNING_IDENTITY@"
 SHOULD_NOTARIZE="@IMAGER_NOTARIZE_APP@"
@@ -44,7 +50,8 @@ fi
 
 # Copy app bundle with display name for DMG
 echo "Copying app bundle with display name..."
-rm -rf "$DMG_APP_PATH"
+rm -rf "$DMG_STAGING_DIR"
+mkdir -p "$DMG_STAGING_DIR"
 cp -R "$SOURCE_APP_PATH" "$DMG_APP_PATH"
 
 # Deploy Qt dependencies to the copied app bundle
@@ -74,6 +81,50 @@ fi
 
 echo "Using macdeployqt: $MACDEPLOYQT_PATH"
 "$MACDEPLOYQT_PATH" "$DMG_APP_PATH" -qmldir="@CMAKE_CURRENT_SOURCE_DIR@" -always-overwrite
+
+# Validate and clean up problematic symlinks under QML tree (targets that don't exist or escape the bundle)
+echo "Validating symlinks under QML directory..."
+QML_DIR="$DMG_APP_PATH/Contents/Resources/qml"
+if [ -d "$QML_DIR" ]; then
+    find "$QML_DIR" -type l -print0 | while IFS= read -r -d '' LINK; do
+        RESOLVED=$(python3 - "$LINK" <<'PY'
+import os, sys
+link=sys.argv[1]
+try:
+    target=os.readlink(link)
+except OSError:
+    print('')
+    sys.exit(0)
+if not target:
+    print('')
+    sys.exit(0)
+if os.path.isabs(target):
+    p=os.path.normpath(target)
+else:
+    p=os.path.normpath(os.path.join(os.path.dirname(link), target))
+print(p)
+PY
+)
+        # Skip if unable to resolve
+        if [ -z "$RESOLVED" ]; then
+            continue
+        fi
+        case "$RESOLVED" in
+            "$DMG_APP_PATH"/*)
+                # Inside app bundle; remove only if broken
+                if [ ! -e "$RESOLVED" ]; then
+                    echo "Removing broken symlink: $LINK -> (missing) $RESOLVED"
+                    rm -f "$LINK"
+                fi
+                ;;
+            *)
+                # Points outside the app bundle — remove
+                echo "Removing external symlink: $LINK -> $RESOLVED"
+                rm -f "$LINK"
+                ;;
+        esac
+    done
+fi
 
 # Sign the deployed app bundle if signing identity is provided
 if [ -n "$SIGNING_IDENTITY" ] && [ "$SIGNING_IDENTITY" != "NONE" ] && [ "$SIGNING_IDENTITY" != "" ]; then
@@ -117,24 +168,60 @@ fi
 rm -f "$FINAL_DMG_PATH"
 rm -f "$DMG_BACKGROUND_PATH"
 
-# Generate background image fresh each time
-echo "Generating DMG background image..."
-"@CMAKE_CURRENT_SOURCE_DIR@/mac/generate_dmg_background.sh" "$DMG_BACKGROUND_PATH" "@IMAGER_VERSION_STR@" || {
-    echo "Warning: Failed to generate background image, proceeding without custom background"
-}
+# UNRAID: a brand may supply a ready-made background; otherwise fall back to
+# upstream's generator, which draws one from the version string.
+BRAND_BACKGROUND="@IMAGER_DMG_BACKGROUND@"
+if [ -n "$BRAND_BACKGROUND" ] && [ -f "$BRAND_BACKGROUND" ]; then
+    echo "Using brand DMG background: $BRAND_BACKGROUND"
+    cp "$BRAND_BACKGROUND" "$DMG_BACKGROUND_PATH"
+else
+    echo "Generating DMG background image..."
+    "@CMAKE_CURRENT_SOURCE_DIR@/mac/generate_dmg_background.sh" "$DMG_BACKGROUND_PATH" "@IMAGER_VERSION_STR@" || {
+        echo "Warning: Failed to generate background image, proceeding without custom background"
+    }
+fi
 
 # Create DMG using create-dmg
 echo "Creating DMG with create-dmg..."
 
+# UNRAID: the window must match the background image, or the artwork is scaled
+# and the icons no longer land on the drop targets drawn in it. Ours is 800x400
+# while this was hardcoded to 600x400, which left the two white wells visibly
+# empty with the icons sitting up and to the left of them.
+#
+# Derive the window from the image rather than hardcoding a second copy of its
+# dimensions, so a future background of a different size cannot silently
+# reintroduce the same mismatch. Icons are then centred on the wells, which sit
+# at 1/4 and 3/4 of the width.
+WINDOW_W=600
+WINDOW_H=400
+if [ -f "$DMG_BACKGROUND_PATH" ]; then
+    BG_W=$(sips -g pixelWidth "$DMG_BACKGROUND_PATH" 2>/dev/null | awk '/pixelWidth/{print $2}')
+    BG_H=$(sips -g pixelHeight "$DMG_BACKGROUND_PATH" 2>/dev/null | awk '/pixelHeight/{print $2}')
+    if [ -n "$BG_W" ] && [ -n "$BG_H" ]; then
+        WINDOW_W=$BG_W
+        WINDOW_H=$BG_H
+    fi
+fi
+
+# Wells are centred horizontally at a quarter and three quarters of the width.
+# Vertically the icon sits slightly above centre so its filename label stays
+# inside the well rather than spilling onto the dark background below it.
+ICON_X=$(( WINDOW_W / 4 ))
+DROP_X=$(( WINDOW_W * 3 / 4 ))
+ICON_Y=$(( WINDOW_H / 2 ))
+
+echo "DMG window ${WINDOW_W}x${WINDOW_H}; icons at ${ICON_X},${ICON_Y} and ${DROP_X},${ICON_Y}"
+
 # Build create-dmg command
 CREATE_DMG_CMD=(
     create-dmg
-    --volname "Raspberry Pi Imager"
+    --volname "@IMAGER_APP_NAME@ @IMAGER_VERSION_STR@"
     --window-pos 200 120
-    --window-size 600 400
+    --window-size "$WINDOW_W" "$WINDOW_H"
     --icon-size 128
-    --icon "${APP_NAME}.app" 150 200
-    --app-drop-link 450 200
+    --icon "${APP_NAME}.app" "$ICON_X" "$ICON_Y"
+    --app-drop-link "$DROP_X" "$ICON_Y"
 )
 
 # Add background image if it exists
@@ -145,19 +232,10 @@ else
     echo "No custom background image found, using default"
 fi
 
-# Note: We don't add --codesign to create-dmg since we've already signed the app bundle
-# create-dmg will sign the DMG itself, but the app bundle is already properly signed
-
-# Add notarization if requested
-if [ "$SHOULD_NOTARIZE" = "ON" ] && [ -n "$KEYCHAIN_PROFILE" ] && [ "$KEYCHAIN_PROFILE" != "" ]; then
-    echo "Adding notarization to create-dmg command..."
-    CREATE_DMG_CMD+=(--notarize "$KEYCHAIN_PROFILE")
-fi
-
 # Add output path and source
 CREATE_DMG_CMD+=("$FINAL_DMG_PATH" "$DMG_APP_PATH")
 
-# Execute create-dmg (this will create, sign, and notarize in one step)
+# Execute create-dmg (this will create the DMG)
 echo "Running create-dmg with command:"
 echo "${CREATE_DMG_CMD[*]}"
 "${CREATE_DMG_CMD[@]}" || {
@@ -173,8 +251,55 @@ fi
 
 echo "✓ DMG created successfully: $FINAL_DMG_PATH"
 
-# Clean up temporary app bundle copy
-echo "Cleaning up temporary app bundle..."
-rm -rf "$DMG_APP_PATH"
+# Notarize and staple if requested
+if [ "$SHOULD_NOTARIZE" = "ON" ] && [ -n "$KEYCHAIN_PROFILE" ] && [ "$KEYCHAIN_PROFILE" != "" ]; then
+    echo "Submitting DMG for notarization using keychain profile '$KEYCHAIN_PROFILE'..."
+    if ! xcrun notarytool --version >/dev/null 2>&1; then
+        echo "Error: xcrun notarytool not available. Install Xcode command line tools and configure credentials."
+        exit 1
+    fi
 
-exit 0 
+    echo "Submitting and waiting for notarization to complete..."
+    xcrun notarytool submit "$FINAL_DMG_PATH" --keychain-profile "$KEYCHAIN_PROFILE" --wait || {
+        echo "Error: Notarization failed"
+        exit 1
+    }
+
+    echo "Stapling notarization ticket to DMG..."
+    xcrun stapler staple "$FINAL_DMG_PATH" || {
+        echo "Error: Stapling failed"
+        exit 1
+    }
+
+    echo "Validating stapled DMG..."
+    xcrun stapler validate "$FINAL_DMG_PATH" || echo "Warning: stapler validate reported issues"
+    echo "✓ DMG notarized and stapled"
+
+    echo "Assessing app inside DMG with Gatekeeper (spctl)..."
+    MOUNT_DIR=$(mktemp -d)
+    if hdiutil attach "$FINAL_DMG_PATH" -nobrowse -readonly -noverify -mountpoint "$MOUNT_DIR" >/dev/null; then
+        APP_IN_DMG="$MOUNT_DIR/${APP_NAME}.app"
+        if [ ! -d "$APP_IN_DMG" ]; then
+            echo "Error: Mounted DMG does not contain expected app at $APP_IN_DMG"
+            hdiutil detach "$MOUNT_DIR" >/dev/null || true
+            rmdir "$MOUNT_DIR" >/dev/null 2>&1 || true
+            exit 1
+        fi
+        if ! spctl -a -vvv --type execute "$APP_IN_DMG"; then
+            echo "Error: Gatekeeper assessment failed for app inside DMG"
+            hdiutil detach "$MOUNT_DIR" >/dev/null || true
+            rmdir "$MOUNT_DIR" >/dev/null 2>&1 || true
+            exit 1
+        fi
+        hdiutil detach "$MOUNT_DIR" >/dev/null || true
+        rmdir "$MOUNT_DIR" >/dev/null 2>&1 || true
+    else
+        echo "Warning: Could not mount DMG for Gatekeeper assessment"
+    fi
+ fi
+ 
+ # Clean up temporary app bundle copy
+ echo "Cleaning up temporary app bundle..."
+ rm -rf "$DMG_STAGING_DIR"
+ 
+ exit 0 

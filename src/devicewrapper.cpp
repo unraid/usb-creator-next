@@ -9,8 +9,8 @@
 #include "devicewrapperfatpartition.h"
 #include <QDebug>
 
-DeviceWrapper::DeviceWrapper(DeviceWrapperFile *file, QObject *parent)
-    : QObject(parent), _dirty(false), _file(file)
+DeviceWrapper::DeviceWrapper(rpi_imager::FileOperations *file_ops, QObject *parent)
+    : QObject(parent), _dirty(false), _file_ops(file_ops)
 {
 
 }
@@ -22,8 +22,8 @@ DeviceWrapper::~DeviceWrapper()
 
 void DeviceWrapper::_seekToBlock(quint64 blockNr)
 {
-    if (!_file->seek(blockNr*4096))
-    {
+    auto result = _file_ops->Seek(blockNr * 4096);
+    if (result != rpi_imager::FileError::kSuccess) {
         throw std::runtime_error("Error seeking device");
     }
 }
@@ -45,10 +45,9 @@ void DeviceWrapper::sync()
             continue;
 
         _seekToBlock(blockNr);
-        if (_file->write(block->block, 4096) != 4096)
-        {
-            std::string errmsg = "Error writing to device: "+_file->errorString().toStdString();
-            throw std::runtime_error(errmsg);
+        auto result = _file_ops->WriteSequential(reinterpret_cast<const std::uint8_t*>(block->block), 4096);
+        if (result != rpi_imager::FileError::kSuccess) {
+            throw std::runtime_error("Error writing to device");
         }
         block->dirty = false;
     }
@@ -61,10 +60,9 @@ void DeviceWrapper::sync()
         if (block->dirty)
         {
             _seekToBlock(0);
-            if (_file->write(block->block, 4096) != 4096)
-            {
-                std::string errmsg = "Error writing MBR to device: "+_file->errorString().toStdString();
-                throw std::runtime_error(errmsg);
+            auto result = _file_ops->WriteSequential(reinterpret_cast<const std::uint8_t*>(block->block), 4096);
+            if (result != rpi_imager::FileError::kSuccess) {
+                throw std::runtime_error("Error writing MBR to device");
             }
             block->dirty = false;
         }
@@ -88,11 +86,10 @@ void DeviceWrapper::_readIntoBlockCacheIfNeeded(quint64 offset, quint64 size)
             _seekToBlock(i);
 
             auto cacheEntry = new DeviceWrapperBlockCacheEntry(this);
-            int bytesRead = _file->read(cacheEntry->block, 4096);
-            if (bytesRead != 4096)
-            {
-                std::string errmsg = "Error reading from device: "+_file->errorString().toStdString();
-                throw std::runtime_error(errmsg);
+            std::size_t bytes_read = 0;
+            auto result = _file_ops->ReadSequential(reinterpret_cast<std::uint8_t*>(cacheEntry->block), 4096, bytes_read);
+            if (result != rpi_imager::FileError::kSuccess || bytes_read != 4096) {
+                throw std::runtime_error("Error reading from device");
             }
             _blockcache.insert(i, cacheEntry);
         }
@@ -172,9 +169,25 @@ DeviceWrapperFatPartition *DeviceWrapper::fatPartition(int nr)
         if (nr > gpt.NumberOfPartitionEntries)
             throw std::runtime_error("Partition does not exist");
 
-        pread((char *) &gptpart, sizeof(gptpart), gpt.PartitionEntryLBA*512 + gpt.SizeOfPartitionEntry*(nr-1));
+        /* Overflow-safe offset calculation for GPT partition entry */
+        quint64 entryLBA = gpt.PartitionEntryLBA;
+        quint64 entrySize = gpt.SizeOfPartitionEntry;
+        quint64 entryIndex = static_cast<quint64>(nr - 1);
+        if (entryLBA > UINT64_MAX / 512)
+            throw std::runtime_error("GPT partition entry LBA overflow");
+        quint64 baseOffset = entryLBA * 512;
+        if (entrySize && entryIndex > (UINT64_MAX - baseOffset) / entrySize)
+            throw std::runtime_error("GPT partition entry offset overflow");
+        pread((char *) &gptpart, sizeof(gptpart), baseOffset + entrySize * entryIndex);
 
-        return new DeviceWrapperFatPartition(this, gptpart.StartingLBA*512, (gptpart.EndingLBA-gptpart.StartingLBA+1)*512, this);
+        /* Overflow-safe size calculation for GPT partition */
+        if (gptpart.EndingLBA < gptpart.StartingLBA)
+            throw std::runtime_error("GPT partition ending LBA before starting LBA");
+        quint64 sectorCount = gptpart.EndingLBA - gptpart.StartingLBA + 1;
+        if (gptpart.StartingLBA > UINT64_MAX / 512 || sectorCount > UINT64_MAX / 512)
+            throw std::runtime_error("GPT partition offset/size overflow");
+
+        return new DeviceWrapperFatPartition(this, gptpart.StartingLBA * 512, sectorCount * 512, this);
     }
 
     /* MBR table handling */
@@ -187,6 +200,10 @@ DeviceWrapperFatPartition *DeviceWrapper::fatPartition(int nr)
     if (!mbr.part[nr-1].starting_sector || !mbr.part[nr-1].nr_of_sectors)
         throw std::runtime_error("Partition does not exist");
 
-    return new DeviceWrapperFatPartition(this, mbr.part[nr-1].starting_sector*512, mbr.part[nr-1].nr_of_sectors*512, this);
+    /* Overflow-safe offset/size for MBR partition (uint32_t * 512) */
+    quint64 mbrStart = static_cast<quint64>(mbr.part[nr-1].starting_sector) * 512;
+    quint64 mbrSize  = static_cast<quint64>(mbr.part[nr-1].nr_of_sectors) * 512;
+
+    return new DeviceWrapperFatPartition(this, mbrStart, mbrSize, this);
 }
 

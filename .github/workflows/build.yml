@@ -1,0 +1,309 @@
+# Continuous integration: build all three platforms and publish unsigned
+# artifacts. Signing and release publication live in release.yml.
+#
+# The heavy lifting is done by upstream's own CMake targets (dmg,
+# inno_installer, create-appimage.sh) rather than reimplemented here, so this
+# file stays small and keeps working across upstream bumps.
+name: Build
+
+on:
+  push:
+    branches: ["main", "v2.0.10-rebase"]
+  pull_request:
+    branches: ["main", "v2.0.10-rebase"]
+  workflow_call:
+    inputs:
+      signed:
+        description: "Produce signed/notarised artifacts (requires secrets)"
+        type: boolean
+        default: false
+
+env:
+  BUILD_TYPE: MinSizeRel
+  # Upstream requires >= 6.9, but 6.9.1's qmlcachegen segfaults compiling
+  # main.qml (verified: the same source builds clean under 6.11.1 locally, and
+  # crashes reproducibly on 6.9.1 in CI). Pinned to a version proven to work
+  # rather than the minimum.
+  QT_VERSION: "6.11.1"
+  # Qt stopped shipping a win64_mingw build after 6.10, so Windows pins to the
+  # newest release that still has one. Using llvm-mingw or MSVC instead would be
+  # a larger change to upstream's Windows toolchain assumptions.
+  QT_VERSION_WINDOWS: "6.10.3"
+
+jobs:
+  macos:
+    name: macOS DMG
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The version string comes from `git describe`, which needs history.
+          fetch-depth: 0
+
+      - name: Install Qt ${{ env.QT_VERSION }}
+        run: |
+          # create-dmg is only used by the styled (signed) DMG path; the unsigned
+          # path uses hdiutil, which is why a local unsigned build never needs it.
+          brew install aqtinstall create-dmg
+          aqt install-qt mac desktop "${QT_VERSION}" clang_64 \
+            --archives qtbase qtdeclarative qtsvg qttools icu \
+            --outputdir "$HOME/Qt"
+
+      - name: Import signing certificate
+        if: inputs.signed
+        env:
+          APPLE_BUILD_CERTIFICATE_BASE64: ${{ secrets.APPLE_BUILD_CERTIFICATE_BASE64 }}
+          APPLE_BUILD_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_BUILD_CERTIFICATE_PASSWORD }}
+          APPLE_KEYCHAIN_PASSWORD: ${{ secrets.APPLE_KEYCHAIN_PASSWORD }}
+        run: |
+          chmod +x scripts/setup-keychain-mac.sh
+          ./scripts/setup-keychain-mac.sh
+
+      - name: Store notarisation credentials
+        if: inputs.signed
+        env:
+          APPLE_EMAIL_ADDRESS: ${{ secrets.APPLE_EMAIL_ADDRESS }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          # The DMG target notarises via a keychain profile rather than raw
+          # credentials, so stash them under a known profile name.
+          xcrun notarytool store-credentials "notarytool-password" \
+            --apple-id "$APPLE_EMAIL_ADDRESS" \
+            --password "$APPLE_APP_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID"
+
+      - name: Configure
+        env:
+          APPLE_SIGNING_KEY_ID: ${{ secrets.APPLE_SIGNING_KEY_ID }}
+        run: |
+          EXTRA=()
+          if [ "${{ inputs.signed }}" = "true" ]; then
+            EXTRA+=(-DIMAGER_SIGNED_APP=ON
+                    "-DIMAGER_SIGNING_IDENTITY=${APPLE_SIGNING_KEY_ID}"
+                    -DIMAGER_NOTARIZE_APP=ON
+                    -DIMAGER_NOTARIZE_KEYCHAIN_PROFILE=notarytool-password)
+          fi
+          cmake -S src -B build \
+            -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" \
+            -DCMAKE_PREFIX_PATH="$HOME/Qt/${QT_VERSION}/macos" \
+            "${EXTRA[@]}"
+
+      - name: Build DMG
+        run: cmake --build build --target dmg -j 3
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-dmg
+          path: build/*.dmg
+          if-no-files-found: error
+
+  windows:
+    name: Windows installer
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # qtdeclarative / qtsvg / qttools are archives of the desktop release, not
+      # add-on modules; passing them as `modules` fails with "packages were not
+      # found while parsing XML". MinGW comes from the same step so the two do
+      # not fight over the install directory.
+      - name: Install Qt ${{ env.QT_VERSION_WINDOWS }}
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION_WINDOWS }}
+          host: windows
+          target: desktop
+          arch: win64_mingw
+          archives: qtbase qtdeclarative qtsvg qttools
+          tools: tools_mingw1310
+          cache: true
+
+      - name: Put MinGW on PATH
+        run: echo "$IQTA_TOOLS/mingw1310_64/bin" >> "$GITHUB_PATH"
+
+      # Code signing via Azure Artifact Signing (renamed from Trusted Signing in
+      # January 2026). Dormant until the six AZURE_SIGNING_* secrets exist: with
+      # none set the build is simply unsigned, exactly as before, and nothing
+      # here fails.
+      #
+      # Why not the old signtool path: upstream signs during the build via
+      # `signtool sign /a`, which picks a certificate out of the Windows store.
+      # Artifact Signing has no importable certificate -- the key lives in
+      # Microsoft's HSM and signing is a service call -- so IMAGER_SIGNED_APP is
+      # deliberately NOT set and signing happens as its own step instead. That
+      # also matches CA/Browser Forum rules since June 2023: new certificates
+      # cannot be issued as a bare PFX at all, so a cloud service is the only
+      # route for a cert issued today.
+      #
+      # ORDER MATTERS. The app binary is signed BEFORE Inno packages it, and the
+      # installer is signed after. Signing only the installer would leave an
+      # unsigned executable inside it, which is what the user actually runs --
+      # SmartScreen and the UAC publisher string both key off that inner binary.
+      #
+      # The emptiness check lives inside the script on purpose: a step's own
+      # env: is not visible to its own if:, and the secrets context cannot be
+      # used in if: at all, so gating this at the YAML level silently never runs.
+      - name: Check signing configuration
+        id: winsign
+        if: inputs.signed
+        env:
+          AZURE_SIGNING_ENDPOINT: ${{ secrets.AZURE_SIGNING_ENDPOINT }}
+          AZURE_SIGNING_ACCOUNT: ${{ secrets.AZURE_SIGNING_ACCOUNT }}
+          AZURE_SIGNING_PROFILE: ${{ secrets.AZURE_SIGNING_PROFILE }}
+          AZURE_SIGNING_CLIENT_ID: ${{ secrets.AZURE_SIGNING_CLIENT_ID }}
+        shell: pwsh
+        run: |
+          $missing = @()
+          foreach ($n in 'AZURE_SIGNING_ENDPOINT','AZURE_SIGNING_ACCOUNT','AZURE_SIGNING_PROFILE','AZURE_SIGNING_CLIENT_ID') {
+              if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($n))) { $missing += $n }
+          }
+          if ($missing.Count -gt 0) {
+              Write-Host "Artifact Signing not configured (missing: $($missing -join ', ')); building unsigned."
+              "signing=false" >> $env:GITHUB_OUTPUT
+          } else {
+              "signing=true" >> $env:GITHUB_OUTPUT
+          }
+
+      - name: Configure
+        run: |
+          cmake -S src -B build -G "MinGW Makefiles" \
+            -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" \
+            -DENABLE_INNO_INSTALLER=ON
+
+      - name: Build
+        run: cmake --build build -j 4
+
+      # Sign the application binary before it is packaged. files-folder is used
+      # rather than a hardcoded filename because the executable is named from
+      # IMAGER_EXE_NAME (see src/cmake/UnraidBranding.cmake) -- hardcoding it
+      # here would silently stop matching the day the brand name changes.
+      # Non-recursive on purpose: the deployed Qt DLLs live in subdirectories
+      # and do not need signing.
+      - name: Sign application binary
+        if: inputs.signed && steps.winsign.outputs.signing == 'true'
+        uses: azure/artifact-signing-action@v0
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_SIGNING_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_SIGNING_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_SIGNING_CLIENT_SECRET }}
+          endpoint: ${{ secrets.AZURE_SIGNING_ENDPOINT }}
+          trusted-signing-account-name: ${{ secrets.AZURE_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ secrets.AZURE_SIGNING_PROFILE }}
+          files-folder: ${{ github.workspace }}\build
+          files-folder-filter: exe
+          files-folder-recurse: false
+
+      # Inno Setup ships on the windows-latest image.
+      - name: Build installer
+        run: cmake --build build --target inno_installer
+
+      - name: Sign installer
+        if: inputs.signed && steps.winsign.outputs.signing == 'true'
+        uses: azure/artifact-signing-action@v0
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_SIGNING_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_SIGNING_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_SIGNING_CLIENT_SECRET }}
+          endpoint: ${{ secrets.AZURE_SIGNING_ENDPOINT }}
+          trusted-signing-account-name: ${{ secrets.AZURE_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ secrets.AZURE_SIGNING_PROFILE }}
+          files-folder: ${{ github.workspace }}\build\installer
+          files-folder-filter: exe
+          files-folder-recurse: false
+
+      # Verify rather than trust the action's exit code: a signature that is
+      # present but untrusted still ships a binary users get warned about.
+      - name: Verify signature
+        if: inputs.signed && steps.winsign.outputs.signing == 'true'
+        shell: pwsh
+        run: |
+          $failed = $false
+          Get-ChildItem "build\installer\*.exe" | ForEach-Object {
+              $sig = Get-AuthenticodeSignature $_.FullName
+              Write-Host "$($_.Name): $($sig.Status) -- $($sig.SignerCertificate.Subject)"
+              if ($sig.Status -ne 'Valid') { $failed = $true }
+          }
+          if ($failed) {
+              Write-Error "Signature verification failed."
+              exit 1
+          }
+
+      - name: Report signing status
+        shell: bash
+        run: |
+          if [ "${{ steps.winsign.outputs.signing }}" = "true" ]; then
+            echo "Installer was signed via Azure Artifact Signing."
+          else
+            echo "::warning::Windows installer is UNSIGNED - users will see 'Unknown publisher' in the UAC prompt and a SmartScreen warning. Set the AZURE_SIGNING_* secrets to enable signing."
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: build/installer/*.exe
+          if-no-files-found: error
+
+  linux:
+    name: Linux AppImage
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential cmake libgnutls28-dev libudev-dev \
+            libgl1-mesa-dev libfontconfig1-dev libfreetype-dev \
+            libx11-dev libx11-xcb-dev libxcb-cursor-dev libxcb-glx0-dev \
+            libxcb-icccm4-dev libxcb-image0-dev libxcb-keysyms1-dev \
+            libxcb-randr0-dev libxcb-render-util0-dev libxcb-shape0-dev \
+            libxcb-shm0-dev libxcb-sync-dev libxcb-util-dev \
+            libxcb-xfixes0-dev libxcb-xkb-dev libxcb1-dev libxext-dev \
+            libxfixes-dev libxi-dev libxkbcommon-dev libxkbcommon-x11-dev \
+            libxrender-dev fuse libfuse2
+
+      - name: Install Qt ${{ env.QT_VERSION }}
+        run: |
+          python3 -m pip install --user "aqtinstall>=3.2.2"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/aqt" install-qt linux desktop "${QT_VERSION}" linux_gcc_64 \
+            --archives qtbase qtdeclarative qtsvg qttools icu \
+            --outputdir "$HOME/Qt"
+
+      - name: Build AppImage
+        run: |
+          chmod +x ./create-appimage.sh
+          ./create-appimage.sh --qt-root="$HOME/Qt/${QT_VERSION}/gcc_64"
+
+      # create-appimage.sh also drops two unversioned symlinks next to the real
+      # output for debian packaging. upload-artifact dereferences symlinks, so a
+      # bare *.AppImage glob attaches the same 40MB file to the release three
+      # times. -type f keeps only the real one, without hardcoding the name.
+      - name: Collect AppImage
+        run: |
+          mkdir -p dist
+          find . -maxdepth 1 -name '*.AppImage' -type f -exec cp {} dist/ \;
+          ls -l dist/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-appimage
+          path: dist/*.AppImage
+          if-no-files-found: error
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-build-log
+          path: build.log
+          if-no-files-found: warn

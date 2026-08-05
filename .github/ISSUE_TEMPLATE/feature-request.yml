@@ -1,5 +1,5 @@
 name: Feature Request
-description: What would you like to see from unraid-usb-creator?
+description: What would you like to see from rpi-imager?
 title: "[FEATURE]: "
 labels: ["enhancement", "triage"]
 projects: []
@@ -22,7 +22,7 @@ body:
     attributes:
       label: Describe the solution you would like to see implemented
       description: A clear and concise description of what you want to happen.
-      placeholder: Ex. unraid-usb-creator should initiate a confetti shower when writing is finished
+      placeholder: Ex. rpi-imager should initiate a confetti shower when writing is finished
     validations:
       required: true
   - type: textarea
@@ -47,8 +47,17 @@ body:
       label: Version
       description: What version of our software did you last run?
       options:
-        - 1.1.0 (Default)
-        - 1.1.0
+        - 2.0.10 (Default)
+        - 2.0.9
+        - 2.0.8
+        - 2.0.7
+        - 2.0.6
+        - 2.0.5
+        - 2.0.4
+        - 2.0.3
+        - 2.0.2
+        - 2.0.0
+        - < 2.0.0
       default: 0
     validations:
       required: true

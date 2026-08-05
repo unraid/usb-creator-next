@@ -7,84 +7,104 @@
  */
 
 #include "downloadthread.h"
-#include <QFuture>
+#include "ringbuffer.h"
 #include <condition_variable>
-#include <deque>
+#include <memory>
 
 class _extractThreadClass;
 
-class DownloadExtractThread : public DownloadThread {
-  Q_OBJECT
+class DownloadExtractThread : public DownloadThread
+{
+    Q_OBJECT
 public:
-  /*
-   * Constructor
-   *
-   * - url: URL to download
-   * - localfolder: Folder to extract archive to
-   */
-  explicit DownloadExtractThread(const QByteArray &url,
-                                 const QByteArray &localfilename = "",
-                                 const QByteArray &expectedHash = "",
-                                 QObject *parent = nullptr);
+    /*
+     * Constructor
+     *
+     * - url: URL to download
+     * - localfolder: Folder to extract archive to
+     */
+    explicit DownloadExtractThread(const QByteArray &url, const QByteArray &localfilename = "", const QByteArray &expectedHash = "", QObject *parent = nullptr);
 
-  virtual ~DownloadExtractThread();
-  virtual void cancelDownload();
-  virtual void extractImageRun();
-  virtual void extractMultiFileRun();
-  virtual bool isImage();
-  virtual void enableMultipleFileExtraction();
+    virtual ~DownloadExtractThread();
+    virtual void cancelDownload() override;
+    virtual void extractImageRun();
+    virtual void extractMultiFileRun();
+    virtual bool isImage() override;
+    virtual void enableMultipleFileExtraction();
 
 signals:
-  void downloadProgressChanged(quint64 now, quint64 total);
-  void verifyProgressChanged(quint64 now, quint64 total);
+    void downloadProgressChanged(quint64 now, quint64 total);
+    void decompressProgressChanged(quint64 now, quint64 total);
+    void writeProgressChanged(quint64 now, quint64 total);
+    void verifyProgressChanged(quint64 now, quint64 total);
+    void eventRingBufferStats(qint64 timestampMs, quint32 durationMs, QString metadata);  // Ring buffer stall event
+    
+    // Pipeline timing summary events (emitted at end of extraction)
+    void eventPipelineDecompressionTime(quint32 totalMs, quint64 bytesDecompressed);
+    void eventPipelineRingBufferWaitTime(quint32 totalMs, quint64 bytesRead);
+    void eventWriteRingBufferStats(quint64 producerStalls, quint64 consumerStalls, 
+                                   quint64 producerWaitMs, quint64 consumerWaitMs);
 
 protected:
-  char *_abuf[2];
-  size_t _abufsize;
-  _extractThreadClass *_extractThread;
-  std::deque<QByteArray> _queue;
-  static const int MAX_QUEUE_SIZE;
-  std::mutex _queueMutex;
-  std::condition_variable _cv;
-  bool _ethreadStarted, _isImage;
-  AcceleratedCryptographicHash _inputHash;
-  int _activeBuf;
-  bool _writeThreadStarted;
-  QFuture<size_t> _writeFuture;
-  bool _progressStarted;
-  qint64 _lastProgressTime;
-  quint64 _lastEmittedDlNow, _lastLocalVerifyNow;
+    size_t _writeBufferSize;
+    _extractThreadClass *_extractThread;
+    
+    // Zero-copy ring buffer for curl -> libarchive data transfer (compressed data)
+    std::unique_ptr<RingBuffer> _ringBuffer;
+    static const int RING_BUFFER_SLOTS;  // Number of slots in ring buffer
+    RingBuffer::Slot* _currentReadSlot;  // Current slot being read by libarchive
+    
+    // Ring buffer for decompress -> write path (decompressed data).
+    // Uses 4 slots to ensure buffers aren't reused while hash computation is pending.
+    // shared_ptr so that async I/O completion callbacks can safely extend its lifetime.
+    std::shared_ptr<RingBuffer> _writeRingBuffer;
+    RingBuffer::Slot* _currentWriteSlot;  // Current slot being written
+    
+    bool _ethreadStarted, _isImage;
+    AcceleratedCryptographicHash _inputHash;
+    bool _progressStarted;
+    qint64 _lastProgressTime;
+    quint64 _lastEmittedDlNow, _lastLocalVerifyNow;
+    quint64 _lastEmittedDecompressNow, _lastEmittedWriteNow;
+    std::atomic<quint64> _bytesDecompressed;  // Total bytes output from decompressor
+    bool _downloadComplete;
+    // Set by the extraction thread when it aborts with a fatal error, so that
+    // _onDownloadSuccess() does not emit a bogus success() after the download
+    // half completes while extraction was still draining the ring buffer. (#1603)
+    std::atomic<bool> _extractFailed{false};
+    QElapsedTimer _sessionTimer;  // Timer for stall event timestamps
+    
+    // Pipeline timing accumulators (for performance analysis)
+    std::atomic<quint64> _totalDecompressionMs;   // Time spent in archive_read_data()
+    std::atomic<quint64> _totalRingBufferWaitMs;  // Time in _on_read() waiting for data
+    std::atomic<quint64> _bytesReadFromRingBuffer;// Bytes read from ring buffer
+    
+    // Stall error message (set from libarchive callback, used in error handler)
+    QString _stallErrorMessage;
 
-  QByteArray _popQueue();
-  void _pushQueue(const char *data, size_t len);
-  void _cancelExtract();
-  virtual size_t _writeData(const char *buf, size_t len);
-  virtual void _onDownloadSuccess();
-  virtual void _onDownloadError(const QString &msg);
-  void _emitProgressUpdate();
-  virtual bool _verify();
+    void _pushQueue(const char *data, size_t len);
+    void _cancelExtract();
+    // UNRAID: block until _extractThread has returned. Called from run() so the
+    // wait happens on this worker thread rather than in the destructor on the
+    // GUI thread. See the comment on run() in the .cpp.
+    void _joinExtractThread();
+    virtual void run() override;
+    virtual void _onDevicePrepared() override;
+    virtual size_t _writeData(const char *buf, size_t len) override;
+    virtual void _onDownloadSuccess() override;
+    virtual void _onDownloadError(const QString &msg) override;
+    void _emitProgressUpdate();
+    virtual void _onVerifyProgress() override;
 
-  virtual ssize_t _on_read(struct archive *a, const void **buff);
-  virtual int _on_close(struct archive *a);
+    virtual ssize_t _on_read(struct archive *a, const void **buff);
+    virtual int _on_close(struct archive *a);
+    
+    // Configure libarchive options for optimal decompression performance
+    void _configureArchiveOptions(struct archive *a);
+    void _logCompressionFilters(struct archive *a);
 
-  static ssize_t _archive_read(struct archive *a, void *client_data,
-                               const void **buff);
-  static int _archive_close(struct archive *a, void *client_data);
-
-  virtual void _resetForFullRestart() override;
-  void _cleanupExtractedFiles();
-
-  static void _setOrAddKey(QString &text, const QString &key,
-                           const QString &value, bool quoteValue = true);
-  static QString _detectEOL(const QString &text);
-  static void _removeKey(QString &text, const QString &key);
-
-private:
-  QStringList _extractedFiles;
-  QStringList _extractedDirs;
-  QString _extractionFolder;
-  bool _needsCleanup;
-  std::atomic<bool> _restartInProgress{false};
+    static ssize_t _archive_read(struct archive *a, void *client_data, const void **buff);
+    static int _archive_close(struct archive *a, void *client_data);
 };
 
 #endif // DOWNLOADEXTRACTTHREAD_H

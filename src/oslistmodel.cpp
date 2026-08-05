@@ -11,76 +11,124 @@
 #include <QDebug>
 #include <QJsonValue>
 #include <QLocale>
-#include <QGuiApplication>
 #include <QRandomGenerator>
 #include <qjsonarray.h>
 #include <algorithm>
 #include <QRegularExpression>
+#include <QUrl>
+#include <QFileInfo>
+#include <QElapsedTimer>
 
-namespace
-{
+namespace {
 
-    QJsonArray getListForLocale(QJsonObject root)
-    {
+    // Valid init_format values according to schema
+    static const QStringList VALID_INIT_FORMATS = {
+        QStringLiteral(""),
+        QStringLiteral("systemd"),
+        QStringLiteral("cloudinit"),
+        QStringLiteral("cloudinit-rpi"),
+        QStringLiteral("none"),
+        // UNRAID: an Unraid release is a multi-file zip laid onto a FAT32 volume,
+        // customised by src/unraid/unraid_postwrite.cpp. Without this every entry
+        // in the Unraid feed is pruned here and the OS list comes up empty.
+        QStringLiteral("UNRAID")
+    };
+
+    // Validate init_format value and return true if valid
+    bool isValidInitFormat(const QString &initFormat) {
+        return VALID_INIT_FORMATS.contains(initFormat);
+    }
+
+    // Recursively filter OS entries with invalid init_format values
+    QJsonArray filterInvalidInitFormats(const QJsonArray &list) {
+        QJsonArray filtered;
+        
+        for (const auto &value : list) {
+            QJsonObject entry = value.toObject();
+            QString initFormat = entry["init_format"].toString();
+            
+            // Validate init_format if present (empty string is valid, means no customization)
+            if (!isValidInitFormat(initFormat)) {
+                QString name = entry["name"].toString();
+                qWarning() << "OSListModel: Pruning OS entry with invalid init_format '" 
+                           << initFormat << "':" << name
+                           << "(valid values:" << VALID_INIT_FORMATS << ")"; // UNRAID: report the real set
+                continue;
+            }
+            
+            // Check if this entry has subitems and process them recursively
+            if (entry.contains(QLatin1String("subitems"))) {
+                QJsonArray subitems = entry["subitems"].toArray();
+                QJsonArray filteredSubitems = filterInvalidInitFormats(subitems);
+                
+                // Only include parent entry if it has valid subitems
+                if (!filteredSubitems.isEmpty()) {
+                    entry["subitems"] = filteredSubitems;
+                    filtered.append(entry);
+                } else {
+                    // Parent has no valid subitems, skip it
+                    QString name = entry["name"].toString();
+                    qWarning() << "OSListModel: Pruning OS entry with no valid subitems:" << name;
+                }
+            } else {
+                // Leaf entry with valid init_format
+                filtered.append(entry);
+            }
+        }
+        
+        return filtered;
+    }
+
+    QJsonArray getListForLocale(QJsonObject root) {
         // "os_list_<locale>" has priority
 
         QString localeName = QLocale::system().name();
         QString candidateKey = QStringLiteral("os_list_%1").arg(localeName);
 
         QJsonArray list;
-        if (root.contains(candidateKey))
-        {
+        if (root.contains(candidateKey)) {
             list = root[candidateKey].toArray();
-        }
-        else if (localeName.contains(QLatin1Char('_')))
-        {
+        } else if (localeName.contains(QLatin1Char('_'))) {
             localeName = localeName.section('_', 0, 0);
             candidateKey = QStringLiteral("os_list_%1").arg(localeName);
-            if (root.contains(candidateKey))
-            {
+            if (root.contains(candidateKey)) {
                 list = root[candidateKey].toArray();
             }
         }
 
         // fallback to "os_list"
-        if (list.isEmpty() && root.contains(QLatin1String("os_list")))
-        {
+        if (list.isEmpty() && root.contains(QLatin1String("os_list"))) {
             list = root["os_list"].toArray();
         }
 
         return list;
     }
 
-    QJsonArray parseOSJson(QJsonObject root)
-    {
+    QJsonArray parseOSJson(QJsonObject root) {
         QJsonArray list = getListForLocale(root);
-        if (list.isEmpty())
-        {
+        if (list.isEmpty()) {
             qWarning() << Q_FUNC_INFO << "Expected to find os_list key" << root.keys();
             return {};
         }
 
-        // Apply random shuffling to arrays containing 'random' flag
-        std::function<void(QJsonArray &)> shuffleIfRandom = [&](QJsonArray &lst)
-        {
-            for (int i = 0; i < lst.size(); i++)
-            {
-                QJsonObject entry = lst[i].toObject();
+        // Filter out entries with invalid init_format values
+        list = filterInvalidInitFormats(list);
 
-                if (entry.contains(QLatin1String("subitems")))
-                {
+        // Apply random shuffling to arrays containing 'random' flag
+        std::function<void(QJsonArray&)> shuffleIfRandom = [&](QJsonArray &lst) {
+            for (int i = 0; i < lst.size(); i++) {
+                QJsonObject entry = lst[i].toObject();
+                
+                if (entry.contains(QLatin1String("subitems"))) {
                     QJsonArray subitems = entry["subitems"].toArray();
                     shuffleIfRandom(subitems);
-
+                    
                     // Shuffle if random flag is set
-                    if (entry.contains(QLatin1String("random")) && entry["random"].toBool())
-                    {
+                    if (entry.contains(QLatin1String("random")) && entry["random"].toBool()) {
                         // Fisher-Yates shuffle - properly handle QJsonArray
-                        for (int j = subitems.size() - 1; j > 0; j--)
-                        {
+                        for (int j = subitems.size() - 1; j > 0; j--) {
                             int k = QRandomGenerator::global()->bounded(j + 1);
-                            if (j != k)
-                            {
+                            if (j != k) {
                                 // Properly swap QJsonArray elements by storing values, not references
                                 QJsonValue tempValue = subitems[j];
                                 QJsonValue kValue = subitems[k];
@@ -98,11 +146,9 @@ namespace
         shuffleIfRandom(list);
 
         // Flatten, since GUI doesn't support a tree model
-        for (int i = 0; i < list.size(); i++)
-        {
+        for (int i = 0; i < list.size(); i++) {
             QJsonObject entry = list[i].toObject();
-            if (entry.contains("subitems"))
-            {
+            if (entry.contains("subitems")) {
                 QJsonDocument subitemsDoc(entry["subitems"].toArray());
                 entry["subitems_json"] = QString::fromUtf8(subitemsDoc.toJson());
                 entry.remove("subitems");
@@ -114,85 +160,120 @@ namespace
     }
 
     // Apply architecture-based sorting to subitems in a JSON array
-    void applyArchitectureSorting(QJsonArray &list, const QString &preferredArchitecture)
-    {
-        if (preferredArchitecture.isEmpty())
-        {
+    void applyArchitectureSorting(QJsonArray &list, const QString &preferredArchitecture) {
+        if (preferredArchitecture.isEmpty()) {
             return; // No preferred architecture, no sorting needed
         }
 
         // First, sort the top-level array itself
         QJsonArray sortedList;
         QJsonArray otherItems;
-
+        
         // Collect items that match preferred architecture first
-        for (int i = 0; i < list.size(); i++)
-        {
+        for (int i = 0; i < list.size(); i++) {
             QJsonObject item = list[i].toObject();
             QString itemArch = item["architecture"].toString();
-
-            if (itemArch == preferredArchitecture)
-            {
+            
+            if (itemArch == preferredArchitecture) {
                 sortedList.append(list[i]);
-            }
-            else
-            {
+            } else {
                 otherItems.append(list[i]);
             }
         }
-
+        
         // Append all non-matching items
-        for (int i = 0; i < otherItems.size(); i++)
-        {
+        for (int i = 0; i < otherItems.size(); i++) {
             sortedList.append(otherItems[i]);
         }
-
+        
         // Replace the original list with the sorted one
         list = sortedList;
 
         // Then recursively process subitems within each entry
-        for (int i = 0; i < list.size(); i++)
-        {
+        for (int i = 0; i < list.size(); i++) {
             QJsonObject entry = list[i].toObject();
-
-            if (entry.contains(QLatin1String("subitems")))
-            {
+            
+            if (entry.contains(QLatin1String("subitems"))) {
                 QJsonArray subitems = entry["subitems"].toArray();
-
+                
                 // Recursively apply to nested subitems
                 applyArchitectureSorting(subitems, preferredArchitecture);
-
+                
                 // Manual stable sort: move items matching preferred architecture to the front
                 // We'll build a new array with preferred items first, then others
                 QJsonArray sortedSubitems;
                 QJsonArray otherSubitems;
-
+                
                 // First pass: collect items that match preferred architecture
-                for (int j = 0; j < subitems.size(); j++)
-                {
+                for (int j = 0; j < subitems.size(); j++) {
                     QJsonObject subitem = subitems[j].toObject();
                     QString itemArch = subitem["architecture"].toString();
-
-                    if (itemArch == preferredArchitecture)
-                    {
+                    
+                    if (itemArch == preferredArchitecture) {
                         sortedSubitems.append(subitems[j]);
-                    }
-                    else
-                    {
+                    } else {
                         otherSubitems.append(subitems[j]);
                     }
                 }
-
+                
                 // Second pass: append all non-matching items
-                for (int j = 0; j < otherSubitems.size(); j++)
-                {
+                for (int j = 0; j < otherSubitems.size(); j++) {
                     sortedSubitems.append(otherSubitems[j]);
                 }
-
+                
                 entry["subitems"] = sortedSubitems;
                 list[i] = entry;
             }
         }
+    }
+
+    // Sanitize icon source: allow known-good forms and drop malformed URLs to avoid runtime fetch errors
+    static QString sanitizeIconSource(const QString &raw)
+    {
+        if (raw.isEmpty()) return QString();
+
+        // Common local relative path used by repository JSON
+        if (raw.startsWith("icons/")) {
+            return QStringLiteral("../") + raw;
+        }
+
+        // Allow qrc resources
+        if (raw.startsWith("qrc:/") || raw.startsWith("qrc://")) {
+            return raw;
+        }
+
+        // For explicit URLs, validate scheme and host as appropriate
+        const QUrl url(raw);
+        if (url.isValid() && !url.scheme().isEmpty()) {
+            const QString scheme = url.scheme().toLower();
+
+            if (scheme == QLatin1String("http") || scheme == QLatin1String("https")) {
+                if (!url.host().isEmpty()) {
+                    return raw; // looks well-formed; allow
+                } else {
+                    qWarning() << "OSListModel: dropping icon with missing host:" << raw;
+                    return QString();
+                }
+            } else if (scheme == QLatin1String("file")) {
+                // Allow local file URLs without filesystem validation - exists()/isFile()
+                // calls can be slow on iCloud-synced directories or network volumes,
+                // and this function is called for every icon during model population.
+                // QML's Image component handles missing files gracefully.
+                if (url.isLocalFile()) {
+                    return raw;
+                }
+                // Non-local file URL; drop
+                qWarning() << "OSListModel: dropping non-local file URL icon:" << raw;
+                return QString();
+            } else {
+                // Unknown scheme; pass through (QML may support it) but log once
+                qWarning() << "OSListModel: icon uses unrecognized scheme, passing through:" << raw;
+                return raw;
+            }
+        }
+
+        // No scheme: treat as relative path; allow as-is (QML will resolve relative to QML file)
+        return raw;
     }
 }
 
@@ -201,18 +282,21 @@ OSListModel::OSListModel(ImageWriter &imageWriter)
 
 bool OSListModel::reload()
 {
+    QElapsedTimer parseTimer;
+    parseTimer.start();
+    
     QJsonDocument doc = _imageWriter.getFilteredOSlistDocument();
     QJsonObject root = doc.object();
 
     QJsonArray list = parseOSJson(root);
-    if (list.isEmpty())
-    {
+    if (list.isEmpty()) {
+        emit eventOsListParse(static_cast<quint32>(parseTimer.elapsed()), false);
         return false;
     }
 
     // Get the preferred architecture from the currently selected device
     QString preferredArchitecture = _imageWriter.getHWList()->currentArchitecture();
-
+    
     // Apply architecture-based sorting if device has a preference
     applyArchitectureSorting(list, preferredArchitecture);
 
@@ -220,8 +304,7 @@ bool OSListModel::reload()
     _osList.clear();
     _osList.reserve(list.count());
 
-    for (const auto value : list)
-    {
+    for (const auto value : list) {
         const QJsonObject obj = value.toObject();
         OS os;
 
@@ -230,9 +313,14 @@ bool OSListModel::reload()
 
         QJsonArray devicesArray = obj["devices"].toArray();
         os.devices.reserve(devicesArray.size());
-        for (const auto &device : devicesArray)
-        {
+        for (const auto &device : devicesArray) {
             os.devices.append(device.toString());
+        }
+
+        QJsonArray capsArray = obj["capabilities"].toArray();
+        os.capabilities.reserve(capsArray.size());
+        for (const auto &cap : capsArray) {
+            os.capabilities.append(cap.toString());
         }
 
         os.extractSize = obj["extract_size"].toDouble();
@@ -241,7 +329,20 @@ bool OSListModel::reload()
         os.random = obj["random"].toBool();
 
         os.extractSha256 = obj["extract_sha256"].toString();
-        os.icon = obj["icon"].toString();
+        os.bmapUrl = obj["bmap_url"].toString();
+        // Icon source: rewrite to image provider to avoid network head-of-line blocking
+        {
+            const QString rawIcon = obj["icon"].toString();
+            const QString sanitized = sanitizeIconSource(rawIcon);
+            if (!sanitized.isEmpty()) {
+                // If already qrc or local relative, keep as-is. For http(s), route via image://icons/
+                if (sanitized.startsWith("http://") || sanitized.startsWith("https://")) {
+                    os.icon = QStringLiteral("image://icons/") + sanitized;
+                } else {
+                    os.icon = sanitized;
+                }
+            }
+        }
         os.initFormat = obj["init_format"].toString();
         os.releaseDate = obj["release_date"].toString();
         os.url = obj["url"].toString();
@@ -249,7 +350,8 @@ bool OSListModel::reload()
         os.tooltip = obj["tooltip"].toString();
         os.website = obj["website"].toString();
         os.architecture = obj["architecture"].toString();
-        os.containsMultipleFiles = obj["contains_multiple_files"].toBool();
+        os.enableRPiConnect = obj.value("enable_rpi_connect").toBool(false);
+        os.containsMultipleFiles = obj.value("contains_multiple_files").toBool(false); // UNRAID
 
         _osList.append(os);
     }
@@ -258,9 +360,20 @@ bool OSListModel::reload()
     markFirstAsRecommended();
 
     endResetModel();
+    
+    emit eventOsListParse(static_cast<quint32>(parseTimer.elapsed()), true);
 
     return true;
 }
+
+void OSListModel::softRefresh()
+{
+    if (_osList.isEmpty()) return;
+    const QModelIndex first = index(0);
+    const QModelIndex last = index(_osList.size() - 1);
+    emit dataChanged(first, last);
+}
+
 
 int OSListModel::rowCount(const QModelIndex &) const
 {
@@ -270,101 +383,110 @@ int OSListModel::rowCount(const QModelIndex &) const
 QHash<int, QByteArray> OSListModel::roleNames() const
 {
     return {
-        {NameRole, "name"},
-        {DescriptionRole, "description"},
-        {DevicesRole, "devices"},
-        {ExtractSha256Role, "extract_sha256"},
-        {ExtractSizeRole, "extract_size"},
-        {IconRole, "icon"},
-        {ImageDownloadSizeRole, "image_download_size"},
-        {InitFormatRole, "init_format"},
-        {ReleaseDataRole, "release_date"},
-        {UrlRole, "url"},
-        {RandomRole, "random"},
-        {SubItemsJsonRole, "subitems_json"},
-        {TooltipRole, "tooltip"},
-        {WebsiteRole, "website"},
-        {ArchitectureRole, "architecture"},
-        {ContainsMultipleFilesRole, "contains_multiple_files"},
+        { NameRole, "name" },
+        { DescriptionRole, "description" },
+        { DevicesRole, "devices" },
+        { CapabilitiesRole, "capabilities" },
+        { ExtractSha256Role, "extract_sha256" },
+        { BmapUrlRole, "bmap_url" },
+        { ExtractSizeRole, "extract_size" },
+        { IconRole, "icon" },
+        { ImageDownloadSizeRole, "image_download_size" },
+        { InitFormatRole, "init_format" },
+        { ReleaseDataRole, "release_date" },
+        { UrlRole, "url" },{ RandomRole, "random" },
+        { SubItemsJsonRole, "subitems_json" },
+        { TooltipRole, "tooltip" },
+        { WebsiteRole, "website" },
+        { ArchitectureRole, "architecture" },
+        { PiConnectRole, "enable_rpi_connect" },
+        { ContainsMultipleFilesRole, "contains_multiple_files" } // UNRAID
     };
 }
 
-QVariant OSListModel::data(const QModelIndex &index, int role) const
-{
+QVariant OSListModel::data(const QModelIndex &index, int role) const {
     const int row = index.row();
     if (row < 0 || row >= _osList.size())
         return {};
 
     const OS &os = _osList[row];
 
-    switch (OSListRole(role))
-    {
-    case NameRole:
-        return os.name;
-    case DescriptionRole:
-        return os.description;
-    case DevicesRole:
-        return os.devices;
-    case ExtractSha256Role:
-        return os.extractSha256;
-    case ExtractSizeRole:
-        return os.extractSize;
-    case IconRole:
-        return os.icon;
-    case ImageDownloadSizeRole:
-        return os.imageDownloadSize;
-    case InitFormatRole:
-        return os.initFormat;
-    case ReleaseDataRole:
-        return os.releaseDate;
-    case UrlRole:
-        return os.url;
-    case RandomRole:
-        return os.random;
-    case SubItemsJsonRole:
-        return os.subitemsJson;
-    case TooltipRole:
-        return os.tooltip;
-    case WebsiteRole:
-        return os.website;
-    case ArchitectureRole:
-        return os.architecture;
-    case ContainsMultipleFilesRole:
-        return os.containsMultipleFiles;
+    switch (OSListRole(role)) {
+        case NameRole:
+            return os.name;
+        case DescriptionRole:
+            return os.description;
+        case DevicesRole:
+            return os.devices;
+        case CapabilitiesRole:
+            return os.capabilities;
+        case ExtractSha256Role:
+            return os.extractSha256;
+        case BmapUrlRole:
+            return os.bmapUrl;
+        case ExtractSizeRole:
+            return os.extractSize;
+        case IconRole:
+            return os.icon;
+        case ImageDownloadSizeRole:
+            return os.imageDownloadSize;
+        case InitFormatRole:
+            return os.initFormat;
+        case ReleaseDataRole:
+            return os.releaseDate;
+        case UrlRole:
+            return os.url;
+        case RandomRole:
+            return os.random;
+        case SubItemsJsonRole:
+            return os.subitemsJson;
+        case TooltipRole:
+            return os.tooltip;
+        case WebsiteRole:
+            return os.website;
+        case ArchitectureRole:
+            return os.architecture;
+        case PiConnectRole:
+            return os.enableRPiConnect;
+        case ContainsMultipleFilesRole: // UNRAID
+            return os.containsMultipleFiles;
     }
 
     return {};
 }
 
-void OSListModel::markFirstAsRecommended()
-{
+void OSListModel::markFirstAsRecommended() {
     const QString recommendedString = QStringLiteral(" (%1)").arg(tr("Recommended"));
 
     // First pass: Remove any existing "(Recommended)" labels from all items
-    for (int i = 0; i < _osList.size(); i++)
-    {
+    for (int i = 0; i < _osList.size(); i++) {
         OS &os = _osList[i];
         // Remove any variant of the recommended string (handles different locales)
-        if (os.description.contains(QRegularExpression(R"( \([^)]*\bRecommended\b[^)]*\))")))
-        {
+        if (os.description.contains(QRegularExpression(R"( \([^)]*\bRecommended\b[^)]*\))"))) {
             os.description.remove(QRegularExpression(R"( \([^)]*\bRecommended\b[^)]*\))"));
         }
         // Also remove the localized version if it exists
-        if (os.description.contains(recommendedString))
-        {
+        if (os.description.contains(recommendedString)) {
             os.description.remove(recommendedString);
         }
     }
 
     // Second pass: Add the localized "(Recommended)" to the first item if appropriate
-    if (!_osList.isEmpty())
-    {
-        OS &candidate = _osList[0];
+    // Skip internal items (Erase, Use custom) - these are fallbacks when OS list download fails
+    for (int i = 0; i < _osList.size(); i++) {
+        OS &candidate = _osList[i];
 
+        // Skip internal items (e.g., "internal://format", "internal://custom")
+        if (candidate.url.startsWith(QLatin1String("internal://"))) {
+            continue;
+        }
+
+        // Found a real OS entry - mark it as recommended if appropriate
         if (!candidate.description.isEmpty() &&
             candidate.subitemsJson.isEmpty())
         {
             candidate.description += recommendedString;
         }
+        break;  // Only mark the first real OS
     }
 }

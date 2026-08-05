@@ -1,48 +1,53 @@
-Source: unraid-usb-creator
+Source: rpi-imager
 Section: admin
 Priority: optional
 Maintainer: Tom Dewey <tom.dewey@raspberrypi.com>
-Build-Depends: debhelper (>= 13), cmake, libgnutls28-dev, dh-exec
+Build-Depends: debhelper-compat (= 13), cmake, libgnutls28-dev, dh-exec
 Standards-Version: 4.1.2
-Homepage: https://github.com/unraid/usb-creator-next
+Homepage: https://www.raspberrypi.com/software
 
-Package: unraid-usb-creator
-Build-Profiles: <!amd64 !embedded>
-Architecture: arm64
-Depends: ${shlibs:Depends}, ${misc:Depends}, dosfstools, fdisk, fuse, libfuse2, util-linux (>= 2.37)
+Package: rpi-imager
+Build-Profiles: <desktop>
+Architecture: amd64 arm64
+Depends: ${shlibs:Depends}, ${misc:Depends}, dosfstools, fdisk, fuse, libfuse2,
+         util-linux (>= 2.37), pkexec,
+         libfontconfig1, libx11-6, libegl1, libgl1
 Recommends: udisks2
-Conflicts: unraid-usb-creator-embedded, unraid-usb-creator-amd64
-Description: Unraid OS Imaging utility
+Conflicts: rpi-imager-embedded
+Description: Raspberry Pi Imaging utility
  A user-friendly tool for creating bootable media for Raspberry Pi Devices.
 
-Package: unraid-usb-creator-amd64
-Build-Profiles: <amd64 !embedded>
-Architecture: amd64
-Depends: ${shlibs:Depends}, ${misc:Depends}, dosfstools, fdisk, fuse, libfuse2, util-linux (>= 2.37)
-Recommends: udisks2
-Conflicts: unraid-usb-creator-embedded, unraid-usb-creator
-Description: Unraid OS Imaging utility (x86_64)
- A user-friendly tool for creating bootable media for Raspberry Pi Devices.
- .
- This is the x86_64/amd64 version.
-
-Package: unraid-usb-creator-embedded
+Package: rpi-imager-embedded
 Build-Profiles: <embedded>
 Architecture: arm64
-Depends: ${shlibs:Depends}, ${misc:Depends}, 
-         dosfstools, fdisk, fuse, libfuse2, util-linux (>= 2.37),
-         libegl1-mesa, libgles2-mesa, libgbm1, libdrm2,
-         libinput10, libudev1, libraspberrypi0 | mesa-utils
-Recommends: udisks2, gpu-mem-256 | raspi-config
+Depends: ${shlibs:Depends}, ${misc:Depends},
+         dosfstools, fdisk, util-linux (>= 2.37), libdrm2,
+         libinput10, libudev1
 Suggests: rpi-eeprom, firmware-brcm80211
-Conflicts: unraid-usb-creator, unraid-usb-creator-amd64
-Description: Unraid OS Imaging utility for embedded systems
+Conflicts: rpi-imager
+Description: Raspberry Pi Imaging utility for embedded systems
  A user-friendly tool for creating bootable media for Raspberry Pi devices,
  optimized for embedded systems.
  .
  This version is specifically designed for Raspberry Pi embedded systems:
-  - Uses EGLFS for direct rendering (no desktop environment required)
+  - Uses linuxfb for direct rendering (no desktop environment required)
   - Optimized for network-based installation
-  - Includes proper OpenGL ES dependencies for Raspberry Pi
   - Smaller memory footprint for embedded applications
-  - Supports both framebuffer and DRM/KMS rendering
+  - Supports DRM/KMS rendering
+
+Package: rpi-imager-cli
+Build-Profiles: <cli>
+Architecture: amd64 arm64 armhf
+Depends: ${shlibs:Depends}, ${misc:Depends}, 
+         dosfstools, fdisk, fuse, libfuse2, util-linux (>= 2.37)
+Conflicts: rpi-imager, rpi-imager-embedded
+Description: Raspberry Pi Imaging utility (command-line only)
+ A command-line tool for creating bootable media for Raspberry Pi devices.
+ .
+ This version is optimized for command-line operation:
+  - No GUI components - CLI mode only
+  - Minimal dependencies (Qt Core only)
+  - Perfect for headless servers, automation and Raspberry Pi OS Lite
+  - Smaller package size and memory footprint
+  - Most imaging functionality available via command line
+  - Ideal for scripting and CI/CD pipelines

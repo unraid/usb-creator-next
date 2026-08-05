@@ -40,6 +40,8 @@ bool HWListModel::reload()
 
     beginResetModel();
     _currentIndex = -1;
+    // Replace contents on reload to avoid duplicate entries when re-entering the step
+    _hwDevices.clear();
 
     const QJsonArray deviceArray = devices.toArray();
     _hwDevices.reserve(deviceArray.size());
@@ -50,7 +52,19 @@ bool HWListModel::reload()
         HardwareDevice hwDevice = {
             deviceObj["name"].toString(),
             deviceObj["tags"].toArray(),
-            deviceObj["icon"].toString(),
+            deviceObj["capabilities"].toArray(),
+            [&]() {
+                QString iconPath = deviceObj["icon"].toString();
+                // Adjust icon path for wizard directory structure
+                if (iconPath.startsWith("icons/")) {
+                    iconPath = "../" + iconPath;
+                }
+                // Route remote icons via image provider to avoid HTTP/2 errors
+                if (iconPath.startsWith("http://") || iconPath.startsWith("https://")) {
+                    iconPath = QStringLiteral("image://icons/") + iconPath;
+                }
+                return iconPath;
+            }(),
             deviceObj["description"].toString(),
             deviceObj["matching_type"].toString(),
             deviceObj["architecture"].toString()
@@ -78,10 +92,12 @@ QHash<int, QByteArray> HWListModel::roleNames() const
     return {
         {NameRole, "name"},
         {TagsRole, "tags"},
+        {CapabilitiesRole, "capabilities"},
         {IconRole, "icon"},
         {DescriptionRole, "description"},
         {MatchingTypeRole, "matching_type"},
-        {ArchitectureRole, "architecture"}
+        {ArchitectureRole, "architecture"},
+        {IsUsbBootConnectedRole, "isUsbBootConnected"}
     };
 }
 
@@ -97,6 +113,8 @@ QVariant HWListModel::data(const QModelIndex &index, int role) const {
         return device.name;
     case TagsRole:
         return device.tags;
+    case CapabilitiesRole:
+        return device.capabilities;
     case IconRole:
         return device.icon;
     case DescriptionRole:
@@ -105,6 +123,12 @@ QVariant HWListModel::data(const QModelIndex &index, int role) const {
         return device.matchingType;
     case ArchitectureRole:
         return device.architecture;
+    case IsUsbBootConnectedRole:
+        for (const auto &chip : _connectedRpibootChips) {
+            if (tagsMatchChip(device.tags, chip))
+                return true;
+        }
+        return false;
     }
 
     return {};
@@ -130,15 +154,39 @@ void HWListModel::setCurrentIndex(int index) {
     if (_currentIndex == index)
         return;
 
-    if (index < 0 || index >= _hwDevices.size()) {
+    // Allow -1 to clear the selection
+    if (index < -1 || index >= _hwDevices.size()) {
         qWarning() << Q_FUNC_INFO << "Invalid index" << index;
+        return;
+    }
+
+    // Handle clearing selection (index == -1)
+    if (index == -1) {
+        qDebug() << "Clearing hardware device selection";
+        _currentIndex = -1;
+        _lastSelectedDeviceName.clear();
+        
+        Q_EMIT currentIndexChanged();
+        Q_EMIT currentNameChanged();
+        Q_EMIT currentArchitectureChanged();
         return;
     }
 
     const HardwareDevice &device = _hwDevices.at(index);
 
+    // Only clear image source if the device actually changed (not just re-selecting same device)
+    bool deviceChanged = (_lastSelectedDeviceName != device.name);
+    
     _imageWriter.setHWFilterList(device.tags, device.isInclusive());
-    _imageWriter.setSrc({});
+    _imageWriter.setHWCapabilitiesList(device.capabilities);
+    
+    if (deviceChanged) {
+        qDebug() << "Hardware device changed from" << _lastSelectedDeviceName << "to" << device.name << "- clearing image selection";
+        _imageWriter.setSrc({});
+        _lastSelectedDeviceName = device.name;
+    } else {
+        qDebug() << "Hardware device re-selected (" << device.name << ") - preserving image selection";
+    }
 
     _currentIndex = index;
 
@@ -149,4 +197,35 @@ void HWListModel::setCurrentIndex(int index) {
 
 int HWListModel::currentIndex() const {
     return _currentIndex;
+}
+
+void HWListModel::setConnectedRpibootChips(const QStringList &chips) {
+    if (_connectedRpibootChips == chips)
+        return;
+    _connectedRpibootChips = chips;
+    if (!_hwDevices.isEmpty())
+        emit dataChanged(index(0), index(_hwDevices.size() - 1), {IsUsbBootConnectedRole});
+}
+
+bool HWListModel::tagsMatchChip(const QJsonArray &tags, const QString &chipName) {
+    QStringList prefixes;
+    if (chipName == QLatin1String("BCM2712"))
+        prefixes = {QStringLiteral("pi5-")};
+    else if (chipName == QLatin1String("BCM2711"))
+        prefixes = {QStringLiteral("pi4-")};
+    else if (chipName.startsWith(QLatin1String("BCM2836")) || chipName == QLatin1String("BCM2836/7"))
+        prefixes = {QStringLiteral("pi2-"), QStringLiteral("pi3-")};
+    else if (chipName == QLatin1String("BCM2835"))
+        prefixes = {QStringLiteral("pi1-")};
+    else
+        return false;
+
+    for (const auto &tag : tags) {
+        const QString t = tag.toString();
+        for (const auto &prefix : prefixes) {
+            if (t.startsWith(prefix))
+                return true;
+        }
+    }
+    return false;
 }

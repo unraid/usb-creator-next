@@ -4,278 +4,172 @@
  */
 
 #include "driveformatthread.h"
-#include "dependencies/drivelist/src/drivelist.hpp"
-#include "dependencies/mountutils/src/mountutils.hpp"
+#include "drivelist/drivelist.h"
 #include "disk_formatter.h"
-#include <QCoreApplication>
+#include "platformquirks.h"
 #include <QDebug>
 #include <QProcess>
 #include <QTemporaryFile>
-#include <regex>
+#include <QElapsedTimer>
 
 #ifdef Q_OS_LINUX
-#include "linux/udisks2api.h"
 #include <unistd.h>
 #endif
 
 #ifdef Q_OS_WIN
-#include "windows/volume_locks.h"
+#include <windows.h>
+#include <regex>
+#include <chrono>
+#include "windows/diskpart_util.h"
 #endif
 
-DriveFormatThread::DriveFormatThread(const QByteArray &device,
-                                     const QString &label, QObject *parent)
-    : QThread(parent), _device(device), _label(label) {}
+DriveFormatThread::DriveFormatThread(const QByteArray &device, QObject *parent)
+    : QThread(parent), _device(device)
+{
 
-DriveFormatThread::~DriveFormatThread() { wait(); }
-
-std::uint64_t DriveFormatThread::getDeviceSize(const QByteArray &device) {
-  auto driveList = Drivelist::ListStorageDevices();
-  for (const auto &drive : driveList) {
-    if (QByteArray::fromStdString(drive.device) == device) {
-      return drive.size;
-    }
-  }
-
-  qDebug() << "Warning: Could not find device size for" << device
-           << ", using default";
-  return 64ULL * 1024 * 1024 * 1024; // Default to 64GB if not found
 }
 
-void DriveFormatThread::run() {
+DriveFormatThread::~DriveFormatThread()
+{
+    wait();
+}
+
+std::uint64_t DriveFormatThread::getDeviceSize(const QByteArray &device)
+{
+    auto driveList = Drivelist::ListStorageDevices();
+    for (const auto &drive : driveList) {
+        if (QByteArray::fromStdString(drive.device) == device) {
+            return drive.size;
+        }
+    }
+    
+    qDebug() << "Warning: Could not find device size for" << device << ", using default";
+    return 64ULL * 1024 * 1024 * 1024;  // Default to 64GB if not found
+}
+
+void DriveFormatThread::run()
+{
 #ifdef Q_OS_WIN
-
-#ifdef HAVE_FAT32FORMAT_FALLBACK
-  qDebug() << "Formatting Windows device" << _device
-           << "with diskpart + fat32format";
-
-  std::regex windriveregex("\\\\\\\\.\\\\PHYSICALDRIVE([0-9]+)",
-                           std::regex_constants::icase);
-  std::cmatch m;
-
-  if (std::regex_match(_device.constData(), m, windriveregex)) {
-    QByteArray nr = QByteArray::fromStdString(m[1]);
-
-    qDebug() << "Formatting Windows drive #" << nr << "(" << _device << ")";
-
-    QProcess proc;
-    proc.setProcessChannelMode(QProcess::ForwardedChannels);
-    QByteArray diskpartCmds = "select disk " + nr +
-                              "\r\n"
-                              "clean\r\n"
-                              "create partition primary\r\n"
-                              "select partition 1\r\n"
-                              "set id=0e\r\n"
-                              "assign\r\n"
-                              "exit\r\n";
-    proc.start("diskpart", QStringList());
-    proc.waitForStarted();
-    proc.write(diskpartCmds);
-    proc.closeWriteChannel();
-    bool finished = proc.waitForFinished(-1);
-    qDebug() << "Diskpart finished: " << finished;
-
-    QByteArray output = proc.readAllStandardError();
-    qDebug() << output;
-    qDebug() << "Done running diskpart. Exit status code =" << proc.exitCode();
-
-    if (proc.exitCode()) {
-      emit error(tr("Error partitioning: %1").arg(QString(output)));
-      return;
+    // Suppress Windows "Insert a disk" / "not accessible" system error dialogs
+    // for this thread. Error mode is per-thread, so we set it once at thread start.
+    DWORD oldMode;
+    if (!SetThreadErrorMode(SEM_FAILCRITICALERRORS | SEM_NOOPENFILEERRORBOX, &oldMode)) {
+        SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOOPENFILEERRORBOX);
     }
-
-    auto l = Drivelist::ListStorageDevices();
-    QByteArray devlower = _device.toLower();
-    for (auto i : l) {
-      if (QByteArray::fromStdString(i.device).toLower() == devlower &&
-          i.mountpoints.size() == 1) {
-        QByteArray driveLetter =
-            QByteArray::fromStdString(i.mountpoints.front());
-        if (driveLetter.endsWith("\\"))
-          driveLetter.chop(1);
-        qDebug() << "Drive letter of device:" << driveLetter;
-
-
-
-        const auto lockers = whoIsUsingPath(QString::fromLatin1(driveLetter) + "\\");
-        qDebug().noquote() << "Potential lockers:" << lockers.join(", ");
-
-
-        QProcess f32format;
-        QStringList args;
-
-        if (!_label.isEmpty()) {
-          args << "-l" + _label;
-        }
-
-        args << "-y" << driveLetter;
-
-        f32format.setProcessChannelMode(QProcess::ForwardedChannels);
-
-        f32format.start(
-            QCoreApplication::applicationDirPath() + "/fat32format.exe", args);
-        if (!f32format.waitForStarted()) {
-          emit error(tr("Error starting fat32format"));
-          return;
-        }
-
-        f32format.closeWriteChannel();
-        f32format.waitForFinished(120000);
-
-        if (f32format.exitStatus() || f32format.exitCode()) {
-          emit error(tr("Error running fat32format: %1")
-                         .arg(QString(f32format.readAll())));
-        } else {
-          emit success();
-        }
-        return;
-      }
-    }
-
-    emit error(tr("Error determining new drive letter"));
-    return;
-  } else {
-    emit error(tr("Invalid device: %1").arg(QString(_device)));
-    return;
-  }
-#else
-  qDebug() << "Formatting Windows device" << _device
-           << "with cross-platform implementation";
-
-  rpi_imager::DiskFormatter formatter;
-  auto result =
-      formatter.FormatDrive(_device.toStdString(), _label.toStdString());
-
-  if (!result) {
-    QString errorMessage;
-    switch (result.error()) {
-    case rpi_imager::FormatError::kFileOpenError:
-      errorMessage = tr("Error opening device for formatting");
-      break;
-    case rpi_imager::FormatError::kFileWriteError:
-      errorMessage = tr("Error writing to device during formatting");
-      break;
-    case rpi_imager::FormatError::kFileSeekError:
-      errorMessage = tr("Error seeking on device during formatting");
-      break;
-    case rpi_imager::FormatError::kInvalidParameters:
-      errorMessage = tr("Invalid parameters for formatting");
-      break;
-    case rpi_imager::FormatError::kInsufficientSpace:
-      errorMessage = tr("Insufficient space on device");
-      break;
-    default:
-      errorMessage = tr("Unknown formatting error");
-      break;
-    }
-
-    qDebug() << "Cross-platform formatting failed:" << errorMessage;
-    emit error(errorMessage);
-    return;
-  }
-
-  qDebug() << "Cross-platform disk formatter succeeded";
-  emit success();
 #endif
-#elif defined(Q_OS_DARWIN)
-  QProcess proc;
-  QStringList args;
-  QString volName = _label.isEmpty() ? "BOOT" : _label;
 
-  args << "eraseDisk" << "FAT32" << volName << "MBRFormat" << _device;
+#ifdef Q_OS_LINUX
+    // Linux-specific: Check permissions
+    if (::access(_device.constData(), W_OK) != 0)
+    {
+        emit error(tr("Cannot format device: insufficient permissions. Please run with elevated privileges (sudo)."));
+        return;
+    }
+#endif
 
-  proc.start("diskutil", args);
-  proc.waitForFinished();
+#ifdef Q_OS_WIN
+    // Windows-specific disk preparation
+    emit preparationStatusUpdate(tr("Preparing disk for formatting..."));
+    
+    // Clean disk with diskpart utility (standardized to 60s timeout with 3 retries, always unmount volumes)
+    emit preparationStatusUpdate(tr("Cleaning disk..."));
+    auto diskpartResult = DiskpartUtil::cleanDisk(_device, std::chrono::seconds(60), 3, DiskpartUtil::VolumeHandling::UnmountFirst);
+    if (!diskpartResult.success)
+    {
+        emit error(diskpartResult.errorMessage);
+        return;
+    }
+#endif
 
-  QByteArray output = proc.readAllStandardError();
-  qDebug() << args;
-  qDebug() << "diskutil output:" << output;
+    // Common formatting logic for all platforms
+    qDebug() << "Formatting device" << _device << "with cross-platform implementation";
+    emit preparationStatusUpdate(tr("Writing filesystem..."));
 
-  if (proc.exitCode()) {
-    emit error(tr("Error partitioning: %1").arg(QString(output)));
-  } else {
-    emit success();
-  }
-
-#elif defined(Q_OS_LINUX)
-
-  // Linux-specific: Check if we need to use udisks2 fallback
-  /* Not running as root, try to outsource formatting to udisks2 */\
-    //   if (::access(_device.constData(), W_OK) != 0)
-    // {
-        
-        // if Dbus is available, use udisks2
-#ifndef QT_NO_DBUS 
-        UDisks2Api udisks2;
-        qDebug() << "Formatting device using udisks2";
-        qDebug() << "Device Label:" << _label;
-        if (udisks2.formatDrive(_device, true, _label))
-        {
-          qDebug() << "[DONE] Formatting device using udisks2";
-            emit success();
-            return;
-        } else {
-            emit error(tr("Error formatting (through udisks2)"));
-        }
-#else // QT_NO_DBUS
-        emit error(tr("Cannot format device: insufficient permissions and udisks2 not available"));
+    // Unmount the device before formatting (needed for macOS and Linux)
+#if defined(Q_OS_DARWIN) || defined(Q_OS_LINUX)
+    // Use block device path for unmount (e.g., /dev/disk on macOS, not /dev/rdisk)
+    QString unmountPath = PlatformQuirks::getEjectDevicePath(QString::fromLatin1(_device));
+    qDebug() << "Unmounting:" << unmountPath;
+    PlatformQuirks::DiskResult unmountResult = PlatformQuirks::unmountDisk(unmountPath);
+    if (unmountResult != PlatformQuirks::DiskResult::Success) {
+        qDebug() << "Unmount failed with result:" << static_cast<int>(unmountResult);
+#ifdef Q_OS_DARWIN
+        emit error(tr("Failed to unmount disk '%1'. Please close any applications using the disk and try again.").arg(unmountPath));
+#else
+        emit error(tr("Failed to unmount disk '%1'.").arg(unmountPath));
 #endif
         return;
-    // }
-
-
- // --- Clean-room implementation disabled for now --> as it doesn't work 
- // --- Before had it so unprivileged user could format using udisks2, which works. Sudo uses this implementation, which does not work
- // TODO: Fix clean-room implementation
-/*
-  qDebug() << "[LINUX] Formatting device" << _device
-           << "with clean-room implementation";
-
-  // Unmount the device before formatting
-  unmount_disk(_device);
-
-  // Get device size
-  std::uint64_t deviceSize = getDeviceSize(_device);
-  qDebug() << "Device size:" << deviceSize << "bytes";
-  qDebug() << "Device Label:" << _label;
-
-  // Use our clean-room disk formatter
-  rpi_imager::DiskFormatter formatter;
-  auto result =
-      formatter.FormatDrive(_device.toStdString(), _label.toStdString());
-
-  if (!result) {
-    QString errorMessage;
-    switch (result.error()) {
-    case rpi_imager::FormatError::kFileOpenError:
-      errorMessage = tr("Error opening device for formatting");
-      break;
-    case rpi_imager::FormatError::kFileWriteError:
-      errorMessage = tr("Error writing to device during formatting");
-      break;
-    case rpi_imager::FormatError::kFileSeekError:
-      errorMessage = tr("Error seeking on device during formatting");
-      break;
-    case rpi_imager::FormatError::kInvalidParameters:
-      errorMessage = tr("Invalid parameters for formatting");
-      break;
-    case rpi_imager::FormatError::kInsufficientSpace:
-      errorMessage = tr("Insufficient space on device");
-      break;
-    default:
-      errorMessage = tr("Unknown formatting error");
-      break;
     }
-
-    qDebug() << "Formatting failed:" << errorMessage;
-    emit error(errorMessage);
-    return;
-  }
-
-  qDebug() << "Formatting completed successfully";
-  emit success();
-  */
-
-#else
-  emit error(tr("Formatting not implemented for this platform"));
 #endif
+
+#ifdef Q_OS_LINUX
+    // Get device size for logging
+    std::uint64_t deviceSize = getDeviceSize(_device);
+    qDebug() << "Device size:" << deviceSize << "bytes";
+#endif
+
+    // Use cross-platform disk formatter
+    QElapsedTimer formatTimer;
+    formatTimer.start();
+    
+    rpi_imager::DiskFormatter formatter;
+    // UNRAID: Unraid images must land on a volume labelled UNRAID.
+    if (!_volumeLabel.isEmpty()) {
+        formatter.SetVolumeLabelOverride(_volumeLabel.toStdString()); // UNRAID
+    }
+    auto formatResult = formatter.FormatDrive(_device.toStdString());
+
+    quint32 formatDurationMs = static_cast<quint32>(formatTimer.elapsed());
+    
+    if (!formatResult) {
+        emit eventDriveFormat(formatDurationMs, false);
+        emit error(formatErrorToString(formatResult.error()));
+    } else {
+        emit eventDriveFormat(formatDurationMs, true);
+        qDebug() << "Cross-platform disk formatter succeeded in" << formatDurationMs << "ms";
+
+#ifdef Q_OS_WIN
+        // UNRAID: DiskFormatter lays down the MBR and FAT32 boot sector by writing
+        // raw sectors to the physical drive, which Windows does not notice on its
+        // own -- it still believes the disk is blank from the diskpart "clean" that
+        // preceded us, so no volume is created and no drive letter is assigned.
+        //
+        // Upstream never trips over this because its format flow ends right here:
+        // the stick is FAT32 and Windows will catch up eventually or on replug. The
+        // Unraid flow continues straight into extractMultiFileRun(), which needs a
+        // mounted drive letter to extract into, and otherwise fails with
+        // "Operating system did not mount FAT32 partition" -- on a disk that
+        // Get-Partition reports as having no partitions at all, which makes it look
+        // like the format failed when in fact only Windows' view of it is stale.
+        //
+        // rescanDisk() is upstream's own helper for precisely this: it issues
+        // IOCTL_DISK_UPDATE_PROPERTIES, and the comment there already spells out
+        // that without it "no drive letter is assigned to the new partitions".
+        const DiskpartUtil::DiskpartResult rescan = DiskpartUtil::rescanDisk(_device);
+        if (!rescan.success) {
+            qDebug() << "Post-format disk rescan failed:" << rescan.errorMessage
+                     << "- the volume may take longer than usual to appear";
+        }
+#endif
+
+        emit success();
+    }
+}
+
+QString DriveFormatThread::formatErrorToString(rpi_imager::FormatError error)
+{
+    switch (error) {
+        case rpi_imager::FormatError::kFileOpenError:
+            return tr("Error opening device for formatting");
+        case rpi_imager::FormatError::kFileWriteError:
+            return tr("Error writing to device during formatting");
+        case rpi_imager::FormatError::kFileSeekError:
+            return tr("Error seeking on device during formatting");
+        case rpi_imager::FormatError::kInvalidParameters:
+            return tr("Invalid parameters for formatting");
+        case rpi_imager::FormatError::kInsufficientSpace:
+            return tr("Insufficient space on device");
+        default:
+            return tr("Unknown formatting error");
+    }
 }

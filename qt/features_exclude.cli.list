@@ -1,0 +1,89 @@
+# Qt features to exclude for CLI-only builds
+# Much more aggressive than regular builds - exclude ALL GUI features
+
+# Development tools
+androiddeployqt
+appstore-compliant
+assistant
+designer
+macdeployqt
+qdoc
+qev
+qtattributionsscanner
+qtplugininfo
+pixeltool
+windeployqt
+distancefieldgenerator
+
+# GUI widgets and controls
+calendarwidget
+clipboard
+completer
+dial
+keysequenceedit
+lcdnumber
+rubberband
+sizegrip
+systemtrayicon
+undocommand
+undogroup
+undostack
+undoview
+
+# Graphics and multimedia
+movie
+graphicsframecapture
+gestures
+tabletevent
+tuiotouch
+
+# Printing
+printsupport
+
+# Text processing (GUI-related)
+texthtmlparser
+textmarkdownreader
+textmarkdownwriter
+textodfwriter
+
+# Image formats (for GUI)
+gif
+
+# PDF support
+pdf
+
+# Advanced networking (keep basic networking - HTTPS/SSL is REQUIRED)
+# NOTE: Do NOT exclude ssl, networkproxy, or http - these are essential for downloads
+
+# Calendars and localization (advanced)
+hijricalendar
+islamiccivilcalendar
+jalalicalendar
+emojisegmenter
+
+# Advanced data models
+concatenatetablesproxymodel
+identityproxymodel
+
+# IPC and system integration
+localserver
+systemsemaphore
+
+# Security (advanced)
+gssapi
+
+# Testing and debugging
+testlib
+
+# WebAssembly features
+wasm-exceptions
+wasm-jspi
+wasm-simd128
+
+# Domain validation
+topleveldomain
+
+# Misc
+poll-exit-on-error
+socks5
+sql

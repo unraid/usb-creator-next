@@ -4,12 +4,14 @@
  */
 
 #include "macfile.h"
+#include "branding.h" // UNRAID
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <sys/socket.h>
 #include <security/Authorization.h>
 #include <QDebug>
+#include <QCoreApplication>
 
 MacFile::MacFile(QObject *parent)
     : QFile(parent)
@@ -33,8 +35,24 @@ MacFile::authOpenResult MacFile::authOpen(const QByteArray &filename)
     AuthorizationFlags flags = kAuthorizationFlagInteractionAllowed |
             kAuthorizationFlagExtendRights |
             kAuthorizationFlagPreAuthorize;
+    
+    // Create authorization environment with custom prompt
+    // This provides better context in the authorization dialog
+    // UNRAID: this string is the macOS authorization dialog the user sees at the
+    // moment they grant raw disk access -- the point where the product name
+    // matters most. It named upstream's product until now. %1 comes from the
+    // branding layer so it cannot drift from the app's actual name.
+    QString promptText = QCoreApplication::translate("MacFile", "%1 needs to access the disk to write the image.")
+                             .arg(QStringLiteral(IMAGER_APP_NAME));
+    QByteArray promptBytes = promptText.toUtf8();
+    const char *promptKey = "prompt";
+    AuthorizationItem envItems[] = {
+        { promptKey, (size_t)promptBytes.length(), (void*)promptBytes.constData(), 0 }
+    };
+    AuthorizationEnvironment env = { 1, envItems };
+    
     AuthorizationRef authRef;
-    if (AuthorizationCreate(&rights, nullptr, flags, &authRef) != 0)
+    if (AuthorizationCreate(&rights, &env, flags, &authRef) != 0)
         return authOpenCancelled;
 
     AuthorizationExternalForm externalForm;
@@ -124,4 +142,26 @@ MacFile::authOpenResult MacFile::authOpen(const QByteArray &filename)
     AuthorizationFree(authRef, 0);
 
     return open(fd, QIODevice::ReadWrite | QIODevice::ExistingOnly | QIODevice::Unbuffered, QFileDevice::AutoCloseHandle) ? authOpenSuccess : authOpenError;
+}
+
+bool MacFile::forceSync()
+{
+    if (!isOpen()) {
+        qDebug() << "Warning: Cannot sync closed file";
+        return false;
+    }
+    
+    // Flush Qt's internal buffers first
+    if (!flush()) {
+        qDebug() << "Warning: flush() failed during forceSync:" << errorString();
+        return false;
+    }
+    
+    // Force filesystem sync using fsync
+    if (::fsync(handle()) != 0) {
+        qDebug() << "Warning: fsync() failed during forceSync, errno:" << errno;
+        return false;
+    }
+    
+    return true;
 }

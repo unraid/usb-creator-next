@@ -1,0 +1,59 @@
+# macOS-specific Qt feature exclusions for building minimal Qt
+# This file is used by src/mac/build-qt-macos.sh if present.
+# You can diverge this list from the embedded list as needed for macOS.
+
+androiddeployqt
+appstore-compliant
+assistant
+calendarwidget
+completer
+concatenatetablesproxymodel
+designer
+dial
+distancefieldgenerator
+emojisegmenter
+gestures
+gif
+graphicsframecapture
+gssapi
+hijricalendar
+identityproxymodel
+islamiccivilcalendar
+jalalicalendar
+keysequenceedit
+lcdnumber
+localserver
+# macdeployqt - NEEDED for deployment
+movie
+pdf
+pixeltool
+poll-exit-on-error
+printsupport
+qdoc
+qev
+qtattributionsscanner
+qtplugininfo
+sanitize_fuzzer_no_link
+sizegrip
+socks5
+sql
+systemsemaphore
+systemtrayicon
+tabletevent
+testlib
+textmarkdownreader
+textmarkdownwriter
+textodfwriter
+topleveldomain
+tuiotouch
+undocommand
+undogroup
+undostack
+undoview
+wasm-exceptions
+wasm-jspi
+wasm-simd128
+windeployqt
+# SSL/TLS backend exclusions
+openssl
+openssl-linked

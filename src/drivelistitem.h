@@ -13,21 +13,45 @@ class DriveListItem : public QObject
 {
     Q_OBJECT
 public:
-    explicit DriveListItem(QString device, QString description, quint64 size, QString guid, bool guidValid, bool isUsb = false, bool isScsi = false, bool readOnly = false, bool isSystem = false, QStringList mountpoints = QStringList(), QObject *parent = nullptr);
+    explicit DriveListItem(QString device, QString description, quint64 size, bool isUsb = false, bool isScsi = false, bool readOnly = false, bool isSystem = false, QStringList mountpoints = QStringList(), QStringList childDevices = QStringList(),
+                           bool isRpiboot = false,
+                           bool isFastbootStorage = false, QString fastbootBlockDevice = QString(), QString fastbootStorageType = QString(),
+                           QString guid = QString(), // UNRAID
+                           QObject *parent = nullptr);
 
     Q_PROPERTY(QString device MEMBER _device CONSTANT)
     Q_PROPERTY(QString description MEMBER _description CONSTANT)
     Q_PROPERTY(quint64 size MEMBER _size CONSTANT)
     Q_PROPERTY(QStringList mountpoints MEMBER _mountpoints CONSTANT)
+    Q_PROPERTY(QStringList childDevices MEMBER _childDevices CONSTANT)
     Q_PROPERTY(bool isUsb MEMBER _isUsb CONSTANT)
     Q_PROPERTY(bool isScsi MEMBER _isScsi CONSTANT)
     Q_PROPERTY(bool isReadOnly MEMBER _isReadOnly CONSTANT)
     Q_PROPERTY(bool isSystem MEMBER _isSystem CONSTANT)
+    Q_PROPERTY(bool isRpiboot MEMBER _isRpiboot CONSTANT)
+    Q_PROPERTY(bool isFastbootStorage MEMBER _isFastbootStorage CONSTANT)
+    Q_PROPERTY(QString fastbootBlockDevice MEMBER _fastbootBlockDevice CONSTANT)
+    Q_PROPERTY(QString fastbootStorageType MEMBER _fastbootStorageType CONSTANT)
+    // UNRAID: flash GUID an Unraid licence binds to, and whether the key server
+    // accepted it. guidValid is NOT CONSTANT: validation is asynchronous, so the
+    // value arrives after the item is already in the model and the UI must rebind.
     Q_PROPERTY(QString guid MEMBER _guid CONSTANT)
-    Q_PROPERTY(bool guidValid MEMBER _guidValid CONSTANT)
+    Q_PROPERTY(bool guidValid MEMBER _guidValid NOTIFY guidValidChanged)
+    Q_PROPERTY(bool guidChecked MEMBER _guidChecked NOTIFY guidValidChanged)
     Q_INVOKABLE int sizeInGb();
 
+    // UNRAID
+    void setGuidStatus(bool valid, bool checked)
+    {
+        if (_guidValid != valid || _guidChecked != checked) {
+            _guidValid = valid;
+            _guidChecked = checked;
+            emit guidValidChanged();
+        }
+    }
+
 signals:
+    void guidValidChanged(); // UNRAID
 
 public slots:
 
@@ -35,13 +59,19 @@ protected:
     QString _device;
     QString _description;
     QStringList _mountpoints;
+    QStringList _childDevices;
     quint64 _size;
-    QString _guid;
-    bool _guidValid;
     bool _isUsb;
     bool _isScsi;
     bool _isReadOnly;
     bool _isSystem;
+    bool _isRpiboot;
+    bool _isFastbootStorage;
+    QString _fastbootBlockDevice;
+    QString _fastbootStorageType;
+    QString _guid;          // UNRAID
+    bool _guidValid = false;   // UNRAID
+    bool _guidChecked = false; // UNRAID: false until the key server answers
 };
 
 #endif // DRIVELISTITEM_H

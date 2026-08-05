@@ -45,7 +45,7 @@ private:
 };
 
 AcceleratedCryptographicHash::AcceleratedCryptographicHash(QCryptographicHash::Algorithm method)
-    : p_Impl(std::make_unique<impl>(method)) {}
+    : p_Impl(std::make_unique<impl>(method)), _algo(method) {}
 
 AcceleratedCryptographicHash::~AcceleratedCryptographicHash() = default;
 
@@ -56,5 +56,16 @@ void AcceleratedCryptographicHash::addData(const QByteArray &data) {
     p_Impl->addData(data);
 }
 QByteArray AcceleratedCryptographicHash::result() const {
-    return p_Impl->result();
+    // Cache the result for consistent behavior across platforms
+    if (!_resultCached) {
+        _cachedResult = p_Impl->result();
+        _resultCached = true;
+    }
+    return _cachedResult;
+}
+
+void AcceleratedCryptographicHash::reset() {
+    p_Impl = std::make_unique<impl>(_algo);
+    _cachedResult.clear();
+    _resultCached = false;
 }

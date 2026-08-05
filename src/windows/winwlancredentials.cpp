@@ -7,7 +7,7 @@
 #include <windows.h>
 #include <winioctl.h>
 #include <wlanapi.h>
-#include <windot11.h>
+#include <Windot11.h>
 #include <delayimp.h>
 #include <QDebug>
 #include <QRegularExpression>
@@ -48,6 +48,20 @@ inline QString unescapeXml(QString str)
     }
 
     return str;
+}
+
+WinWlanCredentials::~WinWlanCredentials()
+{
+    // Securely erase credentials from memory to prevent recovery
+    // from core dumps, swap, or cold-boot attacks.
+    if (!_psk.isEmpty()) {
+        SecureZeroMemory(_psk.data(), _psk.size());
+        _psk.clear();
+    }
+    if (!_ssid.isEmpty()) {
+        SecureZeroMemory(_ssid.data(), _ssid.size());
+        _ssid.clear();
+    }
 }
 
 WinWlanCredentials::WinWlanCredentials()
@@ -119,12 +133,17 @@ WinWlanCredentials::WinWlanCredentials()
                                           NULL, &xmlstr, &flags, &access)) == ERROR_SUCCESS && xmlstr)
                         {
                             QString xml = QString::fromWCharArray(xmlstr);
-                            qDebug() << "XML wlan profile:" << xml;
                             QRegularExpression rx("<keyMaterial>(.+)</keyMaterial>");
                             QRegularExpressionMatch match = rx.match(xml);
 
                             if (match.hasMatch()) {
                                 _psk = unescapeXml(match.captured(1)).toLatin1();
+                            }
+
+                            // Zero the local XML string that contains the plaintext PSK
+                            // inside <keyMaterial> tags before it goes out of scope.
+                            if (xml.size() > 0) {
+                                SecureZeroMemory(xml.data(), xml.size() * sizeof(QChar));
                             }
 
                             WlanFreeMemory(xmlstr);
@@ -153,6 +172,17 @@ QByteArray WinWlanCredentials::getSSID()
 QByteArray WinWlanCredentials::getPSK()
 {
     return _psk;
+}
+
+QByteArray WinWlanCredentials::getPSKForSSID(const QByteArray &ssid)
+{
+    // Windows implementation caches both SSID and PSK during construction
+    // If requested SSID matches cached SSID, return cached PSK
+    if (ssid == _ssid && !_psk.isEmpty()) {
+        return _psk;
+    }
+    // Otherwise, return empty (would need to re-query Windows WLAN API)
+    return QByteArray();
 }
 
 WlanCredentials *WlanCredentials::_instance = NULL;

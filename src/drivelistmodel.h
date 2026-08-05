@@ -9,46 +9,133 @@
 #include <QAbstractItemModel>
 #include <QMap>
 #include <QHash>
+#include <QSet>
+#ifndef CLI_ONLY_BUILD
 #include <QQmlEngine>
+#endif
 #include "drivelistitem.h"
+#include "unraid/unraid_guid.h" // UNRAID
 #include "drivelistmodelpollthread.h"
 
 class DriveListModel : public QAbstractListModel
 {
     Q_OBJECT
+#ifndef CLI_ONLY_BUILD
     QML_ELEMENT
     QML_UNCREATABLE("Created by C++")
+#endif
+    Q_PROPERTY(QString lastError READ lastError NOTIFY lastErrorChanged)
 public:
-    DriveListModel(QObject *parent = nullptr);
-    virtual int rowCount(const QModelIndex &) const;
-    virtual QHash<int, QByteArray> roleNames() const;
-    virtual QVariant data(const QModelIndex &index, int role) const;
+    explicit DriveListModel(QObject *parent = nullptr);
+    
+    // QAbstractListModel overrides
+    int rowCount(const QModelIndex &parent = QModelIndex()) const override;
+    QHash<int, QByteArray> roleNames() const override;
+    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
     void startPolling();
     void stopPolling();
+    
+    /**
+     * @brief Pause drive scanning (during write operations)
+     * 
+     * Call this when starting a write operation to avoid I/O contention
+     * and device lock conflicts, especially on Windows.
+     */
+    void pausePolling();
+    
+    /**
+     * @brief Resume normal drive scanning
+     * 
+     * Call this after write operation completes and user returns to
+     * device selection.
+     */
+    void resumePolling();
+    
+    /**
+     * @brief Set slow polling mode (reduced frequency)
+     * 
+     * Use this after write completion when user is viewing results
+     * but doesn't need frequent drive list updates.
+     */
+    void setSlowPolling();
+    void setRpibootEnabled(bool enabled);
 
-    enum driveListRoles
-    {
-        deviceRole = Qt::UserRole + 1,
-        descriptionRole,
-        sizeRole,
-        isUsbRole,
-        isScsiRole,
-        isReadOnlyRole,
-        isSystemRole,
-        mountpointsRole,
-        guidRole,
-        guidValidRole
+    /**
+     * @brief Get child devices (e.g., APFS volumes) for a given device path
+     * 
+     * This avoids re-scanning the drive list during unmount operations.
+     * Returns cached child devices from the last drive list poll.
+     * 
+     * @param device Device path (e.g., "/dev/disk6")
+     * @return List of child device paths, empty if device not found
+     */
+    Q_INVOKABLE QStringList getChildDevices(const QString &device) const;
+    
+    /**
+     * @brief Get the last enumeration error message
+     * 
+     * Returns the error message from the most recent failed drive enumeration,
+     * or empty string if enumeration succeeded.
+     */
+    QString lastError() const { return _lastError; }
+
+    void setFastbootScanEnabled(bool enabled);
+
+    enum driveListRoles {
+        deviceRole = Qt::UserRole + 1, descriptionRole, sizeRole, isUsbRole, isScsiRole, isReadOnlyRole, isSystemRole, mountpointsRole, childDevicesRole,
+        isRpibootRole,
+        isFastbootStorageRole, fastbootBlockDeviceRole, fastbootStorageTypeRole,
+        guidRole, guidValidRole, guidCheckedRole // UNRAID
     };
+
+signals:
+    void deviceRemoved(const QString &device);
+    void eventDriveListPoll(quint32 durationMs);
+    void connectedRpibootChipsChanged(const QStringList &chips);
+    
+    /**
+     * @brief Emitted when the lastError property changes
+     * 
+     * Used by Qt's property binding system. For UI notifications,
+     * connect to enumerationError() instead which includes the message.
+     */
+    void lastErrorChanged();
+    
+    /**
+     * @brief Emitted when drive enumeration fails or recovers
+     * 
+     * @param errorMessage Human-readable error description, or empty if recovered
+     * 
+     * The UI should display this error to the user and potentially
+     * offer troubleshooting steps (e.g., "Try running as administrator").
+     */
+    void enumerationError(const QString &errorMessage);
+
+    void rpibootDeviceDetected(const QString &deviceId,
+                               uint8_t busNumber, uint8_t deviceAddress,
+                               const QList<uint8_t> &portPath, uint16_t productId);
 
 public slots:
     void processDriveList(std::vector<Drivelist::DeviceDescriptor> l);
 
 protected:
-    QMap<QString, DriveListItem *> _drivelist;
+    QMap<QString,DriveListItem *> _drivelist;
     QHash<int, QByteArray> _rolenames;
     DriveListModelPollThread _thread;
-    size_t _curl_write_callback(char *, size_t size, size_t nmemb, void *);
-    size_t _curl_header_callback(void *, size_t size, size_t nmemb, void *);
+
+    // UNRAID: async, per-GUID-cached key-server validation. Never blocks the UI
+    // thread (processDriveList runs there and is invoked on every poll).
+    Unraid::GuidValidator _guidValidator;
+    QHash<QString, QString> _guidByKey; // drive key -> GUID, for applying late results
+    void applyGuidStatus(const QString &key, const QString &guid, Unraid::GuidValidator::Status status);
+    QString _lastError;  // Last enumeration error message (empty if successful)
+    QStringList _connectedRpibootChips;
+    // Tracks naked rpiboot devices we've already emitted rpibootDeviceDetected
+    // for.  We deliberately keep these out of _drivelist (they aren't writable
+    // storage until bootstrap converts them to fastboot mode) but still need
+    // a per-device "have we seen this one already" signal to avoid spamming
+    // auto-bootstrap on every poll.
+    QSet<QString> _seenRpibootDevices;
 };
 
 #endif // DRIVELISTMODEL_H

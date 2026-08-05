@@ -7,7 +7,9 @@
 #define HWLISTMODEL_H
 
 #include <QAbstractItemModel>
+#ifndef CLI_ONLY_BUILD
 #include <QQmlEngine>
+#endif
 #include <QJsonArray>
 
 class ImageWriter;
@@ -15,8 +17,10 @@ class ImageWriter;
 class HWListModel : public QAbstractListModel
 {
     Q_OBJECT
+#ifndef CLI_ONLY_BUILD
     QML_ELEMENT
     QML_UNCREATABLE("Created by C++")
+#endif
     Q_PROPERTY(QString currentName READ currentName NOTIFY currentNameChanged)
     Q_PROPERTY(QString currentArchitecture READ currentArchitecture NOTIFY currentArchitectureChanged)
     Q_PROPERTY(int currentIndex READ currentIndex WRITE setCurrentIndex NOTIFY currentIndexChanged)
@@ -25,15 +29,18 @@ public:
     enum HWListRole {
         NameRole = Qt::UserRole + 1,
         TagsRole,
+        CapabilitiesRole,
         IconRole,
         DescriptionRole,
         MatchingTypeRole,
-        ArchitectureRole
+        ArchitectureRole,
+        IsUsbBootConnectedRole
     };
 
     struct HardwareDevice {
         QString name;
         QJsonArray tags;
+        QJsonArray capabilities;
         QString icon;
         QString description;
         QString matchingType;
@@ -57,6 +64,9 @@ public:
     int currentIndex() const;
     void setCurrentIndex(int index);
 
+public slots:
+    void setConnectedRpibootChips(const QStringList &chips);
+
 Q_SIGNALS:
     void currentNameChanged();
     void currentArchitectureChanged();
@@ -68,9 +78,13 @@ protected:
     QVariant data(const QModelIndex &index, int role) const override;
 
 private:
+    static bool tagsMatchChip(const QJsonArray &tags, const QString &chipName);
+
     QVector<HardwareDevice> _hwDevices;
     ImageWriter &_imageWriter;
     int _currentIndex = -1;
+    QString _lastSelectedDeviceName;  // Track actual device to detect changes
+    QStringList _connectedRpibootChips;
 };
 
 #endif

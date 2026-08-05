@@ -1,10 +1,5 @@
-#!/bin/bash
-LOGFILE="$PWD/build.log"
-: >"$LOGFILE" 
-
-exec > >(stdbuf -oL -eL tee -a "$LOGFILE") 2>&1
-
-set -x
+#!/bin/sh
+set -e
 
 # Parse command line arguments
 ARCH=$(uname -m)  # Default to current architecture
@@ -42,8 +37,24 @@ for arg in "$@"; do
     esac
 done
 
+# Resolve Qt root path argument if provided (expand ~ and convert to absolute path)
+if [ -n "$QT_ROOT_ARG" ]; then
+    # Expand tilde if present at the start
+    case "$QT_ROOT_ARG" in
+        "~"/*) QT_ROOT_ARG="$HOME/${QT_ROOT_ARG#\~/}" ;;
+        "~")   QT_ROOT_ARG="$HOME" ;;
+    esac
+    # Convert to absolute path if it exists
+    if [ -e "$QT_ROOT_ARG" ]; then
+        QT_ROOT_ARG=$(cd "$QT_ROOT_ARG" && pwd)
+    else
+        echo "Warning: Specified Qt root path does not exist: $QT_ROOT_ARG"
+        echo "Will attempt to use it anyway, but this may fail..."
+    fi
+fi
+
 # Validate architecture
-if [[ "$ARCH" != "x86_64" && "$ARCH" != "aarch64" ]]; then
+if [ "$ARCH" != "x86_64" ] && [ "$ARCH" != "aarch64" ]; then
     echo "Error: Architecture must be one of: x86_64, aarch64"
     exit 1
 fi
@@ -54,16 +65,29 @@ echo "Building for architecture: $ARCH"
 SOURCE_DIR="src/"
 CMAKE_FILE="${SOURCE_DIR}CMakeLists.txt"
 
-# Extract version components
-MAJOR=$(grep -E "set\(IMAGER_VERSION_MAJOR [0-9]+" "$CMAKE_FILE" | sed 's/set(IMAGER_VERSION_MAJOR \([0-9]*\).*/\1/')
-MINOR=$(grep -E "set\(IMAGER_VERSION_MINOR [0-9]+" "$CMAKE_FILE" | sed 's/set(IMAGER_VERSION_MINOR \([0-9]*\).*/\1/')
-PATCH=$(grep -E "set\(IMAGER_VERSION_PATCH [0-9]+" "$CMAKE_FILE" | sed 's/set(IMAGER_VERSION_PATCH \([0-9]*\).*/\1/')
-PROJECT_VERSION="$MAJOR.$MINOR.$PATCH"
+# Get version from git tag (same approach as CMake)
+GIT_VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "0.0.0-unknown")
+
+# Extract numeric version components for compatibility
+# Match versions like: v1.2.3, 1.2.3, v1.2.3-extra, etc.
+MAJOR=$(echo "$GIT_VERSION" | sed -n 's/^v\{0,1\}\([0-9]\{1,\}\)\.[0-9]\{1,\}\.[0-9]\{1,\}.*/\1/p')
+MINOR=$(echo "$GIT_VERSION" | sed -n 's/^v\{0,1\}[0-9]\{1,\}\.\([0-9]\{1,\}\)\.[0-9]\{1,\}.*/\1/p')
+PATCH=$(echo "$GIT_VERSION" | sed -n 's/^v\{0,1\}[0-9]\{1,\}\.[0-9]\{1,\}\.\([0-9]\{1,\}\).*/\1/p')
+
+if [ -n "$MAJOR" ] && [ -n "$MINOR" ] && [ -n "$PATCH" ]; then
+    PROJECT_VERSION="$MAJOR.$MINOR.$PATCH"
+else
+    MAJOR="0"
+    MINOR="0"
+    PATCH="0"
+    PROJECT_VERSION="0.0.0"
+    echo "Warning: Could not parse version from git tag: $GIT_VERSION"
+fi
 
 # Extract project name (lowercase for AppImage naming convention)
 PROJECT_NAME=$(grep "project(" "$CMAKE_FILE" | head -1 | sed 's/project(\([^[:space:]]*\).*/\1/' | tr '[:upper:]' '[:lower:]')
 
-echo "Building $PROJECT_NAME version $PROJECT_VERSION"
+echo "Building $PROJECT_NAME version $GIT_VERSION (numeric: $PROJECT_VERSION)"
 
 # Check for Qt installation
 # Priority: 1. Command line argument, 2. Environment variable, 3. Auto-detection
@@ -93,7 +117,7 @@ else
     if [ -d "/opt/Qt" ]; then
         echo "Checking for Qt installations in /opt/Qt..."
         # Find the newest Qt6 version installed
-        NEWEST_QT=$(find /opt/Qt -maxdepth 1 -type d -name "6.*" | sort -V | tail -n 1)
+        NEWEST_QT=$(find -L /opt/Qt -maxdepth 1 -type d -name "6.*" | sort -V | tail -n 1)
         if [ -n "$NEWEST_QT" ]; then
             QT_VERSION=$(basename "$NEWEST_QT")
             
@@ -122,9 +146,9 @@ fi
 if [ -z "$QT_DIR" ]; then
     echo "Error: No suitable Qt installation found for $ARCH"
     
-    if [ -f "./build-qt.sh" ]; then
+    if [ -f "./qt/build-qt.sh" ]; then
         echo "You can build Qt using the provided script:"
-        echo "  ./build-qt.sh --version=6.9.0"
+        echo "  ./qt/build-qt.sh --version=6.9.1"
         echo "Or specify the Qt location with:"
         echo "  $0 --qt-root=/path/to/qt"
         echo "  export Qt6_ROOT=/path/to/qt"
@@ -141,9 +165,21 @@ fi
 BUILD_TYPE="MinSizeRel"
 QML_SOURCES_PATH="$PWD/src/qmlcomponents/"
 
-# Location of AppDir and output file
+# UNRAID: the product identity is NOT declared here. It is read from
+# branding.env, which src/cmake/UnraidBranding.cmake generates at configure
+# time, so this script and the build cannot disagree about what the binary is
+# called. They previously did -- this script carried its own hardcoded defaults
+# and the build installed a different name, producing an AppImage that built
+# green and died on launch. Sourced after cmake runs; see below.
+#
+# To build a stock upstream AppImage, configure the brand rather than this
+# script:  IMAGER_BRAND=rpi ./create-appimage.sh
+
+# Location of AppDir. OUTPUT_FILE is derived once branding.env is available,
+# by which point we have cd'd into the build directory -- so remember the repo
+# root now rather than relying on $PWD later.
+REPO_ROOT="$PWD"
 APPDIR="$PWD/AppDir-$ARCH"
-OUTPUT_FILE="$PWD/Unraid_Usb_Creator-${PROJECT_VERSION}-${ARCH}.AppImage"
 
 # Tools directory for downloaded binaries
 TOOLS_DIR="$PWD/appimage-tools"
@@ -152,20 +188,24 @@ mkdir -p "$TOOLS_DIR"
 # Download linuxdeploy and plugins if they don't exist
 echo "Ensuring linuxdeploy tools are available..."
 
+# Pin to specific stable versions
+LINUXDEPLOY_VERSION="1-alpha-20250213-2"
+LINUXDEPLOY_PLUGIN_QT_VERSION="1-alpha-20250213-1"
+
 # Choose the right linuxdeploy tools based on architecture
 if [ "$ARCH" = "x86_64" ]; then
     LINUXDEPLOY="$TOOLS_DIR/linuxdeploy-x86_64.AppImage"
     LINUXDEPLOY_QT="$TOOLS_DIR/linuxdeploy-plugin-qt-x86_64.AppImage"
     
     if [ ! -f "$LINUXDEPLOY" ]; then
-        echo "Downloading linuxdeploy for x86_64..."
-        curl -L -o "$LINUXDEPLOY" "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage"
+        echo "Downloading linuxdeploy $LINUXDEPLOY_VERSION for x86_64..."
+        curl -L -o "$LINUXDEPLOY" "https://github.com/linuxdeploy/linuxdeploy/releases/download/$LINUXDEPLOY_VERSION/linuxdeploy-x86_64.AppImage"
         chmod +x "$LINUXDEPLOY"
     fi
     
     if [ ! -f "$LINUXDEPLOY_QT" ]; then
-        echo "Downloading linuxdeploy-plugin-qt for x86_64..."
-        curl -L -o "$LINUXDEPLOY_QT" "https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage"
+        echo "Downloading linuxdeploy-plugin-qt $LINUXDEPLOY_PLUGIN_QT_VERSION for x86_64..."
+        curl -L -o "$LINUXDEPLOY_QT" "https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/$LINUXDEPLOY_PLUGIN_QT_VERSION/linuxdeploy-plugin-qt-x86_64.AppImage"
         chmod +x "$LINUXDEPLOY_QT"
     fi
 elif [ "$ARCH" = "aarch64" ]; then
@@ -173,14 +213,14 @@ elif [ "$ARCH" = "aarch64" ]; then
     LINUXDEPLOY_QT="$TOOLS_DIR/linuxdeploy-plugin-qt-aarch64.AppImage"
     
     if [ ! -f "$LINUXDEPLOY" ]; then
-        echo "Downloading linuxdeploy for aarch64..."
-        curl -L -o "$LINUXDEPLOY" "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-aarch64.AppImage"
+        echo "Downloading linuxdeploy $LINUXDEPLOY_VERSION for aarch64..."
+        curl -L -o "$LINUXDEPLOY" "https://github.com/linuxdeploy/linuxdeploy/releases/download/$LINUXDEPLOY_VERSION/linuxdeploy-aarch64.AppImage"
         chmod +x "$LINUXDEPLOY"
     fi
     
     if [ ! -f "$LINUXDEPLOY_QT" ]; then
-        echo "Downloading linuxdeploy-plugin-qt for aarch64..."
-        curl -L -o "$LINUXDEPLOY_QT" "https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-aarch64.AppImage"
+        echo "Downloading linuxdeploy-plugin-qt $LINUXDEPLOY_PLUGIN_QT_VERSION for aarch64..."
+        curl -L -o "$LINUXDEPLOY_QT" "https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/$LINUXDEPLOY_PLUGIN_QT_VERSION/linuxdeploy-plugin-qt-aarch64.AppImage"
         chmod +x "$LINUXDEPLOY_QT"
     fi
 fi
@@ -197,7 +237,7 @@ fi
 mkdir -p "$APPDIR"
 mkdir -p "$BUILD_DIR"
 
-echo "Building unraid-usb-creator for $ARCH..."
+echo "Building for $ARCH..."
 # Configure and build with CMake
 cd "$BUILD_DIR"
 
@@ -213,38 +253,142 @@ fi
 # Add Qt path to CMake flags
 CMAKE_EXTRA_FLAGS="$CMAKE_EXTRA_FLAGS -DQt6_ROOT=$QT_DIR"
 
+# UNRAID: honour an explicit brand so a stock upstream AppImage stays buildable
+# (IMAGER_BRAND=rpi ./create-appimage.sh). Left unset, UnraidBranding.cmake
+# picks its own default.
+if [ -n "${IMAGER_BRAND:-}" ]; then
+    CMAKE_EXTRA_FLAGS="$CMAKE_EXTRA_FLAGS -DIMAGER_BRAND=$IMAGER_BRAND"
+fi
+
 # shellcheck disable=SC2086
 cmake "../$SOURCE_DIR" -DCMAKE_BUILD_TYPE="$BUILD_TYPE" -DCMAKE_INSTALL_PREFIX=/usr $CMAKE_EXTRA_FLAGS
-make -j$(nproc)
+
+# UNRAID: adopt the identity the build just computed. This is the single source
+# of truth -- see src/cmake/branding.env.in. Everything below (AppRun's exec
+# target, the desktop file, the output filename) derives from these values, so
+# the script cannot drift from what was actually installed.
+if [ ! -f "branding.env" ]; then
+    echo "ERROR: branding.env was not generated by cmake in $PWD." >&2
+    echo "       src/cmake/UnraidBranding.cmake should configure_file() it." >&2
+    exit 1
+fi
+# shellcheck disable=SC1091
+. ./branding.env
+echo "Branding: ${IMAGER_APP_NAME} (executable '${IMAGER_EXE_NAME}')"
+
+# linuxdeploy names its output after the desktop entry's Name= with spaces
+# replaced by underscores; IMAGER_APPIMAGE_NAME is derived from the same source.
+OUTPUT_FILE="$REPO_ROOT/${IMAGER_APPIMAGE_NAME}-${GIT_VERSION}-desktop-${ARCH}.AppImage"
+
+make -j"$(nproc)"
 
 echo "Creating AppDir..."
 # Install to AppDir
 make DESTDIR="$APPDIR" install
 cd ..
 
-# if doesn't exist, copy the desktop file from debian directory (should already have been created by cmake install commands in CMakeLists.txt)
-if [ ! -f "$APPDIR/usr/share/applications/com.limetech.unraid-usb-creator.desktop" ]; then
+# Copy the desktop file from debian directory
+if [ ! -f "$APPDIR/usr/share/applications/${IMAGER_BUNDLE_ID}.desktop" ]; then
     mkdir -p "$APPDIR/usr/share/applications"
-    cp "debian/com.limetech.unraid-usb-creator.desktop" "$APPDIR/usr/share/applications/"
-    
+    cp "${IMAGER_DESKTOP_FILE}" "$APPDIR/usr/share/applications/"
 fi
-# Update the Exec & Icon lines to match the AppImage requirements
-sed -i 's|Exec=.*|Exec=unraid-usb-creator|' "$APPDIR/usr/share/applications/com.limetech.unraid-usb-creator.desktop"
-sed -i 's|^Icon=.*|Icon=unraid|' "$APPDIR/usr/share/applications/com.limetech.unraid-usb-creator.desktop"
+
+# UNRAID: normalise Exec unconditionally, not just when we had to copy the file
+# in ourselves. CMake installs the branded desktop entry during `make install`
+# above, so the copy branch never runs and upstream's rewrite never happened --
+# leaving the in-AppDir entry pointing at an absolute /usr/bin path. Inside an
+# AppImage that resolves to a system-wide install rather than the bundled
+# binary, so desktop integration would launch the wrong thing (or nothing).
+# Only the AppDir copy is touched; the installed system entry keeps its path.
+sed -i "s|Exec=.*|Exec=${IMAGER_EXE_NAME} %F|" "$APPDIR/usr/share/applications/${IMAGER_BUNDLE_ID}.desktop"
 
 # Create the AppRun file if not created by the install process
 if [ ! -f "$APPDIR/AppRun" ]; then
-    cat > "$APPDIR/AppRun" << 'EOF'
-#!/bin/bash
+    # UNRAID: the body below is a QUOTED heredoc on purpose -- ${HERE}, "$@",
+    # $(id -u) and friends must reach the generated script literally and be
+    # expanded when the AppImage runs, not now. That means build-time values
+    # cannot be interpolated into it: a ${IMAGER_EXE_NAME} written inside the
+    # quoted block stays literal, is unset at runtime, and the final exec
+    # degrades to "${HERE}/usr/bin/" -- which fails with "Is a directory".
+    #
+    # So emit the one build-time value first, through an unquoted heredoc, and
+    # keep the rest verbatim.
+    cat > "$APPDIR/AppRun" << EOF
+#!/bin/sh
+# Generated by create-appimage.sh -- this line is expanded at build time.
+IMAGER_EXE_NAME="${IMAGER_EXE_NAME}"
+EOF
+    cat >> "$APPDIR/AppRun" << 'EOF'
 HERE="$(dirname "$(readlink -f "${0}")")"
 export PATH="${HERE}/usr/bin:${PATH}"
 export LD_LIBRARY_PATH="${HERE}/usr/lib:${LD_LIBRARY_PATH}"
 export QT_PLUGIN_PATH="${HERE}/usr/plugins"
 export QML_IMPORT_PATH="${HERE}/usr/qml"
 export QT_QPA_PLATFORM_PLUGIN_PATH="${HERE}/usr/plugins/platforms"
-exec "${HERE}/usr/bin/unraid-usb-creator" "$@"
+
+# Handle X11 authorization when running as root (via sudo or pkexec)
+# This fixes "Authorization required, but no authorization protocol specified" errors
+if [ "$(id -u)" = "0" ]; then
+    # Determine original user from sudo or pkexec
+    ORIGINAL_USER=""
+    ORIGINAL_UID=""
+    ORIGINAL_HOME=""
+    
+    if [ -n "$SUDO_USER" ]; then
+        ORIGINAL_USER="$SUDO_USER"
+        ORIGINAL_UID="$SUDO_UID"
+        ORIGINAL_HOME=$(getent passwd "$SUDO_USER" | cut -d: -f6)
+    elif [ -n "$PKEXEC_UID" ]; then
+        ORIGINAL_UID="$PKEXEC_UID"
+        ORIGINAL_USER=$(getent passwd "$PKEXEC_UID" | cut -d: -f1)
+        ORIGINAL_HOME=$(getent passwd "$PKEXEC_UID" | cut -d: -f6)
+    fi
+    
+    if [ -n "$ORIGINAL_USER" ] && [ -n "$ORIGINAL_HOME" ]; then
+        # Try to grant root access to the X display using xhost
+        # This must be run as the original user who owns the display
+        if command -v xhost >/dev/null 2>&1; then
+            if [ -n "$DISPLAY" ]; then
+                # Run xhost as the original user to grant root access
+                su "$ORIGINAL_USER" -c "xhost +SI:localuser:root" >/dev/null 2>&1 || true
+            fi
+        fi
+        
+        # Set XAUTHORITY to the original user's .Xauthority if not already set
+        if [ -z "$XAUTHORITY" ]; then
+            if [ -f "$ORIGINAL_HOME/.Xauthority" ]; then
+                export XAUTHORITY="$ORIGINAL_HOME/.Xauthority"
+            fi
+        fi
+        
+        # Ensure DISPLAY is set (for pkexec which may not preserve it)
+        if [ -z "$DISPLAY" ]; then
+            # Try common X11 display socket
+            if [ -S "/tmp/.X11-unix/X0" ]; then
+                export DISPLAY=":0"
+            fi
+        fi
+    fi
+fi
+
+# The binary handles privilege elevation internally via pkexec if needed
+exec "${HERE}/usr/bin/${IMAGER_EXE_NAME}" "$@"
 EOF
     chmod +x "$APPDIR/AppRun"
+fi
+
+# UNRAID: fail here rather than shipping an AppImage that dies on launch.
+#
+# Two separate bugs got past CI because nothing checked that AppRun's exec target
+# actually exists: the name was empty (quoted-heredoc interpolation, see above),
+# and separately the Linux build installed the binary under the CMake target name
+# while AppRun looked for the product name. Both produced an AppImage that built
+# green, uploaded fine, and failed for the first person who ran it.
+if [ ! -x "$APPDIR/usr/bin/${IMAGER_EXE_NAME}" ]; then
+    echo "ERROR: AppRun will exec '\$APPDIR/usr/bin/${IMAGER_EXE_NAME}', which does not exist." >&2
+    echo "       IMAGER_EXE_NAME must match the installed binary. Found in usr/bin:" >&2
+    ls -1 "$APPDIR/usr/bin/" >&2 2>/dev/null || echo "       (usr/bin is missing entirely)" >&2
+    exit 1
 fi
 
 # Deploy Qt dependencies
@@ -254,52 +398,116 @@ export QML_SOURCES_PATHS="$QML_SOURCES_PATH"
 export APPIMAGE_EXTRACT_AND_RUN=1
 # Set Qt path for linuxdeploy-plugin-qt
 export QMAKE="$QT_DIR/bin/qmake"
-# Set LD_LIBRARY_PATH to include Qt libraries
+# Set library paths to include Qt libraries (both runtime and linker search paths)
 export LD_LIBRARY_PATH="$QT_DIR/lib:$LD_LIBRARY_PATH"
-
-# normalize text files that AppImage validators read
-sed -i 's/\r$//' "$APPDIR/usr/share/applications/com.limetech.unraid-usb-creator.desktop"
-sed -i 's/\r$//' "$APPDIR/usr/share/metainfo/com.limetech.unraid-usb-creator.metainfo.xml"
-
-"$LINUXDEPLOY" --appdir="$APPDIR" --plugin=qt --exclude-library="libwayland-*"
+# Optimize deployment: exclude translations and unnecessary libraries
+export LINUXDEPLOY_PLUGIN_QT_IGNORE_GLOB="*/translations/*"
+# Exclude libsystemd - it must come from the host system to work correctly with DBus
+# Including it causes compatibility issues (see https://github.com/raspberrypi/rpi-imager/issues/1304)
+"$LINUXDEPLOY" --appdir="$APPDIR" --plugin=qt --exclude-library="libwayland-*" --exclude-library="libsystemd*" --exclude-library="libdbus-*" --exclude-library="libcap*" --verbosity=0
 
 # Hook for removing files before AppImage creation
 echo "Pre-packaging hook - opportunity to remove unwanted files"
-# Add your file removal commands here, for example:
-# rm -rf "$APPDIR/usr/lib/libunwanted.so"
+
+# Remove host-coupled libraries that linuxdeploy-plugin-qt deploys despite --exclude-library
+# These must come from the host system:
+#   libsystemd: works with lsblk/libmount/DBus (see #1304, #1577)
+#   libdbus-1:  communicates with host session bus, NEEDED libsystemd which we exclude
+#   libcap:     kernel capabilities interface, orphaned transitive dep of libsystemd
+rm -f "$APPDIR/usr/lib/libsystemd"*
+rm -f "$APPDIR/usr/lib/libdbus-1"*
+rm -f "$APPDIR/usr/lib/libcap"*
+rm -rf "$APPDIR/usr/share/doc/libsystemd"*
+rm -rf "$APPDIR/usr/share/doc/libdbus"*
+rm -rf "$APPDIR/usr/share/doc/libcap"*
+
+# Remove unused QML Controls themes (size optimization)
 rm -rf "$APPDIR/usr/qml/QtQuick/Controls/Universal"
 rm -rf "$APPDIR/usr/qml/QtQuick/Controls/Fusion"
 rm -rf "$APPDIR/usr/qml/QtQuick/Controls/Imagine"
 rm -rf "$APPDIR/usr/qml/QtQuick/Controls/FluentWinUI3"
 
+# Remove QtWidgets if included (we don't use it)
+rm -f "$APPDIR/usr/lib/libQt6Widgets.so"*
+rm -f "$APPDIR/usr/lib/libQt"*"Widgets.so"*
+
+# Remove QML debugging tools (development-only)
+rm -rf "$APPDIR/usr/qml/QtTest"*
+rm -rf "$APPDIR/usr/plugins/qmltooling"
+
+# Remove Qt translations (we excluded them but remove any that might have slipped through)
+rm -rf "$APPDIR/usr/translations"
+rm -rf "$APPDIR/usr/share/qt6/translations"
+
+# Remove unnecessary image format plugins (consistency with all platforms)
+# Excludes: TIFF, WebP, GIF (less common formats)
+# Keeps: JPEG, PNG, SVG (common formats + icons)
+rm -f "$APPDIR/usr/plugins/imageformats/libqtiff.so"
+rm -f "$APPDIR/usr/plugins/imageformats/libqwebp.so"
+rm -f "$APPDIR/usr/plugins/imageformats/libqgif.so"
+
+# Remove unused Qt Quick Controls 2 style libraries (size optimization)
+rm -f "$APPDIR/usr/lib/libQt6QuickControls2Fusion.so"*
+rm -f "$APPDIR/usr/lib/libQt6QuickControls2Universal.so"*
+rm -f "$APPDIR/usr/lib/libQt6QuickControls2Imagine.so"*
+rm -f "$APPDIR/usr/lib/libQt6QuickControls2FluentWinUI3.so"*
+rm -f "$APPDIR/usr/lib/libQt6QuickControls2FusionStyleImpl.so"*
+rm -f "$APPDIR/usr/lib/libQt6QuickControls2UniversalStyleImpl.so"*
+rm -f "$APPDIR/usr/lib/libQt6QuickControls2ImagineStyleImpl.so"*
+rm -f "$APPDIR/usr/lib/libQt6QuickControls2FluentWinUI3StyleImpl.so"*
+rm -f "$APPDIR/usr/lib/libQt6QuickControls2WindowsStyleImpl.so"*
+
 # Create the AppImage
 echo "Creating AppImage..."
-# Remove old AppImage symlink
-rm -f "$PWD/unraid-usb-creator.AppImage"
-# Ensure LD_LIBRARY_PATH is still set for this call too
-"$LINUXDEPLOY" --appdir="$APPDIR" --output=appimage
+# Remove old symlinks for this variant only
+rm -f "$PWD/${IMAGER_EXE_NAME}-desktop-$ARCH.AppImage"
+rm -f "$PWD/${IMAGER_EXE_NAME}-$ARCH.AppImage"  # Legacy symlink name
 
-# Rename the output file if needed
-for appimage in *.AppImage; do
-    if [ "$PWD/$appimage" != "$OUTPUT_FILE" ]; then
-        mv "$appimage" "$OUTPUT_FILE"
-    fi
-done
+# Ensure LD_LIBRARY_PATH is still set for this call too
+export LD_LIBRARY_PATH="$QT_DIR/lib:$LD_LIBRARY_PATH"
+# Explicitly specify the desktop file to ensure correct naming
+# Re-specify --exclude-library flags: linuxdeploy re-resolves dependencies during
+# output generation, which would re-bundle excluded libraries.
+"$LINUXDEPLOY" --appdir="$APPDIR" \
+    --desktop-file="$APPDIR/usr/share/applications/${IMAGER_BUNDLE_ID}.desktop" \
+    --exclude-library="libsystemd*" \
+    --exclude-library="libdbus-*" \
+    --exclude-library="libcap*" \
+    --exclude-library="libwayland-*" \
+    --output=appimage \
+    --verbosity=0
+
+# Rename the output file from linuxdeploy's default name to our versioned name
+# linuxdeploy creates: Raspberry_Pi_Imager-${ARCH}.AppImage (based on Name= in desktop file)
+LINUXDEPLOY_OUTPUT="${IMAGER_APPIMAGE_NAME}-${ARCH}.AppImage"
+if [ -f "$LINUXDEPLOY_OUTPUT" ]; then
+    echo "Renaming '$LINUXDEPLOY_OUTPUT' to '$(basename "$OUTPUT_FILE")'"
+    mv "$LINUXDEPLOY_OUTPUT" "$OUTPUT_FILE"
+elif [ -f "$OUTPUT_FILE" ]; then
+    echo "Output file already exists: $OUTPUT_FILE"
+else
+    echo "Warning: Expected linuxdeploy output '$LINUXDEPLOY_OUTPUT' not found"
+    echo "Looking for any matching AppImage..."
+    ls -la ./*.AppImage 2>/dev/null || true
+fi
 
 echo "AppImage created at $OUTPUT_FILE"
 
-# Create a symlink with an architecture-specific name
-SYMLINK_NAME="$PWD/unraid-usb-creator-$ARCH.AppImage"
-if [ -L "$SYMLINK_NAME" ] || [ -f "$SYMLINK_NAME" ]; then
-    rm -f "$SYMLINK_NAME"
+# Create symlinks for debian packaging and user convenience
+# Primary symlink matches debian/rpi-imager.install expectations
+DEBIAN_SYMLINK="$PWD/${IMAGER_EXE_NAME}-$ARCH.AppImage"
+if [ -L "$DEBIAN_SYMLINK" ] || [ -f "$DEBIAN_SYMLINK" ]; then
+    rm -f "$DEBIAN_SYMLINK"
 fi
-ln -s "$(basename "$OUTPUT_FILE")" "$SYMLINK_NAME"
-echo "Created symlink: $SYMLINK_NAME -> $(basename "$OUTPUT_FILE")"
+ln -s "$(basename "$OUTPUT_FILE")" "$DEBIAN_SYMLINK"
+echo "Created symlink: $DEBIAN_SYMLINK -> $(basename "$OUTPUT_FILE")"
 
-echo "Build completed successfully for $ARCH architecture." 
+# Additional descriptive symlink for clarity when multiple variants exist
+DESCRIPTIVE_SYMLINK="$PWD/${IMAGER_EXE_NAME}-desktop-$ARCH.AppImage"
+if [ -L "$DESCRIPTIVE_SYMLINK" ] || [ -f "$DESCRIPTIVE_SYMLINK" ]; then
+    rm -f "$DESCRIPTIVE_SYMLINK"
+fi
+ln -s "$(basename "$OUTPUT_FILE")" "$DESCRIPTIVE_SYMLINK"
+echo "Created symlink: $DESCRIPTIVE_SYMLINK -> $(basename "$OUTPUT_FILE")"
 
-# echo "Printing final directory contents:"
-# ls "$PWD"
-
-# echo "Contents of AppDir ($APPDIR):"
-# tree -L 5 "$APPDIR"
+echo "Build completed successfully for $ARCH architecture."
