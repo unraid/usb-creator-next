@@ -126,7 +126,37 @@ DownloadThread::~DownloadThread()
     // Cancel async cache writer if still running
     if (_asyncCacheWriter) {
         _asyncCacheWriter->cancel();
-        _asyncCacheWriter.reset();
+
+        // UNRAID: cancel() waits up to 10s and then gives up -- it deliberately
+        // avoids terminate(), and says so. If the writer is still stuck in I/O
+        // after that, destroying it would run ~QThread on a running thread, which
+        // is a qFatal: the application aborts with no warning and no chance for
+        // the user to do anything. The app must not kill itself.
+        //
+        // So decline to delete it and let the thread finish on its own. That is
+        // safe here specifically because AsyncCacheWriter is self-contained -- it
+        // owns its QFile, queue, mutex and counters, and run() touches nothing
+        // belonging to this object -- so it cannot use-after-free once we are
+        // gone. It writes only to the local cache file, never the target device.
+        // Leaking one thread for the remainder of the process beats aborting.
+        //
+        // This works because the writer is no longer QObject-parented to us (see
+        // the construction site), so nothing else will delete it either. There is
+        // deliberately no setParent(nullptr) here the way the extract thread would
+        // need one: the writer has no parent to detach from, and single ownership
+        // via this unique_ptr is the point. (Thread affinity is not a factor: the
+        // writer is created in setCacheFile(), which ImageWriter calls on the main
+        // thread, the same thread this destructor runs on via deleteLater.)
+        //
+        // Same defect class as the extract thread abort reported by macOS QA on
+        // rc.22; this is the other place it could happen.
+        if (_asyncCacheWriter->isRunning()) {
+            qWarning() << "Async cache writer still running after cancel(); leaking it "
+                          "rather than destroying a running thread";
+            (void)_asyncCacheWriter.release();
+        } else {
+            _asyncCacheWriter.reset();
+        }
     }
     
     // Use _closeFiles() to ensure cache file is properly closed
@@ -908,7 +938,15 @@ void DownloadThread::setCacheFile(const QString &filename, qint64 filesize)
     _cacheFilename = filename;
     
     // Create async cache writer
-    _asyncCacheWriter = std::make_unique<AsyncCacheWriter>(this);
+    // UNRAID: deliberately unparented. Passing `this` made it owned twice -- by
+    // this unique_ptr and by QObject parenting -- so ~QObject's deleteChildren()
+    // could destroy it independently of the unique_ptr. That matters because
+    // cancel() gives up after 10s and can leave the thread running, and
+    // destroying a running QThread is a qFatal that aborts the whole
+    // application. With a single owner the destructor below can simply decline to
+    // delete it. Nothing needed the parent: the signal connections below name the
+    // object explicitly.
+    _asyncCacheWriter = std::make_unique<AsyncCacheWriter>();
     
     // Connect error signal for async error propagation from writer thread
     // Using Qt::QueuedConnection to ensure thread-safe signal delivery
