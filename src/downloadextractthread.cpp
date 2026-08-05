@@ -141,6 +141,29 @@ DownloadExtractThread::~DownloadExtractThread()
     if (!_extractThread->wait(10000))
     {
         _extractThread->terminate();
+
+        // UNRAID: terminate() only *requests* termination and returns immediately,
+        // so without waiting the thread is usually still running a moment later.
+        // _extractThread is a QObject child of this object, so the base ~QThread
+        // below reaches ~QObject -> deleteChildren() and destroys it while it runs
+        // -- and ~QThread on a running thread is a qFatal, which aborts the process.
+        //
+        // Reported from macOS QA on rc.22: SIGABRT during a write, with
+        //   QThread::~QThread -> QObjectPrivate::deleteChildren ->
+        //   QThread::~QThread -> DownloadExtractThread::~DownloadExtractThread
+        // Qt's docs require wait() after terminate() for exactly this reason.
+        //
+        // Bounded, because this destructor runs on the GUI thread via deleteLater
+        // and an unbounded wait would hang the window instead of crashing it.
+        if (!_extractThread->wait(5000)) {
+            // Refused to die even after terminate(). Detach it so ~QObject does not
+            // destroy a running thread: leaking one thread for the remainder of the
+            // process is strictly better than aborting the application.
+            qWarning() << "Extract thread did not stop after terminate(); detaching "
+                          "it rather than destroying a running thread";
+            _extractThread->setParent(nullptr);
+            _extractThread = nullptr;
+        }
     }
     
     // Wait for any pending async writes before destroying ring buffers
