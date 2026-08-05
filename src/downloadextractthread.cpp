@@ -26,6 +26,7 @@
 
 #ifdef Q_OS_WIN
 #include <windows.h>
+#include "windows/diskpart_util.h" // UNRAID: drive-letter fallback, see extractMultiFileRun()
 #else
 #include <unistd.h>
 #endif
@@ -672,6 +673,54 @@ void DownloadExtractThread::extractMultiFileRun()
         if (!folder.isEmpty())
             break;
     }
+
+#ifdef Q_OS_WIN
+    // UNRAID: a volume with no drive letter has no mountpoint, so the poll above
+    // can never see it however long it waits.
+    //
+    // Jorge's rc.26 run on one specific Win10 PC (the same stick writes fine on
+    // another Win10 PC) got all the way through the format --
+    //   [FileOps] Residual signature wipe finished: both ends, start=ok, end=ok
+    //   diskpart succeeded on attempt 1
+    //   rescanDisk completed for disk 2 in 5 ms
+    // -- and then died here, before extracting anything:
+    //   PerformanceStats: Cycle ended, state: "failed" ... dl= 0 dec= 0 wr= 0
+    // On that PC, DiskPart showed automount enabled, the disk online/writable/MBR,
+    // partition 1 FAT32 LBA (MbrType 12), the UNRAID volume Healthy/OK, and a
+    // valid volume-GUID access path -- but no drive letter. Assigning one by hand
+    // (Add-PartitionAccessPath -AssignDriveLetter gave it F:) made this exact
+    // build write the stick end to end in 56 s and eject normally.
+    //
+    // So do what the user would have had to do. This can affect any device that
+    // arrives without a pre-existing Windows drive letter, not just the TrueNAS
+    // sticks the original report was about.
+    //
+    // The letter is deliberately left in place afterwards:
+    //  - PlatformQuirks::ejectDisk() walks GetLogicalDrives() and dismounts/ejects
+    //    through the letter, which is the path Jorge verified; removing the mount
+    //    point first would force it down its untested physical-drive fallback.
+    //  - When eject is disabled the drive stays visible in Explorer, which is what
+    //    Windows would have done on its own on any other machine.
+    // Windows drops the mapping when the media goes away, exactly as it does for
+    // a letter it assigned itself.
+    if (folder.isEmpty())
+    {
+        DiskpartUtil::DriveLetterResult letterResult = DiskpartUtil::assignDriveLetter(_filename);
+        if (letterResult.success && !letterResult.mountPoint.isEmpty())
+        {
+            folder = letterResult.mountPoint;
+            if (letterResult.assignedByUs)
+                qDebug() << "FAT32 partition had no drive letter after formatting; assigned" << folder;
+            else
+                qDebug() << "FAT32 partition was not in the drive list but is reachable at" << folder;
+        }
+        else
+        {
+            qDebug() << "Could not give the new FAT32 partition a drive letter:"
+                     << letterResult.errorMessage;
+        }
+    }
+#endif
 
 #ifdef Q_OS_LINUX
     bool manualmount = false;

@@ -377,6 +377,180 @@ DiskpartResult rescanDisk(const QByteArray &device, TimingCallback timingCallbac
     return DiskpartResult{true, QString()};
 }
 
+// UNRAID: give the freshly formatted partition a filesystem path.
+//
+// Jorge's rc.26 run on one specific Win10 PC formatted the stick correctly --
+// "Residual signature wipe finished: both ends, start=ok, end=ok",
+// "diskpart succeeded on attempt 1", "rescanDisk completed for disk 2 in 5 ms" --
+// and then failed with "Operating system did not mount FAT32 partition" before a
+// single byte was extracted ("PerformanceStats: Cycle ended, state: \"failed\"
+// ... dl= 0 dec= 0 wr= 0"). On that machine DiskPart reported automount enabled,
+// the disk online/writable/MBR, partition 1 as FAT32 LBA (MbrType 12), the UNRAID
+// volume Healthy/OK and a valid volume-GUID access path -- but no drive letter.
+// Running
+//   Get-Partition -DiskNumber 2 -PartitionNumber 1 | Add-PartitionAccessPath -AssignDriveLetter
+// assigned F: and the very same build then wrote the stick end to end. This is
+// that PowerShell one-liner, expressed in Win32.
+//
+// The volume-GUID path is deliberately not used as the destination directory:
+// SetCurrentDirectory (behind QDir::setCurrent, which the extraction code calls)
+// does not accept "\\?\" paths, so a drive letter is the only form that works.
+DriveLetterResult assignDriveLetter(const QByteArray &device, TimingCallback timingCallback)
+{
+    QElapsedTimer timer;
+    timer.start();
+
+    int diskNumber;
+    if (!extractDiskNumber(device, diskNumber))
+    {
+        return DriveLetterResult{false, QString(), false,
+            QObject::tr("Invalid Windows physical drive path: %1").arg(QString(device))};
+    }
+
+    wchar_t volumeName[MAX_PATH] = {0};
+    HANDLE hFind = FindFirstVolumeW(volumeName, MAX_PATH);
+    if (hFind == INVALID_HANDLE_VALUE)
+    {
+        DWORD error = GetLastError();
+        return DriveLetterResult{false, QString(), false,
+            QObject::tr("Could not enumerate volumes. Error code: %1").arg(error)};
+    }
+
+    DriveLetterResult result{false, QString(), false, QString()};
+
+    do
+    {
+        // FindFirstVolume/FindNextVolume always hand back "\\?\Volume{GUID}\".
+        // Opening the volume needs that path *without* the trailing backslash,
+        // while the mount point APIs need it *with* one.
+        QString volumeGuidPath = QString::fromWCharArray(volumeName);
+        if (!volumeGuidPath.endsWith(QLatin1Char('\\')))
+            continue;
+        QString volumeDevicePath = volumeGuidPath.left(volumeGuidPath.length() - 1);
+
+        HANDLE hVolume = CreateFileW(
+            reinterpret_cast<LPCWSTR>(volumeDevicePath.utf16()),
+            0,  // query only — no read/write access needed, and asking for it
+                // would fail on volumes we have no business touching
+            FILE_SHARE_READ | FILE_SHARE_WRITE,
+            nullptr,
+            OPEN_EXISTING,
+            0,
+            nullptr
+        );
+        if (hVolume == INVALID_HANDLE_VALUE)
+            continue;
+
+        // Which physical disk does this volume live on? Room for a few extents so
+        // the IOCTL does not fail with ERROR_MORE_DATA on spanned volumes.
+        struct {
+            VOLUME_DISK_EXTENTS extents;
+            DISK_EXTENT spare[3];
+        } extentBuffer = {};
+        DWORD bytesReturned = 0;
+        bool onTargetDisk = false;
+        if (DeviceIoControl(hVolume, IOCTL_VOLUME_GET_VOLUME_DISK_EXTENTS,
+                            nullptr, 0, &extentBuffer, sizeof(extentBuffer),
+                            &bytesReturned, nullptr))
+        {
+            for (DWORD i = 0; i < extentBuffer.extents.NumberOfDiskExtents; i++)
+            {
+                if (extentBuffer.extents.Extents[i].DiskNumber == static_cast<DWORD>(diskNumber))
+                {
+                    onTargetDisk = true;
+                    break;
+                }
+            }
+        }
+        CloseHandle(hVolume);
+
+        if (!onTargetDisk)
+            continue;
+
+        // Already reachable through a path? Then Windows was merely slow and the
+        // caller can use what it found.
+        wchar_t pathNames[MAX_PATH + 1] = {0};
+        DWORD pathLength = 0;
+        if (GetVolumePathNamesForVolumeNameW(volumeName, pathNames, MAX_PATH, &pathLength)
+            && pathNames[0] != L'\0')
+        {
+            // Multi-string; the first entry is enough for us.
+            result = DriveLetterResult{true, QString::fromWCharArray(pathNames), false, QString()};
+            break;
+        }
+
+        // No access path at all — this is the failure Jorge hit. Take the first
+        // free letter. C: and below are skipped so we never race the system disk.
+        DWORD usedLetters = GetLogicalDrives();
+        for (wchar_t letter = L'D'; letter <= L'Z'; letter++)
+        {
+            if (usedLetters & (1u << (letter - L'A')))
+                continue;
+
+            QString mountPoint = QString(QChar(static_cast<char16_t>(letter))) + QStringLiteral(":\\");
+            if (SetVolumeMountPointW(reinterpret_cast<LPCWSTR>(mountPoint.utf16()), volumeName))
+            {
+                result = DriveLetterResult{true, mountPoint, true, QString()};
+                break;
+            }
+
+            DWORD error = GetLastError();
+            qDebug() << "SetVolumeMountPoint" << mountPoint << "failed with error" << error
+                     << "- trying the next letter";
+        }
+
+        if (!result.success)
+        {
+            result.errorMessage = QObject::tr("No free drive letter could be assigned to the new partition.");
+        }
+        break;
+    } while (FindNextVolumeW(hFind, volumeName, MAX_PATH));
+
+    FindVolumeClose(hFind);
+
+    if (!result.success && result.errorMessage.isEmpty())
+    {
+        result.errorMessage = QObject::tr("No volume found on disk %1.").arg(diskNumber);
+    }
+
+    if (result.success && result.assignedByUs)
+    {
+        // The letter exists the moment SetVolumeMountPoint returns, but the
+        // filesystem behind it takes a moment to come online. GetVolumeInformation
+        // only succeeds once it has, so poll that rather than sleeping blind.
+        for (int tries = 0; tries < 20; tries++)
+        {
+            wchar_t fsName[MAX_PATH] = {0};
+            if (GetVolumeInformationW(reinterpret_cast<LPCWSTR>(result.mountPoint.utf16()),
+                                      nullptr, 0, nullptr, nullptr, nullptr, fsName, MAX_PATH))
+            {
+                qDebug() << "Volume behind" << result.mountPoint << "is ready, filesystem:"
+                         << QString::fromWCharArray(fsName);
+                break;
+            }
+            QThread::msleep(250);
+        }
+
+        // Let Explorer notice the drive that Windows failed to surface itself.
+        SHChangeNotify(SHCNE_DRIVEADD, SHCNF_IDLIST, NULL, NULL);
+    }
+
+    quint32 elapsed = static_cast<quint32>(timer.elapsed());
+    if (timingCallback)
+    {
+        timingCallback("driveAssignLetter", elapsed, result.success);
+    }
+
+    qDebug() << "assignDriveLetter for disk" << diskNumber << ":"
+             << (result.success ? "ok" : "failed")
+             << "mountPoint:" << result.mountPoint
+             << "assignedByUs:" << result.assignedByUs
+             << "in" << elapsed << "ms"
+             << (result.success ? QString() : result.errorMessage);
+
+    return result;
+}
+
 DiskpartResult cleanDisk(const QByteArray &device, std::chrono::milliseconds timeout, int maxRetries, VolumeHandling volumeHandling)
 {
     std::regex windriveregex("\\\\\\\\.\\\\PHYSICALDRIVE([0-9]+)", std::regex_constants::icase);

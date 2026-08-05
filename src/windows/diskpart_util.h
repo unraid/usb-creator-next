@@ -24,6 +24,15 @@ struct DiskpartResult {
     QString errorMessage;
 };
 
+// UNRAID: result of making the freshly formatted partition reachable through a
+// filesystem path. See assignDriveLetter().
+struct DriveLetterResult {
+    bool success;
+    QString mountPoint;   // e.g. "F:\\" — empty unless success is true
+    bool assignedByUs;    // true when this call created the mount point
+    QString errorMessage;
+};
+
 /**
  * Timing callback for performance instrumentation
  * Parameters: eventName, durationMs, success
@@ -76,6 +85,25 @@ DiskpartResult unmountVolumes(const QByteArray &device, TimingCallback timingCal
  * @return DiskpartResult with success status and error message if failed
  */
 DiskpartResult rescanDisk(const QByteArray &device, TimingCallback timingCallback = nullptr);
+
+/**
+ * UNRAID: make the first volume on a physical drive reachable through a
+ * filesystem path, assigning a free drive letter if Windows did not.
+ *
+ * Windows normally gives a newly created volume a drive letter on its own, but
+ * QA reproduced a machine where it does not (see the comment at the call site in
+ * DownloadExtractThread::extractMultiFileRun). Without a letter the volume has
+ * no path our extraction code can chdir into, even though it is healthy.
+ *
+ * If the volume already has an access path this returns that path and reports
+ * assignedByUs == false, so callers can distinguish "Windows was just slow" from
+ * "Windows never did it".
+ *
+ * @param device - Windows physical drive path (e.g. "\\\\.\\PHYSICALDRIVE2")
+ * @param timingCallback - Optional callback for performance event reporting
+ * @return DriveLetterResult with the mount point (e.g. "F:\\") on success
+ */
+DriveLetterResult assignDriveLetter(const QByteArray &device, TimingCallback timingCallback = nullptr);
 
 } // namespace DiskpartUtil
 
