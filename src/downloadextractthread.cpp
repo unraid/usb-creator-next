@@ -138,34 +138,61 @@ DownloadExtractThread::~DownloadExtractThread()
     _cancelled = true;
     
     _cancelExtract();
-    if (!_extractThread->wait(10000))
-    {
-        _extractThread->terminate();
 
-        // UNRAID: terminate() only *requests* termination and returns immediately,
-        // so without waiting the thread is usually still running a moment later.
-        // _extractThread is a QObject child of this object, so the base ~QThread
-        // below reaches ~QObject -> deleteChildren() and destroys it while it runs
-        // -- and ~QThread on a running thread is a qFatal, which aborts the process.
-        //
-        // Reported from macOS QA on rc.22: SIGABRT during a write, with
-        //   QThread::~QThread -> QObjectPrivate::deleteChildren ->
-        //   QThread::~QThread -> DownloadExtractThread::~DownloadExtractThread
-        // Qt's docs require wait() after terminate() for exactly this reason.
-        //
-        // Bounded, because this destructor runs on the GUI thread via deleteLater
-        // and an unbounded wait would hang the window instead of crashing it.
-        if (!_extractThread->wait(5000)) {
-            // Refused to die even after terminate(). Detach it so ~QObject does not
-            // destroy a running thread: leaking one thread for the remainder of the
-            // process is strictly better than aborting the application.
-            qWarning() << "Extract thread did not stop after terminate(); detaching "
-                          "it rather than destroying a running thread";
-            _extractThread->setParent(nullptr);
-            _extractThread = nullptr;
-        }
+    // UNRAID: wait for the extract thread to actually exit, with no deadline and no
+    // terminate(). macOS QA hit SIGABRT during a write on rc.22:
+    //
+    //   abort() <- QMessageLogger::fatal <- QThread::~QThread
+    //           <- QObjectPrivate::deleteChildren <- QThread::~QThread
+    //           <- DownloadExtractThread::~DownloadExtractThread <- QObject::event
+    //
+    // _extractThread is a QObject child of this object, so the base ~QThread below
+    // reaches ~QObject -> deleteChildren() and destroys it. Destroying a running
+    // QThread is a qFatal, so the process aborts with no warning to the user. The
+    // old code waited 10s, called terminate() (which only *requests* termination and
+    // returns immediately) and carried on, which is how a still-running thread ever
+    // reached deleteChildren().
+    //
+    // There is no safe way to give up here:
+    //  - Abandoning the thread is not an option. _extractThreadClass::run() consists
+    //    solely of calls back into this object (isImage(), extractImageRun(),
+    //    extractMultiFileRun()), and those read the ring buffers reset a few lines
+    //    below -- so detaching and leaking a *running* thread only trades the abort
+    //    for a use-after-free.
+    //  - terminate() is not an option either. It cuts the thread at an arbitrary
+    //    point inside libarchive or a device write(), abandoning heap and device
+    //    state in a process that keeps running afterwards -- and the crash above is
+    //    from a build that already called it, so it demonstrably does not guarantee
+    //    the thread stops.
+    //
+    // So we wait. _cancelExtract() cancels the input ring buffer and every wait loop
+    // in the extract path also tests _cancelled (set above), so the only thing that
+    // can still hold the thread is a device write that has not returned yet -- which
+    // is how the 10s deadline was reached in the first place, now that extraction
+    // issues 8 MiB writes via BlockBatcher. Those writes do return once the OS times
+    // the device out. Blocking the GUI until then is unpleasant, but it is the same
+    // contract the base ~DownloadThread already has (unbounded wait() after setting
+    // _cancelled), and it is the only behaviour that neither aborts the application
+    // nor frees state out from under a running thread.
+    //
+    // Signals are severed first because _writeComplete() emits finalSyncStarting()
+    // over a Qt::BlockingQueuedConnection to the GUI thread, which is the thread that
+    // is about to stop answering. _cancelled already makes _writeComplete() return
+    // before that emit; this closes the remaining window where the thread was past
+    // that check when the destructor started. (~QObject would sever these a moment
+    // later anyway.)
+    disconnect();
+
+    QElapsedTimer extractStopTimer;
+    extractStopTimer.start();
+    while (!_extractThread->wait(5000))
+    {
+        qWarning() << "Extract thread still running" << (extractStopTimer.elapsed() / 1000)
+                   << "s after cancellation, most likely blocked in a device write;"
+                   << "waiting for it to return (destroying it would abort the application)";
     }
-    
+
+
     // Wait for any pending async writes before destroying ring buffers
     // The async completion callbacks reference the ring buffer, so we must
     // ensure they've all completed before destruction
