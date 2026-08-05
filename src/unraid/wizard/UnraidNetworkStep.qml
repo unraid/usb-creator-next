@@ -263,10 +263,13 @@ WizardStepBase {
             }
 
             WizardDescriptionText {
-                // UNRAID: kept to a single line. The step has no room to spare --
-                // two lines already clip behind the navigation buttons, and the
-                // clash warning above needs a line of its own. See the Wi-Fi
-                // section of unraid_postwrite.cpp for why the addresses differ.
+                // UNRAID: kept to a single line, and hidden while the clash warning
+                // is up. The step has no room to spare -- it is vertically centred
+                // with no clipping or scrolling, so a second line draws behind the
+                // navigation buttons. The warning already states this constraint,
+                // more urgently, so showing both is redundant as well as too tall.
+                // See the Wi-Fi section of unraid_postwrite.cpp.
+                visible: !(root.wifiAddressClashes && !root.useDhcp && root.wifiConfigured)
                 text: root.useDhcp
                       ? qsTr("The server will request an address from your router when it boots.")
                       : root.wifiConfigured
