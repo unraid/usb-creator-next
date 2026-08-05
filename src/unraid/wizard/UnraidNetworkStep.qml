@@ -263,14 +263,14 @@ WizardStepBase {
             }
 
             WizardDescriptionText {
-                // UNRAID: each interface gets its own address -- see the Wi-Fi
-                // section of unraid_postwrite.cpp for why they must differ.
+                // UNRAID: kept to a single line. The step has no room to spare --
+                // two lines already clip behind the navigation buttons, and the
+                // clash warning above needs a line of its own. See the Wi-Fi
+                // section of unraid_postwrite.cpp for why the addresses differ.
                 text: root.useDhcp
                       ? qsTr("The server will request an address from your router when it boots.")
                       : root.wifiConfigured
-                        ? qsTr("Written to config/network.cfg and config/wireless.cfg on the flash "
-                               + "drive. Each connection needs its own address -- the same one "
-                               + "cannot be used for both.")
+                        ? qsTr("Each connection needs its own address.")
                         : qsTr("These settings are written to config/network.cfg on the flash drive.")
             }
         }
