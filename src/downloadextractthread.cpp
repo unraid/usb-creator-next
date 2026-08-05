@@ -176,22 +176,22 @@ DownloadExtractThread::~DownloadExtractThread()
     // _cancelled), and it is the only behaviour that neither aborts the application
     // nor frees state out from under a running thread.
     //
+    // UNRAID: the wait itself now normally happens in run() (see
+    // _joinExtractThread), on this object's own thread, so by the time the GUI
+    // thread gets here via deleteLater() the extract thread has already returned
+    // and the call below is instant. It stays as a backstop for the paths that
+    // destroy the object without run() having completed -- e.g. ~ImageWriter,
+    // which terminate()s the download thread after a 10 s wait.
+    //
     // Signals are severed first because _writeComplete() emits finalSyncStarting()
     // over a Qt::BlockingQueuedConnection to the GUI thread, which is the thread that
-    // is about to stop answering. _cancelled already makes _writeComplete() return
-    // before that emit; this closes the remaining window where the thread was past
-    // that check when the destructor started. (~QObject would sever these a moment
-    // later anyway.)
+    // would stop answering if we ever do end up blocking here. _cancelled already
+    // makes _writeComplete() return before that emit; this closes the remaining
+    // window where the thread was past that check when the destructor started.
+    // (~QObject would sever these a moment later anyway.)
     disconnect();
 
-    QElapsedTimer extractStopTimer;
-    extractStopTimer.start();
-    while (!_extractThread->wait(5000))
-    {
-        qWarning() << "Extract thread still running" << (extractStopTimer.elapsed() / 1000)
-                   << "s after cancellation, most likely blocked in a device write;"
-                   << "waiting for it to return (destroying it would abort the application)";
-    }
+    _joinExtractThread();
 
 
     // Wait for any pending async writes before destroying ring buffers
@@ -204,6 +204,60 @@ DownloadExtractThread::~DownloadExtractThread()
     // Ring buffer destructors handle memory cleanup
     _writeRingBuffer.reset();
     _ringBuffer.reset();
+}
+
+// UNRAID: keep the download thread alive until the extract thread has returned.
+//
+// The destructor must not destroy a running _extractThread (that is the qFatal
+// documented above), so somebody has to wait for it. Until now that somebody was
+// ~DownloadExtractThread, which runs on the GUI thread via deleteLater() -- and
+// Larry's macOS rc.26 log shows what that costs on a slow USB 2.0 stick:
+//
+//   [WARNING] Extract thread still running 5 s after cancellation, most likely
+//             blocked in a device write; waiting for it to return ...
+//   ... repeated every 5 s ...
+//   [WARNING] Extract thread still running 135 s after cancellation, ...
+//
+// He had a spinning beachball for the whole two and a quarter minutes.
+//
+// The wait is correct; doing it on the GUI thread is not. QThread::finished()
+// -- which is what triggers the deleteLater() in ImageWriter -- is emitted only
+// after run() returns, so waiting here moves the entire wait onto this worker
+// thread and the window keeps painting and dispatching. Nothing is abandoned and
+// nothing is freed early: the object is still fully alive while the extract
+// thread finishes, and the destructor's own wait then returns immediately.
+//
+// It also removes the deadlock the destructor has to guard against with
+// disconnect(): _writeComplete() can emit finalSyncStarting() over a
+// Qt::BlockingQueuedConnection while we wait here, and the GUI thread is free to
+// answer it.
+//
+// LocalFileExtractThread overrides run() and never starts _extractThread (it
+// calls extract*Run() inline on its own thread), so it is unaffected.
+void DownloadExtractThread::run()
+{
+    DownloadThread::run();
+    _joinExtractThread();
+}
+
+void DownloadExtractThread::_joinExtractThread()
+{
+    if (!_extractThread || !_ethreadStarted || _extractThread->isFinished())
+        return;
+
+    // The download half has stopped, so anything the extract thread is still
+    // doing is draining the ring buffer or unwinding after a failure. Tell it to
+    // stop (idempotent — the error and cancel paths already did) and wait it out.
+    _cancelExtract();
+
+    QElapsedTimer extractStopTimer;
+    extractStopTimer.start();
+    while (!_extractThread->wait(5000))
+    {
+        qWarning() << "Extract thread still running" << (extractStopTimer.elapsed() / 1000)
+                   << "s after cancellation, most likely blocked in a device write;"
+                   << "waiting for it to return (the user interface stays responsive)";
+    }
 }
 
 void DownloadExtractThread::_onDevicePrepared()

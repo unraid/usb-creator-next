@@ -957,11 +957,29 @@ void ImageWriter::startWrite()
         return;
     }
 
+    // UNRAID: a write thread can legitimately still be running here now that the
+    // GUI no longer blocks while a failed write drains.
+    // DownloadExtractThread::run() waits for its extract thread before returning,
+    // so after an error the dialog appears (and the user can press WRITE again)
+    // while the old thread is still unwinding into a slow device — Larry's macOS
+    // log shows that tail lasting 135 s. Deleting a running QThread is a qFatal,
+    // so wait for it and restart from the finished() handler instead.
+    if (_thread && _thread->isRunning()) {
+        qDebug() << "startWrite: previous write thread is still finishing — deferring";
+        setWriteState(WriteState::Preparing);
+        emit preparationStatusUpdate(tr("Finishing the previous write..."));
+        // The QThread::finished handler connected further down this function
+        // runs first and clears _thread, so by the time this fires we start clean.
+        connect(_thread, &QThread::finished, this, [this]() {
+            setWriteState(WriteState::Idle);
+            startWrite();
+        }, Qt::SingleShotConnection);
+        _thread->cancelDownload();
+        return;
+    }
+
     // Clean up a finished-but-not-yet-collected thread (deleteLater timing gap).
-    // A *running* thread here is a bug — our exit paths (onError, onCancelled,
-    // QThread::finished handler) should have cleaned up already.
     if (_thread) {
-        Q_ASSERT(!_thread->isRunning());
         _thread->deleteLater();
         _thread = nullptr;
     }
