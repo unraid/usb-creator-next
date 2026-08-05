@@ -254,6 +254,18 @@ Item {
     
     readonly property int firstCustomizationStep: stepHostnameCustomization
 
+    // UNRAID: which sidebar row holds the customisation group.
+    //
+    // The sidebar delegate hardcoded 3, which is only right while the Device step
+    // is shown (Device, OS, Storage, Customisation...). With that step dropped the
+    // rows shift down one and 3 becomes Writing, so the customisation substeps
+    // rendered underneath Writing instead of Customisation, and the group's
+    // enabled/disabled colouring keyed off the wrong row too.
+    //
+    // getSidebarIndex() already accounts for deviceStepShown, so derive it rather
+    // than keeping a second copy of the arithmetic.
+    readonly property int customisationSidebarIndex: getSidebarIndex(firstCustomizationStep)
+
     function clampSidebarWidth(width) {
         return Math.max(Style.sidebarMinWidth, Math.min(Style.sidebarMaxWidth, width))
     }
@@ -533,7 +545,7 @@ Item {
                         property bool isClickable: {
                             if (root.isWriting) return false
                             // If customization not supported, do not allow navigating back to customization group
-                            if (!root.customizationSupported && stepItem.index === 3) return false
+                            if (!root.customizationSupported && stepItem.index === root.customisationSidebarIndex) return false
 
                             // Read permissibleStepsBitmap directly to create a reactive dependency
                             var bit = 1 << _targetStep
@@ -563,7 +575,7 @@ Item {
                                 onClicked: {
                                     var targetStep = root.getWizardStepFromSidebarIndex(stepItem.index)
                                     // Guard: skip customization group when unsupported
-                                    if (!root.customizationSupported && stepItem.index === 3) {
+                                    if (!root.customizationSupported && stepItem.index === root.customisationSidebarIndex) {
                                         return
                                     }
                                     // Allow navigation to any permissible step or backward navigation
@@ -582,7 +594,7 @@ Item {
                                     text: stepItem.modelData
                                     font.pointSize: Style.fontSizeSidebarItem
                                     font.family: Style.fontFamily
-                                    color: (stepItem.index > root.getSidebarIndex(root.currentStep) || (stepItem.index === 3 && !root.customizationSupported))
+                                    color: (stepItem.index > root.getSidebarIndex(root.currentStep) || (stepItem.index === root.customisationSidebarIndex && !root.customizationSupported))
                                                ? Style.formLabelDisabledColor
                                                : (stepItem.index === root.getSidebarIndex(root.currentStep)
                                                    ? Style.sidebarTextOnActiveColor
@@ -601,7 +613,7 @@ Item {
                             x: Style.spacingExtraLarge
                             width: parent.width - Style.spacingExtraLarge
                             spacing: Style.spacingXXSmall
-                            visible: stepItem.index === 3 && root.customizationSupported && root.currentStep > root.stepOSSelection
+                            visible: stepItem.index === root.customisationSidebarIndex && root.customizationSupported && root.currentStep > root.stepOSSelection
 
                             Repeater {
                                 model: root.getCustomizationSubstepLabels()
