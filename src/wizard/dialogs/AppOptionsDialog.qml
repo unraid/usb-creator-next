@@ -168,9 +168,9 @@ BaseDialog {
 
             ImOptionButton {
                 id: editRepoButton
-                text: qsTr("OS Image List")
+                text: qsTr("Content Repository")
                 btnText: qsTr("Edit")
-                accessibleDescription: qsTr("Change the operating system image list between the official list and a custom JSON source") // UNRAID
+                accessibleDescription: qsTr("Change the source of operating system images between the official repository and custom sources") // UNRAID
                 Layout.fillWidth: true
                 // Disable while write is in progress to prevent changing source during write
                 enabled: ImageWriterSingleton.writeState === ImageWriterSingleton.Idle ||

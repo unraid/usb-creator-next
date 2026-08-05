@@ -62,7 +62,7 @@ BaseDialog {
     // Header
     FocusableHeading {
         id: headerText
-        text: qsTr("OS Image List")
+        text: qsTr("Content Repository")
         font.pointSize: Style.fontSizeLargeHeading
         font.family: Style.fontFamilyBold
         font.bold: true
@@ -85,7 +85,7 @@ BaseDialog {
             spacing: Style.spacingMedium
 
             WizardFormLabel {
-                text: qsTr("Image list source:")
+                text: qsTr("Repository source:")
             }
 
             ButtonGroup { id: repoGroup }
@@ -93,7 +93,7 @@ BaseDialog {
             ImRadioButton {
                 id: radioOfficial
                 text: qsTr("%1 (default)").arg(ImageWriterSingleton.appName()) // UNRAID
-                accessibleDescription: qsTr("Use the official operating system image list") // UNRAID
+                accessibleDescription: qsTr("Use the official operating system repository") // UNRAID
                 checked: true
                 ButtonGroup.group: repoGroup
                 Layout.fillWidth: true  // Enable text wrapping for long translations
@@ -140,7 +140,7 @@ BaseDialog {
                     id: fieldCustomRepository
                     text: popup.selectedRepo !== "" ? UrlFmt.display(popup.selectedRepo) : ""
                     Layout.fillWidth: true
-                    placeholderText: qsTr("Please select a custom OS image list JSON file")
+                    placeholderText: qsTr("Please select a custom repository JSON file")
                     font.pointSize: Style.fontSizeInput
                     readOnly: true
                     activeFocusOnTab: true
@@ -149,7 +149,7 @@ BaseDialog {
                 ImButton {
                     id: browseButton
                     text: CommonStrings.browse
-                    accessibleDescription: qsTr("Select a custom OS image list JSON file from your computer")
+                    accessibleDescription: qsTr("Select a custom repository JSON file from your computer")
                     Layout.minimumWidth: 80
                     activeFocusOnTab: true
                     onClicked: {
@@ -321,7 +321,7 @@ BaseDialog {
 
     ImFileDialog {
         id: repoFileDialog
-        dialogTitle: qsTr("Select custom OS image list")
+        dialogTitle: qsTr("Select custom repository")
         nameFilters: CommonStrings.repoFiltersList
         onAccepted: {
             popup.selectedRepo = selectedFile;
