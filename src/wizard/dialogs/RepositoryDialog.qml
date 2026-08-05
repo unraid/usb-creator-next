@@ -101,7 +101,7 @@ BaseDialog {
 
             ImRadioButton {
                 id: radioCustomFile
-                text: qsTr("Use custom file")
+                text: qsTr("Use custom JSON file")
                 accessibleDescription: qsTr("Load operating system list from a JSON file on your computer")
                 checked: false
                 ButtonGroup.group: repoGroup
