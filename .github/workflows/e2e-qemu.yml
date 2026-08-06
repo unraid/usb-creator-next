@@ -1,0 +1,75 @@
+name: QEMU USB E2E
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "e2e/qemu/**"
+      - "src/downloadextractthread.cpp"
+      - "src/driveformatthread.cpp"
+      - "src/disk_formatter.cpp"
+      - "src/file_operations.*"
+      - "src/file_operations_*.cpp"
+      - "src/unraid/**"
+      - ".github/workflows/e2e-qemu.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  qemu-usb-write:
+    name: Linux QEMU USB write
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install build and E2E dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential cloud-image-utils cmake curl fuse libfuse2 \
+            libfontconfig1-dev libfreetype-dev libgl1-mesa-dev libgnutls28-dev \
+            libudev-dev libx11-dev libx11-xcb-dev libxcb-cursor-dev \
+            libxcb-glx0-dev libxcb-icccm4-dev libxcb-image0-dev \
+            libxcb-keysyms1-dev libxcb-randr0-dev libxcb-render-util0-dev \
+            libxcb-shape0-dev libxcb-shm0-dev libxcb-sync-dev libxcb-util-dev \
+            libxcb-xfixes0-dev libxcb-xkb-dev libxcb1-dev libxext-dev \
+            libxfixes-dev libxi-dev libxkbcommon-dev libxkbcommon-x11-dev \
+            libxrender-dev mtools parted qemu-system-x86 qemu-utils xz-utils zip
+          if [ -e /dev/kvm ]; then sudo chmod 666 /dev/kvm; fi
+
+      - name: Install Qt 6.11.1
+        run: |
+          python3 -m pip install --user "aqtinstall>=3.2.2"
+          "$HOME/.local/bin/aqt" install-qt linux desktop 6.11.1 linux_gcc_64 \
+            --archives qtbase qtdeclarative qtsvg qttools icu \
+            --outputdir "$HOME/Qt"
+
+      - name: Build AppImage
+        run: |
+          chmod +x ./create-appimage.sh
+          ./create-appimage.sh --qt-root="$HOME/Qt/6.11.1/gcc_64"
+
+      - name: Create development image
+        run: ./src/unraid/tools/make-dev-image.sh
+
+      - name: Run QEMU USB write journey
+        run: |
+          appimage=$(find . -maxdepth 1 -type f -name '*.AppImage' -print -quit)
+          test -n "$appimage"
+          e2e/qemu/run.sh --appimage "$appimage" --dev-image build/unraid-dev-image.zip
+
+      - name: Upload E2E evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qemu-usb-e2e-evidence
+          path: |
+            build/e2e-qemu/**/*.log
+            build/e2e-qemu/**/*.jsonl
+            build/e2e-qemu/**/*.txt
+            build/e2e-qemu/**/screenshots/*.png
+          if-no-files-found: warn
