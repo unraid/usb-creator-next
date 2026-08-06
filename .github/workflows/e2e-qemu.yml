@@ -122,4 +122,4 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.UNRAID_BOT_GITHUB_ADMIN_TOKEN }}
           USB_CREATOR_CAPTURE_ID: ${{ github.sha }}-${{ github.run_id }}
-        run: e2e/docs/publish.sh build/docs-bundle/current build/docs-publication
+        run: bash e2e/docs/publish.sh build/docs-bundle/current build/docs-publication
