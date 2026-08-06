@@ -160,8 +160,15 @@ done
 ssh "${ssh_opts[@]}" e2e@127.0.0.1 'test -e /var/tmp/usb-creator-e2e-ready'
 
 ssh "${ssh_opts[@]}" e2e@127.0.0.1 'sudo mkdir -p /opt/usb-creator-e2e && sudo chown e2e:e2e /opt/usb-creator-e2e'
+capture_id=${USB_CREATOR_CAPTURE_ID:-${GITHUB_SHA:-local}}
+[[ "$capture_id" =~ ^[A-Za-z0-9._-]+$ ]] || {
+    echo "Invalid capture id: $capture_id" >&2
+    exit 4
+}
+printf '%s\n' "$capture_id" >"$state/capture-id"
 scp "${scp_opts[@]}" "$appimage" e2e@127.0.0.1:/opt/usb-creator-e2e/creator.AppImage
 scp "${scp_opts[@]}" "$dev_image" e2e@127.0.0.1:/opt/usb-creator-e2e/unraid-dev-image.zip
+scp "${scp_opts[@]}" "$state/capture-id" e2e@127.0.0.1:/opt/usb-creator-e2e/capture-id
 scp "${scp_opts[@]}" "$script_dir/guest/drive_creator.py" "$script_dir/guest/run-e2e.sh" e2e@127.0.0.1:/opt/usb-creator-e2e/
 
 set +e

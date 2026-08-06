@@ -57,10 +57,15 @@ jobs:
         run: ./src/unraid/tools/make-dev-image.sh
 
       - name: Run QEMU USB write journey
+        env:
+          USB_CREATOR_CAPTURE_ID: ${{ github.sha }}-${{ github.run_id }}
         run: |
           appimage=$(find . -maxdepth 1 -type f -name '*.AppImage' -print -quit)
           test -n "$appimage"
           e2e/qemu/run.sh --appimage "$appimage" --dev-image build/unraid-dev-image.zip
+
+      - name: Collate accepted documentation captures
+        run: python3 e2e/docs/collate.py --evidence build/e2e-qemu --output build/docs-bundle/current
 
       - name: Upload E2E evidence
         if: always()
@@ -73,3 +78,10 @@ jobs:
             build/e2e-qemu/**/*.txt
             build/e2e-qemu/**/screenshots/*.png
           if-no-files-found: warn
+
+      - name: Upload accepted documentation bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: usb-creator-doc-bundle
+          path: build/docs-bundle/current
+          if-no-files-found: error

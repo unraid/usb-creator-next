@@ -77,7 +77,17 @@ def click(app, text: str, roles=(), timeout=60):
     return node
 
 
-def shot(output: Path, manifest: Path, name: str, *, title: str, caption: str, role: str) -> None:
+def shot(
+    output: Path,
+    manifest: Path,
+    name: str,
+    *,
+    title: str,
+    caption: str,
+    role: str,
+    capture_id: str,
+    platform: str,
+) -> None:
     destination = output / f"{name}.png"
     subprocess.run(
         ["import", "-window", "root", str(destination)],
@@ -89,6 +99,10 @@ def shot(output: Path, manifest: Path, name: str, *, title: str, caption: str, r
         stream.write(
             json.dumps(
                 {
+                    "category": "unraid-os",
+                    "publicationKey": f"usb-creator:{platform}:create-unraid-usb",
+                    "captureId": capture_id,
+                    "platform": platform,
                     "flow": "create-unraid-usb",
                     "name": name,
                     "frameRole": role,
@@ -108,6 +122,8 @@ def main() -> int:
     parser.add_argument("--screenshots", type=Path, required=True)
     parser.add_argument("--tree-dump", type=Path, required=True)
     parser.add_argument("--manifest", type=Path, required=True)
+    parser.add_argument("--capture-id", required=True)
+    parser.add_argument("--platform", required=True)
     args = parser.parse_args()
     args.screenshots.mkdir(parents=True, exist_ok=True)
 
@@ -121,6 +137,8 @@ def main() -> int:
             title="Choose the Creator language",
             caption="Choose the language that the Unraid USB Creator will use, then continue.",
             role="entry",
+            capture_id=args.capture_id,
+            platform=args.platform,
         )
         click(app, "Next", roles=("push button", "button"))
 
@@ -132,6 +150,8 @@ def main() -> int:
             title="Choose the development image",
             caption="The Creator offers the small local Unraid development image for a fast end-to-end write.",
             role="decision",
+            capture_id=args.capture_id,
+            platform=args.platform,
         )
 
         click(app, "Unraid (development image)")
@@ -149,6 +169,8 @@ def main() -> int:
             title="Select the disposable USB target",
             caption="The QEMU USB mass-storage device is selected as the write target.",
             role="decision",
+            capture_id=args.capture_id,
+            platform=args.platform,
         )
         click(app, "Next", roles=("push button", "button"))
 
@@ -163,6 +185,8 @@ def main() -> int:
             title="Review the write",
             caption="The summary identifies the development image and disposable QEMU USB target before erasure.",
             role="instruction",
+            capture_id=args.capture_id,
+            platform=args.platform,
         )
         click(app, "Write", roles=("push button", "button"))
         click(app, "I understand, erase and write", roles=("push button", "button"), timeout=15)
@@ -175,6 +199,8 @@ def main() -> int:
             title="Confirm the write completed",
             caption="The Creator reports that the Unraid development image was written successfully.",
             role="result",
+            capture_id=args.capture_id,
+            platform=args.platform,
         )
         return 0
     finally:

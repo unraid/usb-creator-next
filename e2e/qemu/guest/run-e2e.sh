@@ -4,6 +4,9 @@ set -euo pipefail
 work=/opt/usb-creator-e2e
 artifacts="$work/artifacts"
 mkdir -p "$artifacts/screenshots"
+export USB_CREATOR_CAPTURE_ID
+USB_CREATOR_CAPTURE_ID=$(<"$work/capture-id")
+export USB_CREATOR_CAPTURE_PLATFORM=linux
 
 chmod +x "$work/creator.AppImage"
 cd "$work"
@@ -55,7 +58,9 @@ creator_pid=$!
 python3 /opt/usb-creator-e2e/drive_creator.py \
   --screenshots /opt/usb-creator-e2e/artifacts/screenshots \
   --tree-dump /opt/usb-creator-e2e/artifacts/accessibility-tree.txt \
-  --manifest /opt/usb-creator-e2e/artifacts/manifest.jsonl
+  --manifest /opt/usb-creator-e2e/artifacts/manifest.jsonl \
+  --capture-id "${USB_CREATOR_CAPTURE_ID:?}" \
+  --platform "${USB_CREATOR_CAPTURE_PLATFORM:?}"
 
 kill "$creator_pid" 2>/dev/null || true
 wait "$creator_pid" 2>/dev/null || true
