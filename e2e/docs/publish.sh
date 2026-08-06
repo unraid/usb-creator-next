@@ -18,7 +18,7 @@ docs="$(cd "$docs" && pwd)"
 git -C "$docs" switch -C "$branch" origin/main
 (cd "$docs" && node scripts/import-usb-creator-flow.mjs "$bundle")
 
-if git -C "$docs" diff --quiet -- static/img/unraid-os/getting-started/create-unraid-usb; then
+if [[ -z "$(git -C "$docs" status --porcelain -- static/img/unraid-os/getting-started/create-unraid-usb)" ]]; then
   echo "USB Creator documentation screenshots are unchanged"
   exit 0
 fi
