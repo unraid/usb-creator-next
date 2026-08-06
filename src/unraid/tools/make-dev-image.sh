@@ -16,6 +16,7 @@
 set -euo pipefail
 
 out="${1:-build/unraid-dev-image.zip}"
+mkdir -p "$(dirname "$out")"
 out="$(cd "$(dirname "$out")" && pwd)/$(basename "$out")"
 
 stage="$(mktemp -d)"
@@ -58,7 +59,6 @@ done
 head -c 4096 /dev/urandom > "$stage/EFI/BOOT/bootx64.efi"
 
 rm -f "$out"
-mkdir -p "$(dirname "$out")"
 (cd "$stage" && zip -q -r "$out" .)
 
 echo "Wrote $out ($(du -h "$out" | cut -f1))"
