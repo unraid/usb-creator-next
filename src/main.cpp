@@ -12,6 +12,12 @@
 #include <QLocale>
 #include <QSettings>
 #include <QCommandLineParser>
+#include <QCryptographicHash>
+#include <QDir>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QSharedPointer>
+#include <QTimer>
 #ifdef Q_OS_UNIX
 #include <unistd.h>
 #endif
@@ -331,6 +337,7 @@ int main(int argc, char *argv[])
 
     /* Parse commandline arguments (if any) using QCommandLineParser */
     QString customRepo;
+    QString e2eCaptureDir;
     QUrl callbackUrl;
     int cliRefreshInterval = -1;
     int cliRefreshJitter = -1;
@@ -351,7 +358,8 @@ int main(int argc, char *argv[])
         {"disable-telemetry", "Disable telemetry (persist setting)"},
         {"enable-telemetry", "Use default telemetry setting (clear override)"},
         {"qml-file-dialogs", "Force use of QML file dialogs instead of native dialogs"},
-        {"enable-secure-boot", "Force enable secure boot customization step regardless of OS capabilities"}
+        {"enable-secure-boot", "Force enable secure boot customization step regardless of OS capabilities"},
+        {"e2e-capture-dir", "Capture deterministic native UI smoke evidence (CI only)", "path", ""}
     });
 
     // Accept rpi-imager:// callback URLs as positional argument (used by callback relay on Windows)
@@ -361,6 +369,7 @@ int main(int argc, char *argv[])
 
 
     const QString repoVal = parser.value("repo");
+    e2eCaptureDir = parser.value("e2e-capture-dir");
     if (!repoVal.isEmpty())
     {
         customRepo = repoVal;
@@ -755,6 +764,84 @@ int main(int argc, char *argv[])
 
     qmlwindow->setProperty("x", x);
     qmlwindow->setProperty("y", y);
+
+    if (!e2eCaptureDir.isEmpty())
+    {
+        auto *window = qobject_cast<QQuickWindow *>(qmlwindow);
+        QObject *wizard = qmlwindow->findChild<QObject *>(QStringLiteral("wizardContainer"));
+        QDir output(e2eCaptureDir);
+        if (!window || !wizard || (!output.exists() && !output.mkpath(QStringLiteral("."))))
+        {
+            qCritical() << "Unable to initialize native E2E capture at" << e2eCaptureDir;
+            return 2;
+        }
+
+#if defined(Q_OS_DARWIN)
+        const QString capturePlatform = QStringLiteral("macos");
+#elif defined(Q_OS_WIN)
+        const QString capturePlatform = QStringLiteral("windows");
+#else
+        const QString capturePlatform = QStringLiteral("linux");
+#endif
+        const QString captureId = qEnvironmentVariable("USB_CREATOR_CAPTURE_ID", QStringLiteral("local"));
+        auto manifest = QSharedPointer<QFile>::create(output.filePath(QStringLiteral("manifest.jsonl")));
+        if (!manifest->open(QIODevice::WriteOnly | QIODevice::Text))
+        {
+            qCritical() << "Unable to open native E2E manifest" << manifest->fileName();
+            return 2;
+        }
+        auto capture = [window, output, manifest, capturePlatform, captureId](
+                           const QString &name, const QString &title,
+                           const QString &caption, const QString &role) {
+            const QString filename = name + QStringLiteral(".png");
+            const QString path = output.filePath(filename);
+            const QImage image = window->grabWindow();
+            if (image.isNull() || !image.save(path, "PNG"))
+                return false;
+            QFile file(path);
+            if (!file.open(QIODevice::ReadOnly))
+                return false;
+            const QString digest = QString::fromLatin1(
+                QCryptographicHash::hash(file.readAll(), QCryptographicHash::Sha256).toHex());
+            const QJsonObject entry{
+                {QStringLiteral("category"), QStringLiteral("unraid-os")},
+                {QStringLiteral("publicationKey"), QStringLiteral("usb-creator:") + capturePlatform + QStringLiteral(":native-smoke")},
+                {QStringLiteral("captureId"), captureId},
+                {QStringLiteral("platform"), capturePlatform},
+                {QStringLiteral("flow"), QStringLiteral("native-smoke")},
+                {QStringLiteral("name"), name},
+                {QStringLiteral("frameRole"), role},
+                {QStringLiteral("title"), title},
+                {QStringLiteral("caption"), caption},
+                {QStringLiteral("image"), filename},
+                {QStringLiteral("sha256"), digest},
+            };
+            manifest->write(QJsonDocument(entry).toJson(QJsonDocument::Compact));
+            manifest->write("\n");
+            manifest->flush();
+            return true;
+        };
+
+        QTimer::singleShot(2000, window, [capture, wizard]() {
+            if (!capture(QStringLiteral("01-language-selection"),
+                         QStringLiteral("Choose the Creator language"),
+                         QStringLiteral("Choose the language that the Unraid USB Creator will use, then continue."),
+                         QStringLiteral("entry")) ||
+                !QMetaObject::invokeMethod(wizard, "nextStep"))
+            {
+                QCoreApplication::exit(2);
+                return;
+            }
+            QTimer::singleShot(2000, wizard, [capture]() {
+                const bool ok = capture(
+                    QStringLiteral("02-os-selection"),
+                    QStringLiteral("Choose an Unraid release"),
+                    QStringLiteral("Choose the Unraid OS release to write to the USB flash drive."),
+                    QStringLiteral("decision"));
+                QCoreApplication::exit(ok ? 0 : 2);
+            });
+        });
+    }
 
     // Defer OS list fetch to after event loop starts to avoid blocking first draw
     // The network connectivity check can be slow (DNS lookups, interface enumeration)

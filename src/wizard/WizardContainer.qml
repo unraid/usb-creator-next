@@ -13,6 +13,7 @@ import RpiImager
 
 Item {
     id: root
+    objectName: "wizardContainer"
     
     property int sidebarWidthValue: Style.sidebarWidth
     // Show landing language selection step at startup

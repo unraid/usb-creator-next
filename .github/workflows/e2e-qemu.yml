@@ -1,0 +1,112 @@
+name: QEMU USB E2E
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+  pull_request:
+    paths:
+      - "e2e/qemu/**"
+      - "src/downloadextractthread.cpp"
+      - "src/driveformatthread.cpp"
+      - "src/disk_formatter.cpp"
+      - "src/file_operations.*"
+      - "src/file_operations_*.cpp"
+      - "src/unraid/**"
+      - ".github/workflows/e2e-qemu.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: qemu-usb-e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qemu-usb-write:
+    name: Linux QEMU USB write
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install build and E2E dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential cloud-image-utils cmake curl fuse libfuse2 \
+            libfontconfig1-dev libfreetype-dev libgl1-mesa-dev libgnutls28-dev \
+            libudev-dev libx11-dev libx11-xcb-dev libxcb-cursor-dev \
+            libxcb-glx0-dev libxcb-icccm4-dev libxcb-image0-dev \
+            libxcb-keysyms1-dev libxcb-randr0-dev libxcb-render-util0-dev \
+            libxcb-shape0-dev libxcb-shm0-dev libxcb-sync-dev libxcb-util-dev \
+            libxcb-xfixes0-dev libxcb-xkb-dev libxcb1-dev libxext-dev \
+            libxfixes-dev libxi-dev libxkbcommon-dev libxkbcommon-x11-dev \
+            libxrender-dev mtools parted qemu-system-x86 qemu-utils xz-utils zip
+          if [ -e /dev/kvm ]; then sudo chmod 666 /dev/kvm; fi
+
+      - name: Install Qt 6.11.1
+        run: |
+          python3 -m pip install --user "aqtinstall>=3.2.2"
+          "$HOME/.local/bin/aqt" install-qt linux desktop 6.11.1 linux_gcc_64 \
+            --archives qtbase qtdeclarative qtsvg qttools icu \
+            --outputdir "$HOME/Qt"
+
+      - name: Build AppImage
+        run: |
+          chmod +x ./create-appimage.sh
+          ./create-appimage.sh --qt-root="$HOME/Qt/6.11.1/gcc_64"
+
+      - name: Create development image
+        run: ./src/unraid/tools/make-dev-image.sh
+
+      - name: Run QEMU USB write journey
+        env:
+          USB_CREATOR_CAPTURE_ID: ${{ github.sha }}-${{ github.run_id }}
+        run: |
+          appimage=$(find . -maxdepth 1 -type f -name '*.AppImage' -print -quit)
+          test -n "$appimage"
+          e2e/qemu/run.sh --appimage "$appimage" --dev-image build/unraid-dev-image.zip
+
+      - name: Collate accepted documentation captures
+        run: python3 e2e/docs/collate.py --evidence build/e2e-qemu --output build/docs-bundle/current
+
+      - name: Upload E2E evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qemu-usb-e2e-evidence
+          path: |
+            build/e2e-qemu/**/*.log
+            build/e2e-qemu/**/*.jsonl
+            build/e2e-qemu/**/*.txt
+            build/e2e-qemu/**/screenshots/*.png
+          if-no-files-found: warn
+
+      - name: Upload accepted documentation bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: usb-creator-doc-bundle
+          path: build/docs-bundle/current
+          if-no-files-found: error
+
+      # Never expose the cross-repository credential to pull-request code. A
+      # manual run must also target main; selecting an arbitrary ref is not a
+      # trusted publication boundary.
+      - name: Check out documentation repository
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+        uses: actions/checkout@v4
+        with:
+          repository: unraid/docs
+          ref: main
+          path: build/docs-publication
+          token: ${{ secrets.DOCS_REPO_TOKEN }}
+
+      - name: Open documentation screenshot PR when images changed
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+        env:
+          GH_TOKEN: ${{ secrets.DOCS_REPO_TOKEN }}
+          USB_CREATOR_CAPTURE_ID: ${{ github.sha }}-${{ github.run_id }}
+        run: e2e/docs/publish.sh build/docs-bundle/current build/docs-publication

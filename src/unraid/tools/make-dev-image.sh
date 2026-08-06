@@ -16,6 +16,7 @@
 set -euo pipefail
 
 out="${1:-build/unraid-dev-image.zip}"
+mkdir -p "$(dirname "$out")"
 out="$(cd "$(dirname "$out")" && pwd)/$(basename "$out")"
 
 stage="$(mktemp -d)"
@@ -58,8 +59,21 @@ done
 head -c 4096 /dev/urandom > "$stage/EFI/BOOT/bootx64.efi"
 
 rm -f "$out"
-mkdir -p "$(dirname "$out")"
-(cd "$stage" && zip -q -r "$out" .)
+if command -v zip >/dev/null 2>&1; then
+    (cd "$stage" && zip -q -r "$out" .)
+else
+    python_bin="$(command -v python3 || command -v python)"
+    "$python_bin" - "$stage" "$out" <<'PY'
+from pathlib import Path
+import sys
+import zipfile
+
+source = Path(sys.argv[1])
+with zipfile.ZipFile(sys.argv[2], "w", compression=zipfile.ZIP_DEFLATED) as archive:
+    for entry in sorted(source.rglob("*")):
+        archive.write(entry, entry.relative_to(source))
+PY
+fi
 
 echo "Wrote $out ($(du -h "$out" | cut -f1))"
 echo

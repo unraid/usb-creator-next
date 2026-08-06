@@ -845,7 +845,10 @@ void DownloadExtractThread::extractMultiFileRun()
             | ARCHIVE_EXTRACT_SECURE_NODOTDOT | ARCHIVE_EXTRACT_SECURE_SYMLINKS | ARCHIVE_EXTRACT_NO_OVERWRITE
             /*ARCHIVE_EXTRACT_PERM | ARCHIVE_EXTRACT_ACL | ARCHIVE_EXTRACT_FFLAGS | ARCHIVE_EXTRACT_XATTR*/;
 #ifndef Q_OS_WIN
-    if (::getuid() == 0)
+    // FAT32 cannot represent Unix ownership. Asking archive_write_disk() to
+    // restore it makes the first Unraid entry fail when Creator runs as root,
+    // which is the normal privileged Linux launch path.
+    if (::getuid() == 0 && _initFormat != QByteArray(Unraid::kInitFormat))
         flags |= ARCHIVE_EXTRACT_OWNER;
 #endif
 
@@ -908,7 +911,10 @@ void DownloadExtractThread::extractMultiFileRun()
         {
           _checkResult(r, a);
           r = archive_write_header(ext, entry);
-          Unraid::requireArchiveWriteSuccess(r, archive_error_string(ext)); // UNRAID: incomplete boot media is never recoverable.
+          if (r < ARCHIVE_OK)
+              qWarning() << "Archive entry header result" << r << "for"
+                         << archive_entry_pathname(entry) << ':' << archive_error_string(ext);
+          Unraid::requireArchiveHeaderSuccess(r, archive_error_string(ext));
           if (archive_entry_size(entry) > 0)
           {
               //checkResult(copyData(a, ext), a);

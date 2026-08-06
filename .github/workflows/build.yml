@@ -92,6 +92,25 @@ jobs:
       - name: Build DMG
         run: cmake --build build --target dmg -j 3
 
+      - name: Capture native UI smoke evidence
+        env:
+          USB_CREATOR_CAPTURE_ID: ${{ github.sha }}-${{ github.run_id }}
+        run: |
+          ./src/unraid/tools/make-dev-image.sh
+          UNRAID_DEV_IMAGE="$PWD/build/unraid-dev-image.zip" \
+            "build/Unraid USB Creator.app/Contents/MacOS/Unraid USB Creator" \
+            --enable-language-selection --e2e-capture-dir build/e2e-native/macos
+          python3 e2e/docs/verify_manifest.py \
+            build/e2e-native/macos/manifest.jsonl --expected-frames 2
+
+      - name: Upload macOS UI evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-ui-evidence
+          path: build/e2e-native/macos
+          if-no-files-found: warn
+
       - uses: actions/upload-artifact@v4
         with:
           name: macos-dmg
@@ -178,6 +197,36 @@ jobs:
 
       - name: Build
         run: cmake --build build -j 4
+
+      - name: Create development image for UI smoke test
+        run: ./src/unraid/tools/make-dev-image.sh
+
+      - name: Capture native UI smoke evidence
+        env:
+          USB_CREATOR_CAPTURE_ID: ${{ github.sha }}-${{ github.run_id }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $branding = Get-Content -LiteralPath 'build/branding.env' |
+            Where-Object { $_ -like 'IMAGER_EXE_NAME=*' } |
+            Select-Object -First 1
+          if ([string]::IsNullOrWhiteSpace($branding)) { throw 'Creator executable name was not generated' }
+          $executableName = ($branding -split '=', 2)[1].Trim("'") + '.exe'
+          $creator = Get-Item -LiteralPath (Join-Path 'build' $executableName)
+          $env:UNRAID_DEV_IMAGE = (Resolve-Path 'build/unraid-dev-image.zip').Path
+          $process = Start-Process -FilePath $creator.FullName `
+            -ArgumentList '--enable-language-selection', '--e2e-capture-dir', 'build/e2e-native/windows' `
+            -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw "Creator capture exited with $($process.ExitCode)" }
+          python e2e/docs/verify_manifest.py build/e2e-native/windows/manifest.jsonl --expected-frames 2
+
+      - name: Upload Windows UI evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-ui-evidence
+          path: build/e2e-native/windows
+          if-no-files-found: warn
 
       # Sign the application binary before it is packaged. files-folder is used
       # rather than a hardcoded filename because the executable is named from
