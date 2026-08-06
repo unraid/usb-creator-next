@@ -23,6 +23,22 @@ inline void requireArchiveWriteSuccess(int result, const char *message)
         throw std::runtime_error(message ? message : "Failed to write a file to the target drive");
 }
 
+/**
+ * Accept warning-class results while creating an archive entry.
+ *
+ * archive_write_disk() can warn when FAT cannot represent Unix metadata even
+ * though it created the file successfully. Actual header failures are below
+ * ARCHIVE_WARN. Data writes deliberately continue to use the stricter helper
+ * above because libarchive's Windows backend reports failed WriteFile() calls
+ * as warnings.
+ */
+inline void requireArchiveHeaderSuccess(int result, const char *message)
+{
+    constexpr int archiveWarn = -20;
+    if (result < archiveWarn)
+        throw std::runtime_error(message ? message : "Failed to create a file on the target drive");
+}
+
 } // namespace Unraid
 
 #endif // UNRAID_ARCHIVE_WRITE_RESULT_H

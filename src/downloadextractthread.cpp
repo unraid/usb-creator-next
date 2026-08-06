@@ -908,7 +908,9 @@ void DownloadExtractThread::extractMultiFileRun()
         {
           _checkResult(r, a);
           r = archive_write_header(ext, entry);
-          Unraid::requireArchiveWriteSuccess(r, archive_error_string(ext)); // UNRAID: incomplete boot media is never recoverable.
+          if (r == ARCHIVE_WARN)
+              qWarning() << "Archive entry metadata warning:" << archive_error_string(ext);
+          Unraid::requireArchiveHeaderSuccess(r, archive_error_string(ext));
           if (archive_entry_size(entry) > 0)
           {
               //checkResult(copyData(a, ext), a);

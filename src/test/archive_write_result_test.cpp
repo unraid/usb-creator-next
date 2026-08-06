@@ -32,3 +32,13 @@ TEST_CASE("archive write failures have a fallback message", "[unraid][archive-wr
     REQUIRE_THROWS_WITH(Unraid::requireArchiveWriteSuccess(-20, nullptr),
                         "Failed to write a file to the target drive");
 }
+
+TEST_CASE("archive entry headers tolerate metadata warnings only", "[unraid][archive-write]")
+{
+    REQUIRE_NOTHROW(Unraid::requireArchiveHeaderSuccess(0, nullptr));
+    REQUIRE_NOTHROW(Unraid::requireArchiveHeaderSuccess(-20, nullptr));
+    REQUIRE_THROWS_WITH(Unraid::requireArchiveHeaderSuccess(-25, "Header failed"),
+                        "Header failed");
+    REQUIRE_THROWS_WITH(Unraid::requireArchiveHeaderSuccess(-30, nullptr),
+                        "Failed to create a file on the target drive");
+}
