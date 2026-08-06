@@ -113,6 +113,17 @@ def main() -> int:
 
     app = wait_for_app()
     try:
+        wait_for(app, "Welcome", roles=("heading",), timeout=120)
+        shot(
+            args.screenshots,
+            args.manifest,
+            "00-language-selection",
+            title="Choose the Creator language",
+            caption="Choose the language that the Unraid USB Creator will use, then continue.",
+            role="entry",
+        )
+        click(app, "Next", roles=("push button", "button"))
+
         wait_for(app, "Choose operating system", roles=("heading",), timeout=120)
         shot(
             args.screenshots,
@@ -120,7 +131,7 @@ def main() -> int:
             "01-os-selection",
             title="Choose the development image",
             caption="The Creator offers the small local Unraid development image for a fast end-to-end write.",
-            role="entry",
+            role="decision",
         )
 
         click(app, "Unraid (development image)")
