@@ -43,6 +43,10 @@ cleanup() {
 trap cleanup EXIT
 
 sleep 2
+# The SSH wrapper used sudo only to obtain raw-device access. Avoid making
+# Creator reinterpret this headless process as a desktop sudo relaunch and
+# replace the working isolated D-Bus address with a nonexistent login bus.
+unset SUDO_USER SUDO_UID SUDO_GID
 UNRAID_DEV_IMAGE=/opt/usb-creator-e2e/unraid-dev-image.zip \
   /opt/usb-creator-e2e/squashfs-root/AppRun --debug \
   >artifacts/creator.log 2>&1 &
