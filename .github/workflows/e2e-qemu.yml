@@ -2,6 +2,8 @@ name: QEMU USB E2E
 
 on:
   workflow_dispatch:
+  push:
+    branches: ["main"]
   pull_request:
     paths:
       - "e2e/qemu/**"
@@ -15,6 +17,10 @@ on:
 
 permissions:
   contents: read
+
+concurrency:
+  group: qemu-usb-e2e-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   qemu-usb-write:
@@ -85,3 +91,22 @@ jobs:
           name: usb-creator-doc-bundle
           path: build/docs-bundle/current
           if-no-files-found: error
+
+      # Never expose the cross-repository credential to pull-request code. A
+      # manual run must also target main; selecting an arbitrary ref is not a
+      # trusted publication boundary.
+      - name: Check out documentation repository
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+        uses: actions/checkout@v4
+        with:
+          repository: unraid/docs
+          ref: main
+          path: build/docs-publication
+          token: ${{ secrets.DOCS_REPO_TOKEN }}
+
+      - name: Open documentation screenshot PR when images changed
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+        env:
+          GH_TOKEN: ${{ secrets.DOCS_REPO_TOKEN }}
+          USB_CREATOR_CAPTURE_ID: ${{ github.sha }}-${{ github.run_id }}
+        run: e2e/docs/publish.sh build/docs-bundle/current build/docs-publication
