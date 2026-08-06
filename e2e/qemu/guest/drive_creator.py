@@ -16,7 +16,14 @@ from dogtail.tree import root
 
 def descendants(node):
     yield node
-    for child in node.children:
+    try:
+        children = list(node.children)
+    except Exception:
+        # Qt can detach a page or delegate between fetching a node and asking
+        # Dogtail for its children. Treat that stale subtree as gone and keep
+        # walking the current accessibility tree.
+        return
+    for child in children:
         yield from descendants(child)
 
 
@@ -33,7 +40,11 @@ def dump_tree(app, destination: Path) -> None:
 
 def walk(node, depth=0):
     yield depth, node
-    for child in node.children:
+    try:
+        children = list(node.children)
+    except Exception:
+        return
+    for child in children:
         yield from walk(child, depth + 1)
 
 
