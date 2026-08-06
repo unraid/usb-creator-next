@@ -13,6 +13,11 @@ for command in mcopy mdir mlabel parted python3 sha256sum; do
     }
 done
 
+# The cross-platform formatter uses modern USB geometry that mtools can reject
+# even though Linux and Windows mount the FAT32 volume correctly.
+export MTOOLS_SKIP_CHECK=1
+export MTOOLS_FAT_COMPATIBILITY=1
+
 read -r partition_start filesystem < <(
     parted -ms "$image" unit B print | awk -F: '$1 == "1" {gsub(/B$/, "", $2); print $2, $5}'
 )
