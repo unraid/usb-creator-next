@@ -71,6 +71,29 @@ def wait_for(app, text: str, roles=(), timeout=60):
     raise TimeoutError(f"Timed out waiting for visible accessibility node containing {text!r}")
 
 
+def wait_for_unique(app, text: str, roles=(), timeout=60):
+    wanted = text.lower()
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        matches = []
+        for node in descendants(app):
+            try:
+                if (
+                    wanted in (node.name or "").lower()
+                    and (not roles or node.roleName in roles)
+                    and node.showing
+                ):
+                    matches.append(node)
+            except Exception:
+                continue
+        if len(matches) == 1:
+            return matches[0]
+        if len(matches) > 1:
+            raise RuntimeError(f"Expected one visible {text!r} target, found {len(matches)}")
+        time.sleep(0.5)
+    raise TimeoutError(f"Timed out waiting for one visible accessibility node containing {text!r}")
+
+
 def click(app, text: str, roles=(), timeout=60):
     node = wait_for(app, text, roles=roles, timeout=timeout)
     node.click()
@@ -178,8 +201,8 @@ def main() -> int:
         click(app, "Next", roles=("push button", "button"))
 
         wait_for(app, "Select your storage device", roles=("heading",))
-        target = wait_for(app, "QEMU", timeout=90)
-        if "usb" not in (target.name or "").lower() and "harddisk" not in (target.name or "").lower():
+        target = wait_for_unique(app, "QEMU", roles=("list item",), timeout=90)
+        if "2 gb" not in (target.name or "").lower():
             raise RuntimeError(f"Unexpected QEMU target description: {target.name!r}")
         target.click()
         shot(

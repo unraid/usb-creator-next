@@ -196,5 +196,5 @@ wait "$qemu_pid" || true
 qemu_pid=
 
 cp --sparse=always "$target" "$artifacts/target.raw"
-"$script_dir/verify-image.sh" "$artifacts/target.raw" | tee "$artifacts/verification.txt"
+"$script_dir/verify-image.sh" "$artifacts/target.raw" "$dev_image" | tee "$artifacts/verification.txt"
 echo "E2E evidence: $artifacts"
