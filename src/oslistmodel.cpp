@@ -27,6 +27,7 @@ namespace {
         QStringLiteral("systemd"),
         QStringLiteral("cloudinit"),
         QStringLiteral("cloudinit-rpi"),
+        QStringLiteral("rpi-preseed"),
         QStringLiteral("none"),
         // UNRAID: an Unraid release is a multi-file zip laid onto a FAT32 volume,
         // customised by src/unraid/unraid_postwrite.cpp. Without this every entry
@@ -52,7 +53,7 @@ namespace {
                 QString name = entry["name"].toString();
                 qWarning() << "OSListModel: Pruning OS entry with invalid init_format '" 
                            << initFormat << "':" << name
-                           << "(valid values:" << VALID_INIT_FORMATS << ")"; // UNRAID: report the real set
+                            << "(valid values:" << VALID_INIT_FORMATS << ")"; // UNRAID: report the real set
                 continue;
             }
             
