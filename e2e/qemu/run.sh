@@ -167,7 +167,9 @@ set +e
 ssh "${ssh_opts[@]}" e2e@127.0.0.1 'sudo bash /opt/usb-creator-e2e/run-e2e.sh'
 guest_status=$?
 set -e
-scp -r "${scp_opts[@]}" e2e@127.0.0.1:/opt/usb-creator-e2e/artifacts/. "$artifacts/" || true
+ssh "${ssh_opts[@]}" e2e@127.0.0.1 \
+    'sudo tar -C /opt/usb-creator-e2e/artifacts -cf - .' \
+    | tar -C "$artifacts" -xf - || true
 if [[ $guest_status -ne 0 ]]; then
     echo "Guest UI journey failed with exit code $guest_status" >&2
     exit "$guest_status"

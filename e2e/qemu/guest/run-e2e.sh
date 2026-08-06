@@ -22,14 +22,22 @@ Xvfb :99 -screen 0 1280x800x24 -nolisten tcp >artifacts/xvfb.log 2>&1 &
 xvfb_pid=$!
 openbox >artifacts/openbox.log 2>&1 &
 openbox_pid=$!
-trap 'kill "$openbox_pid" "$xvfb_pid" 2>/dev/null || true' EXIT
+cleanup() {
+  status=$?
+  if [[ $status -ne 0 ]]; then
+    import -window root artifacts/screenshots/failure.png 2>/dev/null || true
+    echo "--- Creator log ---" >&2
+    cat artifacts/creator.log >&2 2>/dev/null || true
+  fi
+  kill "${creator_pid:-}" "$openbox_pid" "$xvfb_pid" 2>/dev/null || true
+}
+trap cleanup EXIT
 
 sleep 2
 UNRAID_DEV_IMAGE=/opt/usb-creator-e2e/unraid-dev-image.zip \
   /opt/usb-creator-e2e/squashfs-root/AppRun --debug \
   >artifacts/creator.log 2>&1 &
 creator_pid=$!
-trap 'kill "$creator_pid" "$openbox_pid" "$xvfb_pid" 2>/dev/null || true' EXIT
 
 python3 /opt/usb-creator-e2e/drive_creator.py \
   --screenshots /opt/usb-creator-e2e/artifacts/screenshots \
