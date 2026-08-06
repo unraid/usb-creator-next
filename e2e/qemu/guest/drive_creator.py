@@ -88,9 +88,29 @@ def shot(
     capture_id: str,
     platform: str,
 ) -> None:
+    # A heading becomes visible before the Qt page transition finishes. Wait
+    # for the stable frame so evidence never captures a half-rendered page.
+    time.sleep(1)
     destination = output / f"{name}.png"
+    frame = next(
+        node
+        for node in descendants(root)
+        if node.roleName == "frame"
+        and "unraid usb creator" in (node.name or "").lower()
+        and node.showing
+    )
+    x, y = frame.position
+    width, height = frame.size
     subprocess.run(
-        ["import", "-window", "root", str(destination)],
+        [
+            "import",
+            "-window",
+            "root",
+            "-crop",
+            f"{width}x{height}+{x}+{y}",
+            "+repage",
+            str(destination),
+        ],
         check=True,
         timeout=20,
     )
