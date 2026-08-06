@@ -99,13 +99,13 @@ jobs:
         id: docs-auth
         if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
         env:
-          DOCS_REPO_TOKEN: ${{ secrets.DOCS_REPO_TOKEN }}
+          UNRAID_BOT_GITHUB_ADMIN_TOKEN: ${{ secrets.UNRAID_BOT_GITHUB_ADMIN_TOKEN }}
         run: |
-          if [[ -n "$DOCS_REPO_TOKEN" ]]; then
+          if [[ -n "$UNRAID_BOT_GITHUB_ADMIN_TOKEN" ]]; then
             echo "available=true" >> "$GITHUB_OUTPUT"
           else
             echo "available=false" >> "$GITHUB_OUTPUT"
-            echo "DOCS_REPO_TOKEN is not configured; retaining the documentation bundle as a workflow artifact."
+            echo "UNRAID_BOT_GITHUB_ADMIN_TOKEN is not configured; retaining the documentation bundle as a workflow artifact."
           fi
 
       - name: Check out documentation repository
@@ -115,11 +115,11 @@ jobs:
           repository: unraid/docs
           ref: main
           path: build/docs-publication
-          token: ${{ secrets.DOCS_REPO_TOKEN }}
+          token: ${{ secrets.UNRAID_BOT_GITHUB_ADMIN_TOKEN }}
 
       - name: Open documentation screenshot PR when images changed
         if: steps.docs-auth.outputs.available == 'true'
         env:
-          GH_TOKEN: ${{ secrets.DOCS_REPO_TOKEN }}
+          GH_TOKEN: ${{ secrets.UNRAID_BOT_GITHUB_ADMIN_TOKEN }}
           USB_CREATOR_CAPTURE_ID: ${{ github.sha }}-${{ github.run_id }}
         run: e2e/docs/publish.sh build/docs-bundle/current build/docs-publication
