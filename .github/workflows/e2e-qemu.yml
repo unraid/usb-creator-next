@@ -95,8 +95,21 @@ jobs:
       # Never expose the cross-repository credential to pull-request code. A
       # manual run must also target main; selecting an arbitrary ref is not a
       # trusted publication boundary.
-      - name: Check out documentation repository
+      - name: Check documentation publication credential
+        id: docs-auth
         if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+        env:
+          DOCS_REPO_TOKEN: ${{ secrets.DOCS_REPO_TOKEN }}
+        run: |
+          if [[ -n "$DOCS_REPO_TOKEN" ]]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "DOCS_REPO_TOKEN is not configured; retaining the documentation bundle as a workflow artifact."
+          fi
+
+      - name: Check out documentation repository
+        if: steps.docs-auth.outputs.available == 'true'
         uses: actions/checkout@v4
         with:
           repository: unraid/docs
@@ -105,7 +118,7 @@ jobs:
           token: ${{ secrets.DOCS_REPO_TOKEN }}
 
       - name: Open documentation screenshot PR when images changed
-        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+        if: steps.docs-auth.outputs.available == 'true'
         env:
           GH_TOKEN: ${{ secrets.DOCS_REPO_TOKEN }}
           USB_CREATOR_CAPTURE_ID: ${{ github.sha }}-${{ github.run_id }}
