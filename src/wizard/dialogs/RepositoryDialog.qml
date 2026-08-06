@@ -101,7 +101,7 @@ BaseDialog {
 
             ImRadioButton {
                 id: radioCustomFile
-                text: qsTr("Use custom file")
+                text: qsTr("Use custom JSON file")
                 accessibleDescription: qsTr("Load operating system list from a JSON file on your computer")
                 checked: false
                 ButtonGroup.group: repoGroup
@@ -140,7 +140,7 @@ BaseDialog {
                     id: fieldCustomRepository
                     text: popup.selectedRepo !== "" ? UrlFmt.display(popup.selectedRepo) : ""
                     Layout.fillWidth: true
-                    placeholderText: qsTr("Please select a custom repository json file")
+                    placeholderText: qsTr("Please select a custom repository JSON file")
                     font.pointSize: Style.fontSizeInput
                     readOnly: true
                     activeFocusOnTab: true

@@ -2398,7 +2398,7 @@ QJsonDocument ImageWriter::getFilteredOSlistDocument() {
 
     reference_os_list_array.append(QJsonObject({
             {"name", QCoreApplication::translate("main", "Use custom")},
-            {"description", QCoreApplication::translate("main", "Select a custom .img from your computer")},
+            {"description", QCoreApplication::translate("main", "Select a custom image or ZIP file from your computer")},
             {"icon", "../icons/use_custom.png"},
             {"url", "internal://custom"},
         }));
