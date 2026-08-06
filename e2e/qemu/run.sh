@@ -104,6 +104,7 @@ packages:
   - libegl1
   - libfuse2t64
   - libgl1
+  - libopengl0
   - libxcb-cursor0
   - openbox
   - python3-dogtail
