@@ -211,7 +211,7 @@ def main() -> int:
         click(app, "Write", roles=("push button", "button"))
         click(app, "I understand, erase and write", roles=("push button", "button"), timeout=15)
 
-        wait_for(app, "Write completed successfully", timeout=180)
+        wait_for(app, "Write complete!", roles=("heading",), timeout=180)
         shot(
             args.screenshots,
             args.manifest,
