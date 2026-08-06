@@ -333,8 +333,6 @@ Result<void> DiskFormatter::WriteFat32(
 
   // Write backup boot sector at sector 6 (as specified in the boot sector's backup_boot_sector field)
   constexpr std::uint32_t kBackupBootSector = 6;
-  // UNRAID: the backup is a byte-identical copy of the primary, so it takes the same
-  // partition start -- only the write location differs.
   if (auto result = WriteBootSector(partition_start_sector + kBackupBootSector,
                                     partition_start_sector, config); !result) {
     return result;
@@ -379,11 +377,10 @@ Result<void> DiskFormatter::WriteBootSector(
   boot_sector.sectors_per_fat_16 = 0;  // FAT32
   boot_sector.sectors_per_track = ToLittleEndian(static_cast<std::uint16_t>(63));
   boot_sector.num_heads = ToLittleEndian(static_cast<std::uint16_t>(255));
-  // UNRAID: BPB_HiddSec is the number of sectors before the FAT32 volume, so it is
-  // the partition start -- NOT where this copy of the boot sector happens to land.
-  // Deriving it from offset_sectors gave the backup copy 8198 instead of 8192, and
-  // fsck.fat reports the mismatch ("differences between boot sector and its backup",
-  // offset 28) on every single Unraid boot. Observed on a booted stick.
+  // BPB_HiddSec is the number of sectors preceding the FAT32 volume, not the
+  // location of this particular copy of the boot sector. Using offset_sectors gave
+  // the backup copy at +6 a value 6 higher than the primary, which fsck.fat reports
+  // as "There are differences between boot sector and its backup" at offset 28.
   boot_sector.hidden_sectors = ToLittleEndian(partition_start_sectors);
   boot_sector.total_sectors_32 = ToLittleEndian(config.total_sectors);
 

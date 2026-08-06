@@ -564,20 +564,12 @@ FileError WindowsFileOperations::GetSize(std::uint64_t& size) {
   if (!GetFileSizeEx(handle_, &file_size)) {
     DWORD bytes_returned;
 
-    // UNRAID: ask for the exact length first. IOCTL_DISK_GET_DRIVE_GEOMETRY below
-    // reports a synthetic CHS geometry, and multiplying it out rounds the size DOWN
-    // to a whole cylinder -- so it under-reports the device.
-    //
-    // Measured on a 28.7 GB SanDisk: true 60125184 sectors, geometry gives
-    // 3742 cylinders * 255 heads * 63 sectors = 60115230, short by 9954 sectors
-    // (4.86 MiB). Anything keyed to the end of the device therefore lands ~5 MiB
-    // early: WipeResidualSignatures() missed the backup GPT in the final sector
-    // entirely, which is exactly the stale-GPT residue it exists to remove, and it
-    // reported success because the write itself did not fail. Verified against a
-    // drive carrying a Rufus dd-written TrueNAS image.
-    //
-    // IOCTL_DISK_GET_LENGTH_INFO returns the true byte length and is the documented
-    // call for this; geometry stays as a fallback for anything that rejects it.
+    // For devices, ask for the exact length. IOCTL_DISK_GET_DRIVE_GEOMETRY below
+    // reports a synthetic CHS geometry whose product is rounded down to a whole
+    // cylinder, so it under-reports the device: a 28.7 GB USB stick of 60125184
+    // sectors is reported as 3742 * 255 * 63 = 60115230 sectors, 9954 sectors
+    // (4.86 MiB) short. Anything positioned relative to the end of the device is
+    // then placed inside that gap rather than at the true end.
     GET_LENGTH_INFORMATION length_info;
     if (DeviceIoControl(handle_, IOCTL_DISK_GET_LENGTH_INFO,
                         nullptr, 0, &length_info, sizeof(length_info),
@@ -586,7 +578,7 @@ FileError WindowsFileOperations::GetSize(std::uint64_t& size) {
       return FileError::kSuccess;
     }
 
-    // For devices, try to get geometry information
+    // Fall back to geometry information
     DISK_GEOMETRY geometry;
 
     if (DeviceIoControl(handle_, IOCTL_DISK_GET_DRIVE_GEOMETRY,

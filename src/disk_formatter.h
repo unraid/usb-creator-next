@@ -209,10 +209,8 @@ class DiskFormatter {
       std::uint32_t partition_size_sectors) const;
 
   // Helper functions
-  // UNRAID: partition_start_sectors is where the FAT32 volume begins; offset_sectors
-  // is where this particular copy of the boot sector is written. They differ for the
-  // backup copy at +6, and BPB_HiddSec must record the former in BOTH copies -- see
-  // the call site in WriteFat32().
+  // offset_sectors is where this copy of the boot sector is written; the primary
+  // and the backup at +6 differ there but must record the same partition start.
   Result<void> WriteBootSector(
       std::uint32_t offset_sectors,
       std::uint32_t partition_start_sectors,
