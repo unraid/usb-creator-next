@@ -163,8 +163,15 @@ scp "${scp_opts[@]}" "$appimage" e2e@127.0.0.1:/opt/usb-creator-e2e/creator.AppI
 scp "${scp_opts[@]}" "$dev_image" e2e@127.0.0.1:/opt/usb-creator-e2e/unraid-dev-image.zip
 scp "${scp_opts[@]}" "$script_dir/guest/drive_creator.py" "$script_dir/guest/run-e2e.sh" e2e@127.0.0.1:/opt/usb-creator-e2e/
 
+set +e
 ssh "${ssh_opts[@]}" e2e@127.0.0.1 'sudo bash /opt/usb-creator-e2e/run-e2e.sh'
-scp -r "${scp_opts[@]}" e2e@127.0.0.1:/opt/usb-creator-e2e/artifacts/. "$artifacts/"
+guest_status=$?
+set -e
+scp -r "${scp_opts[@]}" e2e@127.0.0.1:/opt/usb-creator-e2e/artifacts/. "$artifacts/" || true
+if [[ $guest_status -ne 0 ]]; then
+    echo "Guest UI journey failed with exit code $guest_status" >&2
+    exit "$guest_status"
+fi
 ssh "${ssh_opts[@]}" e2e@127.0.0.1 'sudo poweroff' || true
 
 for _ in $(seq 1 60); do

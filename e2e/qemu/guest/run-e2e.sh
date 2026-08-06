@@ -13,9 +13,11 @@ export DISPLAY=:99
 export NO_AT_BRIDGE=0
 export QT_LINUX_ACCESSIBILITY_ALWAYS_ON=1
 export QT_ACCESSIBILITY=1
+export GTK_MODULES=gail:atk-bridge
 export LIBGL_ALWAYS_SOFTWARE=1
 
 dbus-run-session -- bash -euo pipefail <<'SESSION'
+gsettings set org.gnome.desktop.interface toolkit-accessibility true
 Xvfb :99 -screen 0 1280x800x24 -nolisten tcp >artifacts/xvfb.log 2>&1 &
 xvfb_pid=$!
 openbox >artifacts/openbox.log 2>&1 &
