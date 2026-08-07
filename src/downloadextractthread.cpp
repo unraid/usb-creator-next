@@ -1091,6 +1091,12 @@ void DownloadExtractThread::extractMultiFileRun()
         // completion signal. PlatformQuirks' legacy Windows result does not
         // reliably distinguish an unrelated volume from a successful eject, so
         // do not turn that result into a new terminal error here.
+        //
+        // On macOS the unmount inside ejectDisk() is what flushes the freshly
+        // extracted files out of the page cache, so it can take tens of
+        // seconds on a slow stick. Without a status update the UI sits on
+        // "Finalising…" the whole time and reads as a hang.
+        emit preparationStatusUpdate(tr("Ejecting storage device… (flushing data, this may take a minute)"));
         PlatformQuirks::ejectDisk(ejectPath);
     }
 
