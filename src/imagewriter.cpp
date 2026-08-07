@@ -502,6 +502,19 @@ ImageWriter::~ImageWriter()
         _cacheManager = nullptr;
     }
 
+    // Wait for a user-triggered eject before teardown; its lambda captures
+    // `this` and reports back via invokeMethod, so it must not outlive us.
+    if (_manualEjectThread) {
+        qDebug() << "Waiting for manual eject thread to finish";
+        if (!_manualEjectThread->wait(30000)) {
+            qWarning() << "Manual eject did not finish within 30s, terminating";
+            _manualEjectThread->terminate();
+            _manualEjectThread->wait(2000);
+        }
+        delete _manualEjectThread;
+        _manualEjectThread = nullptr;
+    }
+
     // Ensure any running thread is properly cleaned up
     if (_thread) {
         if (_thread->isRunning()) {
@@ -1037,6 +1050,7 @@ void ImageWriter::startWrite()
     }
 
     setWriteState(WriteState::Preparing);
+    setEjectState(EjectState::EjectIdle);
 
     if (_isFastbootDevice)
     {
@@ -1412,6 +1426,8 @@ void ImageWriter::startWrite()
     connect(_thread, SIGNAL(error(QString)), SLOT(onError(QString)));
     connect(_thread, SIGNAL(finalizing()), SLOT(onFinalizing()));
     connect(_thread, SIGNAL(preparationStatusUpdate(QString)), SLOT(onPreparationStatusUpdate(QString)));
+    connect(_thread, &DownloadThread::ejectStarted, this, &ImageWriter::onEjectStarted);
+    connect(_thread, &DownloadThread::ejectFinished, this, &ImageWriter::onEjectFinished);
     // Ensure cleanup of thread pointer on finish in all paths
     connect(_thread, &QThread::finished, this, [this]() {
         if (_thread)
@@ -2674,6 +2690,60 @@ void ImageWriter::restartWrite(QString reason)
         }
         startWrite();
     }
+}
+
+void ImageWriter::setEjectState(EjectState state)
+{
+    if (_ejectState == state)
+        return;
+
+    _ejectState = state;
+    emit ejectStateChanged();
+}
+
+void ImageWriter::onEjectStarted()
+{
+    setEjectState(EjectState::EjectInProgress);
+}
+
+void ImageWriter::onEjectFinished(bool succeeded)
+{
+    // Ignore a stale result if a new write has already reset the state
+    if (_ejectState != EjectState::EjectInProgress)
+        return;
+
+    setEjectState(succeeded ? EjectState::EjectSucceeded : EjectState::EjectFailed);
+}
+
+void ImageWriter::ejectDrive()
+{
+    if (_ejectState == EjectState::EjectInProgress)
+        return;
+
+    // Only regular block devices can be ejected (not fastboot targets)
+    if (_dst.isEmpty() || _dst.startsWith("fastboot://"))
+        return;
+
+    setEjectState(EjectState::EjectInProgress);
+
+    const QString device = _dst;
+    _manualEjectThread = QThread::create([this, device]() {
+        PlatformQuirks::DiskResult result =
+            PlatformQuirks::ejectDisk(PlatformQuirks::getEjectDevicePath(device));
+        bool succeeded = (result == PlatformQuirks::DiskResult::Success);
+#ifdef Q_OS_WIN
+        // The legacy Windows result can carry an unrelated volume's failure
+        // even when the target drive ejected fine; only report a definite miss.
+        succeeded = (result != PlatformQuirks::DiskResult::InvalidDrive);
+#endif
+        QMetaObject::invokeMethod(this, "onEjectFinished", Qt::QueuedConnection,
+                                  Q_ARG(bool, succeeded));
+    });
+    connect(_manualEjectThread, &QThread::finished, this, [this]() {
+        _manualEjectThread->deleteLater();
+        _manualEjectThread = nullptr;
+    });
+    _manualEjectThread->start();
 }
 
 void ImageWriter::setWriteState(WriteState state)
@@ -4580,6 +4650,8 @@ void ImageWriter::_continueStartWriteAfterCacheVerification(bool cacheIsValid)
     connect(_thread, SIGNAL(error(QString)), SLOT(onError(QString)));
     connect(_thread, SIGNAL(finalizing()), SLOT(onFinalizing()));
     connect(_thread, SIGNAL(preparationStatusUpdate(QString)), SLOT(onPreparationStatusUpdate(QString)));
+    connect(_thread, &DownloadThread::ejectStarted, this, &ImageWriter::onEjectStarted);
+    connect(_thread, &DownloadThread::ejectFinished, this, &ImageWriter::onEjectFinished);
     // Ensure cleanup of thread pointer on finish in all paths
     connect(_thread, &QThread::finished, this, [this]() {
         if (_thread)

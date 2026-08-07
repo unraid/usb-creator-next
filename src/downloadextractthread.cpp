@@ -428,8 +428,14 @@ void DownloadExtractThread::_onDownloadSuccess()
         return;
     }
 
-    // Extraction thread already called _writeComplete(), so just emit success to signal thread completion
+    // Extraction thread already finished writing; emit success right away and
+    // run the (potentially slow) eject afterwards on this thread, so the done
+    // screen appears immediately with a live eject status.
+    if (_ejectEnabled)
+        emit ejectStarted();
     emit success();
+    if (_ejectEnabled)
+        _performEject();
 }
 
 void DownloadExtractThread::_onDownloadError(const QString &msg)
@@ -1080,32 +1086,26 @@ void DownloadExtractThread::extractMultiFileRun()
     if (_extractFailed || _cancelled)
         return;
 
-    // Give the filesystem a moment to settle after sync before ejecting
-    QThread::msleep(500);
-
-    if (_ejectEnabled)
-    {
-        // Use canonical device path for eject (e.g., /dev/disk on macOS, not rdisk)
-        QString ejectPath = PlatformQuirks::getEjectDevicePath(_filename);
-        // UNRAID: wait for the synchronous eject attempt to finish before the
-        // completion signal. PlatformQuirks' legacy Windows result does not
-        // reliably distinguish an unrelated volume from a successful eject, so
-        // do not turn that result into a new terminal error here.
-        //
-        // On macOS the unmount inside ejectDisk() is what flushes the freshly
-        // extracted files out of the page cache, so it can take tens of
-        // seconds on a slow stick. Without a status update the UI sits on
-        // "Finalising…" the whole time and reads as a hang.
-        emit preparationStatusUpdate(tr("Ejecting storage device… (flushing data, this may take a minute)"));
-        PlatformQuirks::ejectDisk(ejectPath);
-    }
-
-    // UNRAID: downloaded archives have a second extraction thread, and
-    // _onDownloadSuccess() is their sole terminal success owner after waiting for
-    // this method to return. LocalFileExtractThread calls this method inline and
-    // therefore still needs the success signal here.
+    // UNRAID: the eject is announced first and then performed *after*
+    // success(), so the done screen appears immediately and shows a live
+    // "ejecting" status instead of the write screen freezing on
+    // "Finalising…". On macOS the unmount inside ejectDisk() is what flushes
+    // the freshly extracted files out of the page cache, which can take tens
+    // of seconds on a slow stick.
+    //
+    // Downloaded archives have a second extraction thread, and
+    // _onDownloadSuccess() is their sole terminal success owner after waiting
+    // for this method to return; it also owns the eject so the wait cannot
+    // block on it. LocalFileExtractThread calls this method inline and
+    // therefore still needs the success signal and eject here.
     if (!_ethreadStarted)
+    {
+        if (_ejectEnabled)
+            emit ejectStarted();
         emit success();
+        if (_ejectEnabled)
+            _performEject();
+    }
 }
 
 ssize_t DownloadExtractThread::_on_read(struct archive *, const void **buff)
