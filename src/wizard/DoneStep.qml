@@ -18,9 +18,10 @@ WizardStepBase {
     title: qsTr("Write complete!")
     showBackButton: false
     showNextButton: false
-    readonly property bool autoEjectEnabled: ImageWriterSingleton.getBoolSetting("eject")
     readonly property var ejectState: ImageWriterSingleton.ejectState
     readonly property bool ejectInProgress: ejectState === ImageWriterSingleton.EjectInProgress
+    // Fastboot targets have no removable medium to eject
+    readonly property bool ejectApplicable: !ImageWriterSingleton.isFastbootDevice()
     // Use snapshot of customization flags captured when write completed
     // This preserves the state even after token/flags are cleared for security
     readonly property bool anyCustomizationsApplied: (
@@ -240,6 +241,7 @@ WizardStepBase {
             }
             FocusableText {
                 id: ejectInstruction
+                visible: root.ejectApplicable
                 text: {
                     if (root.ejectState === ImageWriterSingleton.EjectInProgress)
                         return qsTr("Ejecting the storage device — do not remove it yet…")
@@ -247,8 +249,9 @@ WizardStepBase {
                         return qsTr("The storage device was ejected. You can now remove it safely.")
                     if (root.ejectState === ImageWriterSingleton.EjectFailed)
                         return qsTr("The storage device could not be ejected. Close any application still using it, then press Eject.")
-                    // EjectIdle: no eject was requested for this write
-                    return root.autoEjectEnabled ? qsTr("The storage device was ejected automatically. You can now remove it safely.") : qsTr("Please eject the storage device before removing it from your computer.")
+                    // EjectIdle: no eject ran for this write, so never claim one
+                    // did — instruct the user to eject before removal instead.
+                    return qsTr("Please eject the storage device before removing it from your computer.")
                 }
                 font.pointSize: Style.fontSizeDescription
                 font.family: Style.fontFamily
@@ -288,8 +291,9 @@ WizardStepBase {
             id: ejectButton
             text: qsTr("Eject")
             accessibleDescription: qsTr("Eject the storage device so it can be removed safely")
-            visible: root.ejectState === ImageWriterSingleton.EjectFailed ||
-                     (root.ejectState === ImageWriterSingleton.EjectIdle && !root.autoEjectEnabled)
+            visible: root.ejectApplicable &&
+                     (root.ejectState === ImageWriterSingleton.EjectFailed ||
+                      root.ejectState === ImageWriterSingleton.EjectIdle)
             activeFocusOnTab: true
             Layout.minimumWidth: Style.buttonWidthMinimum
             Layout.preferredHeight: Style.buttonHeightStandard
@@ -353,7 +357,7 @@ WizardStepBase {
         
         // Register eject instruction as third focus group
         registerFocusGroup("eject", function() {
-            return [ejectInstruction]
+            return ejectInstruction.visible ? [ejectInstruction] : []
         }, 2)
         
         // Register custom buttons as fourth focus group
