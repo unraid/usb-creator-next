@@ -44,6 +44,9 @@ jobs:
           if ls release/*-v*.dmg >/dev/null 2>&1; then
             find release -name '*.dmg' ! -name '*-v*.dmg' -delete
           fi
+          # actions/download-artifact normalizes file permissions, so restore
+          # the executable bit before publishing AppImages to the release.
+          find release -type f -name '*.AppImage' -exec chmod +x {} +
           ls -lh release/
 
       - name: Create release
