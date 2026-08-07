@@ -16,6 +16,7 @@
 #include <QFile>
 #include <QElapsedTimer>
 #include <QFuture>
+#include <QMap>
 #include <atomic>
 #include <time.h>
 #include <curl/curl.h>
@@ -210,6 +211,7 @@ signals:
     void eventDriveMbrZeroing(quint32 durationMs, bool success, QString metadata);  // MBR zeroing timing
     void eventDirectIOAttempt(bool attempted, bool succeeded, bool currentlyEnabled, int errorCode, QString errorMessage);
     void eventCustomisation(quint32 durationMs, bool success, QString metadata);
+    void eventCustomisationVerify(quint32 durationMs, bool success, QString metadata);  // Customisation read-back check
     void finalSyncStarting();  // Emitted before post-write fdatasync/fsync
     void eventFinalSync(quint32 durationMs, bool success);
     void eventVerify(quint32 durationMs, bool success, QByteArray writeHash, QByteArray verifyHash);
@@ -262,6 +264,10 @@ protected:
     QByteArray _fileGetContentsTrimmed(const QString &filename);
     bool _customizeImage();
     bool _createSecureBootFiles(class DeviceWrapperFatPartition *fat);
+    /* Record what customisation wrote, so _verifyCustomisation() can check the
+       media actually kept it. */
+    void _recordCustomisationWrite(const QString &filename, const QByteArray &contents);
+    bool _verifyCustomisation();
     void _periodicSync();
 
     /*
@@ -289,6 +295,17 @@ protected:
     QByteArray _url, _useragent, _buf, _filename, _lastError, _expectedHash, _config, _cmdline, _firstrun, _cloudinit, _cloudinitNetwork, _initFormat;
     ImageOptions::AdvancedOptions _advancedOptions;
     QVariantMap _unraidSettings; // UNRAID
+    /* What customisation wrote to the boot partition, keyed by filename. A
+       digest rather than the contents, so recording boot.img costs 32 bytes
+       rather than a second copy of a multi-MB buffer. The size is kept
+       separately because it can be checked without reading the file back --
+       truncation is both the commonest signature of a dropped write and the
+       cheapest to detect. */
+    struct CustomisationExpectation {
+        qint64 size;
+        QByteArray digest;  // OSLIST_HASH_ALGORITHM, via AcceleratedCryptographicHash
+    };
+    QMap<QString, CustomisationExpectation> _customisationDigests;
     char *_firstBlock;
     size_t _firstBlockSize;
     static QByteArray _proxy;

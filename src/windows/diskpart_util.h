@@ -11,6 +11,7 @@
 #include <QObject>
 #include <chrono>
 #include <functional>
+#include <vector>
 
 namespace DiskpartUtil {
 
@@ -31,6 +32,46 @@ struct DriveLetterResult {
     QString mountPoint;   // e.g. "F:\\" — empty unless success is true
     bool assignedByUs;    // true when this call created the mount point
     QString errorMessage;
+};
+
+/**
+ * RAII holder for volume handles that have been locked (FSCTL_LOCK_VOLUME) and
+ * dismounted (FSCTL_DISMOUNT_VOLUME) but deliberately kept OPEN.
+ *
+ * Holding the lock keeps Windows from re-mounting (and Explorer from re-grabbing)
+ * the volume while we wipe the partition table and write the raw image to the
+ * physical drive. This replaces the previous approach of calling
+ * DeleteVolumeMountPoint, which permanently removed the drive-letter binding from
+ * the Mount Manager and stranded card readers that Windows treats as fixed disks
+ * (they came back with no drive letter). See issue #1665.
+ *
+ * When these handles are released (unlock + close), Windows re-mounts the volume
+ * once the physical-drive handle is also closed, and — because the Mount Manager
+ * binding was never deleted — the drive letter is reassigned normally.
+ *
+ * The handles are stored as void* so this header does not need <windows.h>.
+ */
+class LockedVolumes {
+public:
+    LockedVolumes() = default;
+    ~LockedVolumes();
+
+    LockedVolumes(LockedVolumes&& other) noexcept;
+    LockedVolumes& operator=(LockedVolumes&& other) noexcept;
+    LockedVolumes(const LockedVolumes&) = delete;
+    LockedVolumes& operator=(const LockedVolumes&) = delete;
+
+    /** Unlock and close every held handle. Safe to call more than once. */
+    void release();
+
+    /** Take ownership of a locked+dismounted, still-open volume handle. */
+    void adopt(void* handle) { _handles.push_back(handle); }
+
+    int count() const { return static_cast<int>(_handles.size()); }
+    bool empty() const { return _handles.empty(); }
+
+private:
+    std::vector<void*> _handles;
 };
 
 /**
@@ -65,13 +106,30 @@ DiskpartResult cleanDisk(const QByteArray &device, std::chrono::milliseconds tim
 DiskpartResult cleanDiskFast(const QByteArray &device, TimingCallback timingCallback = nullptr);
 
 /**
- * Unmount and lock all volumes on a physical drive
+ * Unmount all volumes on a physical drive, using the strategy appropriate to
+ * how Windows classifies the disk:
+ *
+ *  - Fixed disks (card readers Windows treats as RMB=0): each volume is locked
+ *    (FSCTL_LOCK_VOLUME) and dismounted (FSCTL_DISMOUNT_VOLUME), then its handle
+ *    is kept open and adopted into @p locked. The caller must keep @p locked alive
+ *    until the physical drive has been opened for writing; releasing it unlocks the
+ *    volumes so Windows re-mounts them and reassigns their drive letters after the
+ *    write. We must NOT delete the mount point for this class — the Mount Manager
+ *    binding is persistent and deleting it strands the drive letter. See issue #1665.
+ *
+ *  - Removable disks (RMB=1, shown by Explorer as "USB Drive"): each volume is
+ *    dismounted and its mount point deleted (DeleteVolumeMountPoint). Windows
+ *    auto-assigns a letter when removable media arrives, so the letter returns on
+ *    its own after the write; deleting it stops Explorer polling the now-empty
+ *    volume, which otherwise pops a "Please insert a disk in drive X:" dialog.
+ *    Nothing is adopted into @p locked for this class.
  *
  * @param device - Windows physical drive path (e.g., "\\\\.\\PHYSICALDRIVE0")
+ * @param locked - Receives held volume handles for fixed disks (empty for removable)
  * @param timingCallback - Optional callback for performance event reporting
  * @return DiskpartResult with success status and error message if failed
  */
-DiskpartResult unmountVolumes(const QByteArray &device, TimingCallback timingCallback = nullptr);
+DiskpartResult unmountVolumes(const QByteArray &device, LockedVolumes &locked, TimingCallback timingCallback = nullptr);
 
 /**
  * Force Windows to re-read the partition table and re-enumerate volumes on a

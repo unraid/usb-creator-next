@@ -198,7 +198,13 @@ WizardStepBase {
     content: [
     ScrollView {
         id: wifiScroll
-        anchors.fill: parent
+        // Size explicitly instead of anchors.fill: an anchored height is not an
+        // "explicit" height as far as QQuickItem is concerned, so the holder's
+        // implicitHeight below would propagate up through ScrollView's implicit
+        // size, transiently resize this view and feed back into availableHeight
+        // — a binding loop.
+        width: parent.width
+        height: parent.height
         clip: true
         ScrollBar.vertical.policy: ScrollBar.AsNeeded
 
@@ -225,13 +231,23 @@ WizardStepBase {
             }
         }
 
+        // Holder that is at least as tall as the viewport so the content can be
+        // vertically centred when it fits, and scroll when it doesn't. Anchoring
+        // verticalCenter directly inside the ScrollView's flickable would be a
+        // no-op (the flickable content item is sized to the content itself).
+        Item {
+            id: wifiContentHolder
+            width: wifiScroll.availableWidth
+            implicitWidth: wifiScroll.availableWidth
+            implicitHeight: Math.max(wifiScroll.availableHeight, wifiContentColumn.implicitHeight)
+
         ColumnLayout {
+            id: wifiContentColumn
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
             anchors.margins: Style.sectionPadding
             spacing: Style.stepContentSpacing
-            width: wifiScroll.availableWidth
 
             WizardSectionContainer {
                 RowLayout {
@@ -380,6 +396,7 @@ WizardStepBase {
                     }
                 }
             }
+        }
         }
     }
     ]
