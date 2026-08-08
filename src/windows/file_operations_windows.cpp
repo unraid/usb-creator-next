@@ -280,76 +280,134 @@ FileError WindowsFileOperations::OpenDevice(const std::string& path) {
   // Note: Requires sector-aligned buffers (already done via qMallocAligned with 4096 alignment)
   //
   // FILE_FLAG_OVERLAPPED is always included to enable async I/O via IOCP
-  DWORD flags = FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED;
-  bool attemptingDirectIO = false;
-  if (isPhysicalDrive) {
-    flags = FILE_FLAG_NO_BUFFERING | FILE_FLAG_WRITE_THROUGH | FILE_FLAG_SEQUENTIAL_SCAN | FILE_FLAG_OVERLAPPED;
-    attemptingDirectIO = true;
-    Log("Using direct I/O (FILE_FLAG_NO_BUFFERING | FILE_FLAG_WRITE_THROUGH | FILE_FLAG_OVERLAPPED) for physical drive");
-  }
-  
-  FileError result = OpenInternal(path, 
-                                  GENERIC_READ | GENERIC_WRITE,
-                                  OPEN_EXISTING,
-                                  flags);
-  if (result != FileError::kSuccess) {
-    // If direct I/O failed, try without it as a fallback
-    if (isPhysicalDrive && attemptingDirectIO) {
-      DWORD directIoError = static_cast<DWORD>(last_error_code_);
-      direct_io_info_.error_code = static_cast<int>(directIoError);
-      
-      std::ostringstream oss;
-      oss << "Direct I/O open failed with error " << directIoError << " (0x" << std::hex << directIoError << ")";
-      Log(oss.str());
-      
-      // Common error codes:
-      // ERROR_INVALID_PARAMETER (87) - alignment/size issues
-      // ERROR_ACCESS_DENIED (5) - permission or volume in use
-      // ERROR_SHARING_VIOLATION (32) - file in use by another process
-      switch (directIoError) {
-        case ERROR_INVALID_PARAMETER:
-          direct_io_info_.error_message = "ERROR_INVALID_PARAMETER: Sector size/alignment issue";
-          Log("  -> ERROR_INVALID_PARAMETER: May be sector size/alignment issue");
-          break;
-        case ERROR_ACCESS_DENIED:
-          direct_io_info_.error_message = "ERROR_ACCESS_DENIED: Volume in use or need admin rights";
-          Log("  -> ERROR_ACCESS_DENIED: Volume may still be in use or need admin rights");
-          break;
-        case ERROR_SHARING_VIOLATION:
-          direct_io_info_.error_message = "ERROR_SHARING_VIOLATION: Another process has device open";
-          Log("  -> ERROR_SHARING_VIOLATION: Another process has the device open");
-          break;
-        default:
-          direct_io_info_.error_message = "Unknown error, fell back to buffered I/O";
-          Log("  -> Falling back to buffered I/O");
-          break;
+  // One open attempt at a given share mode: try direct I/O first (physical
+  // drives), fall back to buffered I/O if the direct-I/O flags are rejected.
+  // Returns the final FileError for this share mode.
+  auto tryOpenAtShareMode = [&](DWORD shareMode) -> FileError {
+    DWORD flags = FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED;
+    bool attemptingDirectIO = false;
+    if (isPhysicalDrive) {
+      flags = FILE_FLAG_NO_BUFFERING | FILE_FLAG_WRITE_THROUGH | FILE_FLAG_SEQUENTIAL_SCAN | FILE_FLAG_OVERLAPPED;
+      attemptingDirectIO = true;
+      Log("Using direct I/O (FILE_FLAG_NO_BUFFERING | FILE_FLAG_WRITE_THROUGH | FILE_FLAG_OVERLAPPED) for physical drive");
+    }
+
+    FileError r = OpenInternal(path,
+                               GENERIC_READ | GENERIC_WRITE,
+                               OPEN_EXISTING,
+                               flags,
+                               shareMode);
+    if (r != FileError::kSuccess) {
+      // If direct I/O failed, try without it as a fallback
+      if (isPhysicalDrive && attemptingDirectIO) {
+        DWORD directIoError = static_cast<DWORD>(last_error_code_);
+        direct_io_info_.error_code = static_cast<int>(directIoError);
+
+        std::ostringstream oss;
+        oss << "Direct I/O open failed with error " << directIoError << " (0x" << std::hex << directIoError << ")";
+        Log(oss.str());
+
+        // Common error codes:
+        // ERROR_INVALID_PARAMETER (87) - alignment/size issues
+        // ERROR_ACCESS_DENIED (5) - permission or volume in use
+        // ERROR_SHARING_VIOLATION (32) - file in use by another process
+        switch (directIoError) {
+          case ERROR_INVALID_PARAMETER:
+            direct_io_info_.error_message = "ERROR_INVALID_PARAMETER: Sector size/alignment issue";
+            Log("  -> ERROR_INVALID_PARAMETER: May be sector size/alignment issue");
+            break;
+          case ERROR_ACCESS_DENIED:
+            direct_io_info_.error_message = "ERROR_ACCESS_DENIED: Volume in use or need admin rights";
+            Log("  -> ERROR_ACCESS_DENIED: Volume may still be in use or need admin rights");
+            break;
+          case ERROR_SHARING_VIOLATION:
+            direct_io_info_.error_message = "ERROR_SHARING_VIOLATION: Another process has device open";
+            Log("  -> ERROR_SHARING_VIOLATION: Another process has the device open");
+            break;
+          default:
+            direct_io_info_.error_message = "Unknown error, fell back to buffered I/O";
+            Log("  -> Falling back to buffered I/O");
+            break;
+        }
+
+        using_direct_io_ = false;
+        r = OpenInternal(path,
+                         GENERIC_READ | GENERIC_WRITE,
+                         OPEN_EXISTING,
+                         FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN | FILE_FLAG_OVERLAPPED,
+                         shareMode);
       }
-      
-      using_direct_io_ = false;
-      result = OpenInternal(path, 
-                           GENERIC_READ | GENERIC_WRITE,
-                           OPEN_EXISTING,
-                           FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN | FILE_FLAG_OVERLAPPED);
+    } else if (isPhysicalDrive) {
+      // Direct I/O succeeded!
+      using_direct_io_ = true;  // Set AFTER OpenInternal (which calls Close() and resets it)
+      direct_io_info_.succeeded = true;
     }
-    
-    if (result != FileError::kSuccess) {
-      std::ostringstream oss;
-      oss << "Failed to open device: " << path << " (error " << last_error_code_ << ")";
-      Log(oss.str());
-      return result;
+    return r;
+  };
+
+  // Prefer EXCLUSIVE write access for physical drives (FILE_SHARE_READ only, no
+  // FILE_SHARE_WRITE). This is what Rufus does (src/drive.c GetHandle): holding
+  // the drive without write-sharing stops the OS volume manager from mounting
+  // the partition we are in the middle of writing. Without it, Windows detects
+  // the freshly-written (but incomplete) filesystem ~1 MB in and pops a
+  // "You need to format the disk in drive X:" prompt. If exclusive access can't
+  // be obtained (something else holds the drive with write access), fall back to
+  // shared write like Rufus does, so the write still proceeds.
+  DWORD preferredShare = isPhysicalDrive ? FILE_SHARE_READ
+                                         : (FILE_SHARE_READ | FILE_SHARE_WRITE);
+  FileError result = tryOpenAtShareMode(preferredShare);
+  if (result != FileError::kSuccess && isPhysicalDrive && preferredShare == FILE_SHARE_READ) {
+    int err = last_error_code_;
+    if (err == ERROR_SHARING_VIOLATION || err == ERROR_ACCESS_DENIED) {
+      // Something is briefly holding the just-cleaned removable disk with write
+      // access — typically Explorer re-scanning it, an AV, or the search indexer.
+      // Do NOT immediately drop to a shared open: a shared open lets the OS mount
+      // the partition we are about to write and pop a "You need to format the disk"
+      // dialog mid-write. Instead retry the EXCLUSIVE open with geometric backoff
+      // (matching Rufus's DRIVE_ACCESS wait loop) so the transient holder has time
+      // to let go. Only fall back to shared if exclusivity genuinely can't be had.
+      constexpr int kExclusiveRetries = 6;
+      int delayMs = 100;  // 100+200+400+800+1600+3200 ≈ 6.3s total worst case
+      for (int attempt = 1; attempt <= kExclusiveRetries && result != FileError::kSuccess; attempt++) {
+        Log("Exclusive open failed (error " + std::to_string(err) + "), retry " +
+            std::to_string(attempt) + "/" + std::to_string(kExclusiveRetries) +
+            " for exclusive access in " + std::to_string(delayMs) + "ms");
+        Sleep(delayMs);
+        delayMs *= 2;
+        result = tryOpenAtShareMode(FILE_SHARE_READ);
+        if (result == FileError::kSuccess)
+          break;
+        err = last_error_code_;
+        if (err != ERROR_SHARING_VIOLATION && err != ERROR_ACCESS_DENIED)
+          break;  // non-transient error — retrying won't help
+      }
+      if (result != FileError::kSuccess) {
+        Log("Could not obtain exclusive access after retries - falling back to shared "
+            "write access (OS may mount partitions mid-write)");
+        result = tryOpenAtShareMode(FILE_SHARE_READ | FILE_SHARE_WRITE);
+      }
     }
-  } else if (isPhysicalDrive) {
-    // Direct I/O succeeded!
-    using_direct_io_ = true;  // Set AFTER OpenInternal (which calls Close() and resets it)
-    direct_io_info_.succeeded = true;
   }
 
-  // Enable extended DASD I/O for raw disk access
-  DWORD bytes_returned;
-  if (!DeviceIoControl(handle_, FSCTL_ALLOW_EXTENDED_DASD_IO, 
-                       nullptr, 0, nullptr, 0, &bytes_returned, nullptr)) {
-    // This may fail on some systems, but we can continue
-    Log("Warning: FSCTL_ALLOW_EXTENDED_DASD_IO failed, continuing anyway");
+  if (result != FileError::kSuccess) {
+    std::ostringstream oss;
+    oss << "Failed to open device: " << path << " (error " << last_error_code_ << ")";
+    Log(oss.str());
+    return result;
+  }
+
+  // Enable extended DASD I/O. This lifts filesystem boundary checks and is only
+  // meaningful for VOLUME handles (\\.\X:). A physical-drive handle already has
+  // unrestricted raw access to every sector, so the IOCTL is not applicable there
+  // and simply returns ERROR_INVALID_FUNCTION — don't issue it (it produced a
+  // spurious "failed" warning on every physical-drive write).
+  if (!isPhysicalDrive) {
+    DWORD bytes_returned;
+    if (!DeviceIoControl(handle_, FSCTL_ALLOW_EXTENDED_DASD_IO,
+                         nullptr, 0, nullptr, 0, &bytes_returned, nullptr)) {
+      // This may fail on some systems, but we can continue
+      Log("Warning: FSCTL_ALLOW_EXTENDED_DASD_IO failed, continuing anyway");
+    }
   }
 
   // Only try to lock volume if this is not a physical drive
@@ -675,9 +733,12 @@ FileError WindowsFileOperations::SetDirectIOEnabled(bool enabled) {
     flags = FILE_FLAG_WRITE_THROUGH | FILE_FLAG_SEQUENTIAL_SCAN | FILE_FLAG_OVERLAPPED;
   }
   
-  FileError result = OpenInternal(savedPath, GENERIC_READ | GENERIC_WRITE, OPEN_EXISTING, flags);
+  // Preserve the share mode the device was originally opened with (physical
+  // drives are held with exclusive write access — see OpenDevice).
+  DWORD shareMode = current_share_mode_;
+  FileError result = OpenInternal(savedPath, GENERIC_READ | GENERIC_WRITE, OPEN_EXISTING, flags, shareMode);
   if (result != FileError::kSuccess) {
-    result = OpenInternal(savedPath, GENERIC_READ | GENERIC_WRITE, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED);
+    result = OpenInternal(savedPath, GENERIC_READ | GENERIC_WRITE, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED, shareMode);
     using_direct_io_ = false;
     if (result != FileError::kSuccess) {
       return result;
@@ -749,13 +810,13 @@ FileError WindowsFileOperations::UnlockVolume() {
   return FileError::kSuccess;
 }
 
-FileError WindowsFileOperations::OpenInternal(const std::string& path, DWORD access, DWORD creation, DWORD flags) {
+FileError WindowsFileOperations::OpenInternal(const std::string& path, DWORD access, DWORD creation, DWORD flags, DWORD share_mode) {
   // Close any existing handle
   Close();
 
   handle_ = CreateFileA(path.c_str(),
                         access,
-                        FILE_SHARE_READ | FILE_SHARE_WRITE,
+                        share_mode,
                         nullptr,
                         creation,
                         flags,
@@ -767,6 +828,7 @@ FileError WindowsFileOperations::OpenInternal(const std::string& path, DWORD acc
   }
 
   current_path_ = path;
+  current_share_mode_ = share_mode;
   last_error_code_ = 0;
   return FileError::kSuccess;
 }

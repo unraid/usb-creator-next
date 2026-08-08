@@ -13,6 +13,7 @@
 #include <QElapsedTimer>
 #include <regex>
 #include <chrono>
+#include <utility>
 
 #include <windows.h>
 #include <winioctl.h>
@@ -27,6 +28,45 @@
 #endif
 
 namespace DiskpartUtil {
+
+LockedVolumes::~LockedVolumes()
+{
+    release();
+}
+
+LockedVolumes::LockedVolumes(LockedVolumes&& other) noexcept
+    : _handles(std::move(other._handles))
+{
+    other._handles.clear();
+}
+
+LockedVolumes& LockedVolumes::operator=(LockedVolumes&& other) noexcept
+{
+    if (this != &other)
+    {
+        release();
+        _handles = std::move(other._handles);
+        other._handles.clear();
+    }
+    return *this;
+}
+
+void LockedVolumes::release()
+{
+    for (void* h : _handles)
+    {
+        HANDLE handle = static_cast<HANDLE>(h);
+        if (handle == nullptr || handle == INVALID_HANDLE_VALUE)
+            continue;
+        // Best-effort unlock; closing the handle also releases the lock. The
+        // underlying volume may already be gone (partition table wiped), in
+        // which case this simply fails harmlessly.
+        DWORD bytesReturned;
+        DeviceIoControl(handle, FSCTL_UNLOCK_VOLUME, nullptr, 0, nullptr, 0, &bytesReturned, nullptr);
+        CloseHandle(handle);
+    }
+    _handles.clear();
+}
 
 // Notify Windows Explorer that a drive has changed/been removed
 // This prevents Explorer from showing "Insert a disk" dialogs
@@ -66,7 +106,7 @@ static bool extractDiskNumber(const QByteArray &device, int &diskNumber)
     return true;
 }
 
-DiskpartResult unmountVolumes(const QByteArray &device, TimingCallback timingCallback)
+DiskpartResult unmountVolumes(const QByteArray &device, LockedVolumes &locked, TimingCallback timingCallback)
 {
     QElapsedTimer timer;
     timer.start();
@@ -86,6 +126,10 @@ DiskpartResult unmountVolumes(const QByteArray &device, TimingCallback timingCal
     {
         if (QByteArray::fromStdString(dev.device).toLower() == canonicalDevice)
         {
+            // How we release the volume after dismount depends on whether Windows
+            // treats this disk as removable. See the branch after dismount below.
+            const bool deviceIsRemovable = dev.isRemovable;
+
             for (const auto &mountpoint : dev.mountpoints)
             {
                 QString driveLetter = QString::fromStdString(mountpoint);
@@ -121,14 +165,14 @@ DiskpartResult unmountVolumes(const QByteArray &device, TimingCallback timingCal
                 // Lock the volume (prevents other processes from accessing it)
                 // Use geometric backoff — Windows 11 25H2+ may hold handles longer
                 {
-                    bool locked = false;
+                    bool lockAcquired = false;
                     int lockDelayMs = 100;
                     for (int attempt = 0; attempt < 8; attempt++)
                     {
                         if (DeviceIoControl(hVolume, FSCTL_LOCK_VOLUME, nullptr, 0, nullptr, 0, &bytesReturned, nullptr))
                         {
                             qDebug() << "Locked volume" << driveLetter;
-                            locked = true;
+                            lockAcquired = true;
                             break;
                         }
                         qDebug() << "FSCTL_LOCK_VOLUME failed for" << driveLetter
@@ -136,7 +180,7 @@ DiskpartResult unmountVolumes(const QByteArray &device, TimingCallback timingCal
                         QThread::msleep(lockDelayMs);
                         lockDelayMs *= 2;
                     }
-                    if (!locked)
+                    if (!lockAcquired)
                         qDebug() << "Could not lock volume" << driveLetter << "- proceeding with dismount anyway";
                 }
                 
@@ -150,28 +194,53 @@ DiskpartResult unmountVolumes(const QByteArray &device, TimingCallback timingCal
                     qDebug() << "Failed to dismount volume" << driveLetter << "- continuing anyway";
                 }
                 
-                // Unlock and close the volume handle BEFORE removing mount point
-                DeviceIoControl(hVolume, FSCTL_UNLOCK_VOLUME, nullptr, 0, nullptr, 0, &bytesReturned, nullptr);
-                CloseHandle(hVolume);
-                
-                // Remove the drive letter assignment using DeleteVolumeMountPoint
-                // This is the KEY step that prevents "Insert a disk" dialogs!
-                // Unlike FSCTL_DISMOUNT_VOLUME which just unmounts the filesystem,
-                // DeleteVolumeMountPoint removes the drive letter entirely so
-                // Windows Explorer won't try to access it after we clean the disk.
-                QString mountPoint = driveLetter + "\\";  // Must end with backslash
-                if (DeleteVolumeMountPointW(reinterpret_cast<LPCWSTR>(mountPoint.utf16())))
+                if (deviceIsRemovable)
                 {
-                    qDebug() << "Removed drive letter" << driveLetter;
+                    // Removable media (Explorer shows this as a "USB Drive"). Windows
+                    // auto-assigns a drive letter whenever removable media arrives, so
+                    // deleting the mount point does NOT strand the reader — the letter
+                    // returns on its own after the write. Crucially, removing the letter
+                    // also stops Explorer from periodically polling the now-empty volume,
+                    // which is what pops the "Please insert a disk in drive X:" dialog.
+                    // We cannot suppress that dialog any other way: it is raised by
+                    // Explorer (a separate process), so our thread's error mode does not
+                    // apply, and there is nothing left to poll once the letter is gone.
+                    //
+                    // Unlock and close first, then delete the mount point (the old,
+                    // pre-#1665 ordering). Do NOT adopt the handle — we are not holding
+                    // a lock for removable disks.
+                    DeviceIoControl(hVolume, FSCTL_UNLOCK_VOLUME, nullptr, 0, nullptr, 0, &bytesReturned, nullptr);
+                    CloseHandle(hVolume);
+
+                    QString mountPoint = driveLetter + "\\";  // Must end with backslash
+                    if (DeleteVolumeMountPointW(reinterpret_cast<LPCWSTR>(mountPoint.utf16())))
+                    {
+                        qDebug() << "Removed drive letter" << driveLetter << "(removable)";
+                    }
+                    else
+                    {
+                        qDebug() << "Failed to remove drive letter" << driveLetter
+                                 << "error:" << GetLastError() << "- continuing anyway";
+                    }
                 }
                 else
                 {
-                    DWORD error = GetLastError();
-                    qDebug() << "Failed to remove drive letter" << driveLetter << "error:" << error << "- continuing anyway";
+                    // Fixed disk (card readers Windows treats as fixed, RMB=0). Keep the
+                    // volume LOCKED and OPEN: holding the lock stops Windows re-mounting
+                    // (and Explorer re-grabbing) the volume while we wipe the partition
+                    // table and write the raw image. Ownership of the handle passes to the
+                    // caller-owned LockedVolumes, released once the physical drive is open.
+                    //
+                    // We must NOT call DeleteVolumeMountPoint for this class: the Mount
+                    // Manager binding is persistent, so deleting it permanently strands the
+                    // drive letter (the reader reappears with no letter). Holding the lock
+                    // keeps the write working while letting the letter return on its own
+                    // after the physical-drive handle closes. See #1665.
+                    locked.adopt(hVolume);
                 }
-                
-                // Notify Explorer that the drive has been removed
-                // This is a secondary notification to help Explorer update its view
+
+                // Notify Explorer that the drive has been removed so it releases any
+                // cached handles and stops polling the (now dismounted) volume.
                 notifyShellDriveRemoved(driveLetter);
                 
                 volumesProcessed++;
@@ -281,11 +350,16 @@ DiskpartResult cleanDiskFast(const QByteArray &device, TimingCallback timingCall
 
     CloseHandle(hDisk);
 
-    if (success)
-    {
-        // Refresh Windows' view of the partition table now that it has been wiped.
-        rescanDisk(device, timingCallback);
-    }
+    // Deliberately do NOT rescan / notify the shell here. cleanDiskFast runs
+    // mid-prepare (unmount -> clean -> open), while the target volumes are still
+    // locked and their drive letters are still bound (we no longer delete them —
+    // see #1665). rescanDisk ends with SHChangeNotify(SHCNE_MEDIAINSERTED), which
+    // pokes Explorer to poll those letters right after we wiped the partition
+    // table; on a removable card reader the now-empty-but-lettered drive reports
+    // "no media", producing a "Please insert a disk in drive X:" dialog. There is
+    // nothing useful to rescan anyway — the raw write is about to lay down a fresh
+    // partition table, and the real rescan happens after the write completes via
+    // PlatformQuirks::refreshDiskView(). See #1665.
 
     qDebug() << "cleanDiskFast completed:" << (success ? "success" : "failed")
              << "clean=" << cleanElapsed << "ms";

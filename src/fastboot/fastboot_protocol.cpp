@@ -182,6 +182,9 @@ bool FastbootProtocol::stage(rpiboot::IUsbTransport& transport,
                               rpiboot::ProgressCallback progress,
                               std::atomic<bool>& cancelled)
 {
+    // Deliberately "download", not "stage" — see stage() in the header.
+    // rpi-fastbootd maps both verbs to the same DownloadHandler and only
+    // accepts "download" on restricted TCP data-plane connections.
     return sendData(transport, "download", data, progress, cancelled);
 }
 
@@ -426,6 +429,26 @@ std::optional<std::string> FastbootProtocol::getVar(rpiboot::IUsbTransport& tran
     if (resp.type == Response::Okay)
         return resp.message;
     return std::nullopt;
+}
+
+// ── Device identification ──────────────────────────────────────────────
+
+bool FastbootProtocol::isRpiFastboot(rpiboot::IUsbTransport& transport)
+{
+    // Prefer the authoritative signal: the USB interface string descriptor
+    // the RPi gadget advertises ("fastbootd-provisioner").  It is available
+    // at open time, before any fastboot command, and stock Android
+    // fastboot/fastbootd advertises "fastbootd" / "Android Fastboot" instead.
+    if (transport.interfaceString() == rpiboot::FASTBOOT_INTERFACE_DESCRIPTOR)
+        return true;
+
+    // Fall back to a protocol-level probe: rpi-fastbootd implements the
+    // RPi-specific "block-devices" getvar to enumerate flashable storage,
+    // which stock Android fastboot does not (→ getVar yields nullopt).  This
+    // covers transports that cannot read the descriptor (e.g. non-USB) and
+    // gadgets built with a customised interface string, while still rejecting
+    // a non-Pi device that merely matches the borrowed 18d1:4e40 VID/PID.
+    return getVar(transport, "block-devices").has_value();
 }
 
 // ── Combined flash ─────────────────────────────────────────────────────

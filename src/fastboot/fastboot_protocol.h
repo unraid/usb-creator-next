@@ -61,8 +61,13 @@ public:
                   rpiboot::ProgressCallback progress,
                   std::atomic<bool>& cancelled);
 
-    // Stage data on the device (for use with oem commands).
-    // Identical wire format to download() but uses "stage:" prefix.
+    // Stage data on the device for a subsequent oem command to consume.
+    // Wire-identical to download() — it deliberately uses the "download:"
+    // verb, NOT "stage:".  On rpi-fastbootd both dispatch to the same
+    // DownloadHandler (the device keeps a "stage" alias only for backward
+    // compat with older imagers), and "download" is the only staging verb
+    // accepted on a restricted TCP data-plane connection.  Kept as a distinct
+    // name from download() to document staging intent at call sites.
     bool stage(rpiboot::IUsbTransport& transport,
                std::span<const uint8_t> data,
                rpiboot::ProgressCallback progress,
@@ -85,6 +90,21 @@ public:
     // Sends "getvar:<name>" and returns the value, or nullopt on failure.
     std::optional<std::string> getVar(rpiboot::IUsbTransport& transport,
                                        std::string_view name);
+
+    // Positively identify a genuine rpi-fastbootd gadget.
+    //
+    // The RPi fastboot gadget borrows Google's USB VID/PID (18d1:4e40), so
+    // matching that VID/PID does NOT prove the device is a Raspberry Pi — a
+    // non-Pi device (e.g. an Android phone in a colliding fastboot mode)
+    // could enumerate identically.  Identifies via, in order:
+    //   1. the transport's USB interface descriptor — the RPi gadget
+    //      advertises "fastbootd-provisioner" (authoritative, no I/O beyond
+    //      the descriptor already read at open time); then
+    //   2. a fallback probe of the RPi-specific "block-devices" getvar, which
+    //      stock Android fastboot/fastbootd does not implement (FAILs), for
+    //      transports that cannot read the descriptor or customised gadgets.
+    // Returns true only when one of these confirms a Pi; false otherwise.
+    bool isRpiFastboot(rpiboot::IUsbTransport& transport);
 
     // Combined download + flash in one call.
     bool flashImage(rpiboot::IUsbTransport& transport,
