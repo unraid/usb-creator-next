@@ -262,6 +262,32 @@ TEST_CASE("FastbootProtocol identifyRpiFastboot is inconclusive when the transpo
     CHECK(fb.identifyRpiFastboot(mock) == RpiIdentity::Inconclusive);
 }
 
+TEST_CASE("FastbootProtocol rejects a short command write", "[fastboot][protocol][negative]")
+{
+    // A command is a single small ASCII write with no continuation. A positive
+    // but short transfer means the device got a truncated command, so any
+    // response read afterwards is answering something we never sent — even a
+    // queued OKAY must not be accepted.
+    MockUsbTransport mock;
+    mock.shortNextBulkWrite(3);
+    mock.queueBulkReadResponse(makeResponse("OKAY", "mmcblk0"));
+
+    FastbootProtocol fb;
+    CHECK(fb.sendCommand(mock, "getvar:block-devices", 100).type
+          == Response::TransportError);
+}
+
+TEST_CASE("FastbootProtocol short command write is not read as a device denial", "[fastboot][protocol][identity][negative]")
+{
+    // The identity probe must not downgrade a truncated command to
+    // ConfirmedNotPi — that would be cached and strand a genuine Pi.
+    MockUsbTransport mock;
+    mock.shortNextBulkWrite(3);
+
+    FastbootProtocol fb;
+    CHECK(fb.identifyRpiFastboot(mock) == RpiIdentity::Inconclusive);
+}
+
 TEST_CASE("FastbootProtocol reports a dead transport as TransportError, not Fail", "[fastboot][protocol][identity][negative]")
 {
     // The distinction the tri-state identity rests on: a device that refuses

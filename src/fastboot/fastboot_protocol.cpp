@@ -80,9 +80,13 @@ FastbootProtocol::CaptureResult FastbootProtocol::sendCommandCapture(
     auto data = std::span<const uint8_t>(
         reinterpret_cast<const uint8_t*>(command.data()), command.size());
 
+    // A command is one small ASCII write with no continuation, so a short write
+    // is not something to resume — it means the device received a truncated
+    // command, and any response we then read is answering something we did not
+    // ask. Treat it exactly like a failed write.
     int written = transport.bulkWrite(EP_OUT, data, timeoutMs);
-    if (written < 0) {
-        result.terminal = {Response::TransportError, "Failed to send command", 0};
+    if (written < 0 || static_cast<size_t>(written) != data.size()) {
+        result.terminal = {Response::TransportError, "Failed to send complete command", 0};
         return result;
     }
 
@@ -125,9 +129,12 @@ bool FastbootProtocol::sendData(rpiboot::IUsbTransport& transport,
 
     auto cmdSpan = std::span<const uint8_t>(
         reinterpret_cast<const uint8_t*>(cmd), static_cast<size_t>(cmdLen));
+    // Short write means a truncated command header — see sendCommandCapture().
+    // Here it would be read back as a bad size, so fail rather than stream a
+    // payload the device is not expecting.
     int written = transport.bulkWrite(EP_OUT, cmdSpan, 3000);
-    if (written < 0) {
-        _lastError = std::string("Failed to send ") + std::string(commandPrefix) + " command";
+    if (written < 0 || static_cast<size_t>(written) != cmdSpan.size()) {
+        _lastError = std::string("Failed to send complete ") + std::string(commandPrefix) + " command";
         return false;
     }
 
@@ -206,9 +213,10 @@ std::vector<uint8_t> FastbootProtocol::upload(rpiboot::IUsbTransport& transport,
     const char* cmd = "upload";
     auto cmdSpan = std::span<const uint8_t>(
         reinterpret_cast<const uint8_t*>(cmd), std::strlen(cmd));
+    // Short write means a truncated command — see sendCommandCapture().
     int written = transport.bulkWrite(EP_OUT, cmdSpan, 3000);
-    if (written < 0) {
-        _lastError = "Failed to send upload command";
+    if (written < 0 || static_cast<size_t>(written) != cmdSpan.size()) {
+        _lastError = "Failed to send complete upload command";
         return {};
     }
 
