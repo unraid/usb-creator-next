@@ -817,7 +817,7 @@ void DownloadExtractThread::extractMultiFileRun()
             QElapsedTimer nodeWait;
             nodeWait.start();
             bool rereadRequested = false;
-            while (!QFile::exists(fatpartition) && nodeWait.elapsed() < 10000)
+            while (!_cancelled && !QFile::exists(fatpartition) && nodeWait.elapsed() < 10000)
             {
                 if (!rereadRequested && nodeWait.elapsed() >= 2000)
                 {
@@ -840,6 +840,12 @@ void DownloadExtractThread::extractMultiFileRun()
             }
             qDebug() << "Waited" << nodeWait.elapsed() << "ms for partition node" << fatpartition
                      << "- exists:" << QFile::exists(fatpartition);
+
+            // A cancel during that wait must not fall through to mount: the
+            // cancel path has already torn the write down, and _joinExtractThread()
+            // is blocked on this function returning.
+            if (_cancelled)
+                return;
         }
 
         args << "-t" << "vfat" << fatpartition << folder;

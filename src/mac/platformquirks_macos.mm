@@ -240,7 +240,10 @@ namespace {
                           callback, ctxp);
         });
 
-        // Wait off the run loop. Preserves the previous 60s budget (maxRetries * 5s).
+        // Wait off the run loop. The budget is maxRetries * 5s, matching the
+        // main-run-loop path (maxRetries * 100 iterations * 0.05s). unmountDisk
+        // takes the default 12 -> 60s; ejectDisk passes 60 -> 300s, because the
+        // unmount it performs is what flushes the write out of the page cache.
         dispatch_time_t timeout = dispatch_time(DISPATCH_TIME_NOW,
                                                 (int64_t)maxRetries * 5 * NSEC_PER_SEC);
         bool timedOut = (dispatch_semaphore_wait(context.done, timeout) != 0);

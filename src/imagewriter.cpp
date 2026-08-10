@@ -512,8 +512,14 @@ ImageWriter::~ImageWriter()
     if (_manualEjectThread) {
         qDebug() << "Waiting for manual eject thread to finish";
         if (_manualEjectThread->wait(10000)) {
+            // Joined, so delete now rather than relying on the thread's own
+            // deleteLater(): the event loop may already be gone by this point.
+            // ~QObject drops the pending DeferredDelete, so this is not a
+            // double free.
             delete _manualEjectThread;
         } else {
+            // Detached. The thread deletes itself through its own finished()
+            // connection, which survives this object's destruction.
             qWarning() << "Manual eject still running at teardown; leaving it to finish detached";
         }
         _manualEjectThread = nullptr;
@@ -2757,8 +2763,13 @@ void ImageWriter::ejectDrive()
         }, Qt::QueuedConnection);
     });
     _manualEjectThread = thread;
+    // Deletion is owned by the thread, not by ImageWriter. The destructor gives
+    // up after 10 s and leaves a slow eject running detached, and that teardown
+    // severs every connection whose receiver is `this` — so a `this`-bound
+    // handler would never reclaim the QThread. A self-owned handler still runs
+    // when the eject finally finishes.
+    connect(thread, &QThread::finished, thread, &QObject::deleteLater);
     connect(thread, &QThread::finished, this, [this, thread]() {
-        thread->deleteLater();
         // A retry may already own the member; only clear our own pointer.
         if (_manualEjectThread == thread)
             _manualEjectThread = nullptr;
