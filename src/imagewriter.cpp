@@ -48,6 +48,7 @@
 #include <QTimeZone>
 #include <QNetworkInterface>
 #include <QCoreApplication>
+#include <QPointer>
 #ifndef CLI_ONLY_BUILD
 #include <QQmlContext>
 #include <QWindow>
@@ -500,6 +501,28 @@ ImageWriter::~ImageWriter()
         qDebug() << "Cleaning up CacheManager";
         delete _cacheManager;
         _cacheManager = nullptr;
+    }
+
+    // Give a user-triggered eject a chance to finish before teardown. Never
+    // terminate() it: killing the thread mid-DiskArbitration call is unsafe,
+    // and deleting a QThread that survived terminate() is a qFatal. If it is
+    // still flushing after the grace period, leave it to finish detached — the
+    // worker only reaches this object through a guarded QPointer, so it cannot
+    // touch a destroyed ImageWriter.
+    if (_manualEjectThread) {
+        qDebug() << "Waiting for manual eject thread to finish";
+        if (_manualEjectThread->wait(10000)) {
+            // Joined, so delete now rather than relying on the thread's own
+            // deleteLater(): the event loop may already be gone by this point.
+            // ~QObject drops the pending DeferredDelete, so this is not a
+            // double free.
+            delete _manualEjectThread;
+        } else {
+            // Detached. The thread deletes itself through its own finished()
+            // connection, which survives this object's destruction.
+            qWarning() << "Manual eject still running at teardown; leaving it to finish detached";
+        }
+        _manualEjectThread = nullptr;
     }
 
     // Ensure any running thread is properly cleaned up
@@ -1037,6 +1060,7 @@ void ImageWriter::startWrite()
     }
 
     setWriteState(WriteState::Preparing);
+    setEjectState(EjectState::EjectIdle);
 
     if (_isFastbootDevice)
     {
@@ -1412,6 +1436,8 @@ void ImageWriter::startWrite()
     connect(_thread, SIGNAL(error(QString)), SLOT(onError(QString)));
     connect(_thread, SIGNAL(finalizing()), SLOT(onFinalizing()));
     connect(_thread, SIGNAL(preparationStatusUpdate(QString)), SLOT(onPreparationStatusUpdate(QString)));
+    connect(_thread, &DownloadThread::ejectStarted, this, &ImageWriter::onEjectStarted);
+    connect(_thread, &DownloadThread::ejectFinished, this, &ImageWriter::onEjectFinished);
     // Ensure cleanup of thread pointer on finish in all paths
     connect(_thread, &QThread::finished, this, [this]() {
         if (_thread)
@@ -1572,6 +1598,10 @@ void ImageWriter::startWrite()
     connect(_thread, &DownloadThread::eventCustomisation,
             this, [this](quint32 durationMs, bool success, QString metadata){
                 _performanceStats->recordEvent(PerformanceStats::EventType::Customisation, durationMs, success, metadata);
+            });
+    connect(_thread, &DownloadThread::eventCustomisationVerify,
+            this, [this](quint32 durationMs, bool success, QString metadata){
+                _performanceStats->recordEvent(PerformanceStats::EventType::CustomisationVerify, durationMs, success, metadata);
             });
     connect(_thread, &DownloadThread::eventFinalSync,
             this, [this](quint32 durationMs, bool success){
@@ -2676,6 +2706,77 @@ void ImageWriter::restartWrite(QString reason)
     }
 }
 
+void ImageWriter::setEjectState(EjectState state)
+{
+    if (_ejectState == state)
+        return;
+
+    _ejectState = state;
+    emit ejectStateChanged();
+}
+
+void ImageWriter::onEjectStarted()
+{
+    setEjectState(EjectState::EjectInProgress);
+}
+
+void ImageWriter::onEjectFinished(bool succeeded)
+{
+    // Ignore a stale result if a new write has already reset the state
+    if (_ejectState != EjectState::EjectInProgress)
+        return;
+
+    setEjectState(succeeded ? EjectState::EjectSucceeded : EjectState::EjectFailed);
+}
+
+void ImageWriter::ejectDrive()
+{
+    // The eject result (queued onEjectFinished) can arrive before the worker's
+    // finished() signal, so ejectState alone would let a retry overwrite a
+    // thread that is still winding down — check the thread pointer too.
+    if (_ejectState == EjectState::EjectInProgress || _manualEjectThread)
+        return;
+
+    // Only regular block devices can be ejected (not fastboot targets)
+    if (_dst.isEmpty() || _dst.startsWith("fastboot://"))
+        return;
+
+    setEjectState(EjectState::EjectInProgress);
+
+    const QString device = _dst;
+    // Guard `this` with a QPointer and deliver via the application object: the
+    // destructor does not join a slow eject, so the worker must never touch a
+    // destroyed ImageWriter.
+    QPointer<ImageWriter> self(this);
+    QThread *thread = QThread::create([self, device]() {
+        PlatformQuirks::DiskResult result =
+            PlatformQuirks::ejectDisk(PlatformQuirks::getEjectDevicePath(device));
+        bool succeeded = (result == PlatformQuirks::DiskResult::Success);
+#ifdef Q_OS_WIN
+        // The legacy Windows result can carry an unrelated volume's failure
+        // even when the target drive ejected fine; only report a definite miss.
+        succeeded = (result != PlatformQuirks::DiskResult::InvalidDrive);
+#endif
+        QMetaObject::invokeMethod(QCoreApplication::instance(), [self, succeeded]() {
+            if (self)
+                self->onEjectFinished(succeeded);
+        }, Qt::QueuedConnection);
+    });
+    _manualEjectThread = thread;
+    // Deletion is owned by the thread, not by ImageWriter. The destructor gives
+    // up after 10 s and leaves a slow eject running detached, and that teardown
+    // severs every connection whose receiver is `this` — so a `this`-bound
+    // handler would never reclaim the QThread. A self-owned handler still runs
+    // when the eject finally finishes.
+    connect(thread, &QThread::finished, thread, &QObject::deleteLater);
+    connect(thread, &QThread::finished, this, [this, thread]() {
+        // A retry may already own the member; only clear our own pointer.
+        if (_manualEjectThread == thread)
+            _manualEjectThread = nullptr;
+    });
+    thread->start();
+}
+
 void ImageWriter::setWriteState(WriteState state)
 {
     if (_writeState == state)
@@ -2998,58 +3099,44 @@ void ImageWriter::_parseZstdFile()
         return;
     }
 
-    // Two-stage: read just enough bytes to query the actual frame header size,
-    // then read the remainder. ZSTD_FRAMEHEADERSIZE_PREFIX is the minimum input
-    // size required to call ZSTD_frameHeaderSize().
-    constexpr qint64 prefixSize = ZSTD_FRAMEHEADERSIZE_PREFIX(ZSTD_f_zstd1);
-    QByteArray header = f.read(prefixSize);
-    if (header.size() < prefixSize)
-    {
-        qDebug() << "Unable to read .zst frame prefix";
-        f.close();
-        return;
-    }
-
-    size_t hdrSize = ZSTD_frameHeaderSize(header.constData(), header.size());
-    if (ZSTD_isError(hdrSize))
-    {
-        qDebug() << "Invalid .zst frame header:" << ZSTD_getErrorName(hdrSize);
-        f.close();
-        return;
-    }
-
-    if (static_cast<qint64>(hdrSize) > prefixSize)
-    {
-        header.append(f.read(static_cast<qint64>(hdrSize) - prefixSize));
-    }
+    // ZSTD_findDecompressedSize() iterates through all concatenated frames
+    // to compute the total decompressed size. It requires the full compressed
+    // data in memory, but this is acceptable for custom file size estimates.
+    QByteArray data = f.readAll();
     f.close();
 
-    if (static_cast<size_t>(header.size()) < hdrSize)
+    if (data.isEmpty())
     {
-        qDebug() << "Truncated .zst frame header";
+        qDebug() << "Empty .zst file";
         return;
     }
 
-    unsigned long long fcs = ZSTD_getFrameContentSize(header.constData(),
-                                                     static_cast<size_t>(header.size()));
+    unsigned long long fcs = ZSTD_findDecompressedSize(data.constData(), data.size());
 
+    // The failure sentinels are (0ULL - 2) and (0ULL - 1), not 0, so they have to
+    // be tested by name: comparing against 0 alone lets ZSTD_CONTENTSIZE_UNKNOWN
+    // through as _extrLen = ULLONG_MAX, and startWrite() then rejects a perfectly
+    // good local image with "Storage capacity is not large enough".
     if (fcs == ZSTD_CONTENTSIZE_ERROR)
     {
-        qDebug() << "Unable to parse .zst frame header";
+        qDebug() << "Unable to parse .zst file (invalid or truncated frames)";
         return;
     }
+
     if (fcs == ZSTD_CONTENTSIZE_UNKNOWN)
     {
-        // First-frame Frame_Content_Size is absent; can't determine without
-        // decompressing. Leave _extrLen=0 and progress will fall back to the
-        // download size (the existing behaviour, with progress > 100%).
+        // Size not recorded in the frame headers (streaming-compressed input).
+        // Leave _extrLen unknown and let progress fall back to the download size.
         qDebug() << "Parsed .zst file. Uncompressed size: unknown (FCS not present)";
         return;
     }
 
-    // Note: this is the size of the FIRST zstd frame only. Multi-frame .zst
-    // files would understate the total decompressed size. Single-frame is
-    // the standard case for OS images.
+    if (fcs == 0)
+    {
+        qDebug() << "Unable to determine decompressed size of .zst file";
+        return;
+    }
+
     _extrLen = fcs;
     qDebug() << "Parsed .zst file. Uncompressed size:" << _extrLen;
 }
@@ -4415,9 +4502,14 @@ QString ImageWriter::customRepoHost()
 
 bool ImageWriter::isValidRepoUrl(const QString &url) const
 {
-    // Validate: must be http/https URL ending with .json or manifest extension
+    // Validate: must be an http/https URL whose path ends with .json or the
+    // manifest extension. An optional query string and/or fragment is allowed
+    // after the extension so that pre-signed URLs (e.g. cloud blob storage with
+    // a SAS token: ".../manifest.json?sv=...&sig=...") are accepted. The path
+    // portion excludes '?' and '#' so the extension must appear before any
+    // query/fragment rather than merely somewhere in the URL.
     static const QRegularExpression repoUrlRe(
-        QStringLiteral("^https?://[^ \\t\\r\\n]+\\.(json|" MANIFEST_EXTENSION ")$"), 
+        QStringLiteral("^https?://[^ \\t\\r\\n?#]+\\.(json|" MANIFEST_EXTENSION ")([?#][^ \\t\\r\\n]*)?$"),
         QRegularExpression::CaseInsensitiveOption);
     return repoUrlRe.match(url).hasMatch();
 }
@@ -4580,6 +4672,8 @@ void ImageWriter::_continueStartWriteAfterCacheVerification(bool cacheIsValid)
     connect(_thread, SIGNAL(error(QString)), SLOT(onError(QString)));
     connect(_thread, SIGNAL(finalizing()), SLOT(onFinalizing()));
     connect(_thread, SIGNAL(preparationStatusUpdate(QString)), SLOT(onPreparationStatusUpdate(QString)));
+    connect(_thread, &DownloadThread::ejectStarted, this, &ImageWriter::onEjectStarted);
+    connect(_thread, &DownloadThread::ejectFinished, this, &ImageWriter::onEjectFinished);
     // Ensure cleanup of thread pointer on finish in all paths
     connect(_thread, &QThread::finished, this, [this]() {
         if (_thread)
@@ -4740,6 +4834,10 @@ void ImageWriter::_continueStartWriteAfterCacheVerification(bool cacheIsValid)
     connect(_thread, &DownloadThread::eventCustomisation,
             this, [this](quint32 durationMs, bool success, QString metadata){
                 _performanceStats->recordEvent(PerformanceStats::EventType::Customisation, durationMs, success, metadata);
+            });
+    connect(_thread, &DownloadThread::eventCustomisationVerify,
+            this, [this](quint32 durationMs, bool success, QString metadata){
+                _performanceStats->recordEvent(PerformanceStats::EventType::CustomisationVerify, durationMs, success, metadata);
             });
     connect(_thread, &DownloadThread::eventFinalSync,
             this, [this](quint32 durationMs, bool success){

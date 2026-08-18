@@ -157,6 +157,37 @@ void DriveListModelPollThread::run()
                         cache.fastbootId = std::to_string(dev.busNumber) + ":" + std::to_string(dev.deviceAddress);
                         cache.portPath = dev.portPath;
 
+                        // Positively identify a genuine rpi-fastbootd gadget
+                        // before exposing it as a flashable target. The gadget
+                        // borrows Google's 18d1:4e40 VID/PID, so a non-Pi
+                        // device (e.g. an Android phone in a colliding fastboot
+                        // mode) could enumerate identically. identifyRpiFastboot()
+                        // checks the authoritative USB interface descriptor
+                        // ("fastbootd-provisioner") and falls back to the
+                        // RPi-specific block-devices getvar. Only a device that
+                        // actually answered and denied it is cached as a
+                        // storage-less entry, so it is neither listed as a
+                        // target nor re-probed on every tick; a probe that got
+                        // no answer is retried instead of being banked.
+                        const auto identity = fb.identifyRpiFastboot(*transport);
+                        if (identity == fastboot::RpiIdentity::ConfirmedNotPi) {
+                            qDebug() << "Fastboot: ignoring non-RPi device at"
+                                     << QString::fromStdString(ppKey)
+                                     << "(did not identify as rpi-fastbootd)";
+                            _fastbootCache[ppKey] = std::move(cache);
+                            continue;
+                        }
+                        if (identity == fastboot::RpiIdentity::Inconclusive) {
+                            // The probe got no answer — which is also what a Pi
+                            // still starting its gadget looks like. Caching this
+                            // would strand a genuine device until it is
+                            // unplugged, so skip the tick and re-probe next one.
+                            qDebug() << "Fastboot: identity probe inconclusive at"
+                                     << QString::fromStdString(ppKey)
+                                     << "- will retry on the next scan";
+                            continue;
+                        }
+
                         // Query product name
                         auto product = fb.getVar(*transport, "product");
                         cache.productName = product.value_or("Compute Module");
