@@ -7,12 +7,14 @@
 #include <catch2/matchers/catch_matchers_string.hpp>
 #include "customization_generator.h"
 #include "dependencies/sha256crypt/sha256crypt.h"
+#include "dependencies/yescrypt/yescrypt_wrapper.h"
 #include <QVariantMap>
 #include <QString>
 #include <QByteArray>
 #include <QPasswordDigestor>
 #include <QCryptographicHash>
 #include <QStringConverter>
+#include <QRegularExpression>
 
 using namespace rpi_imager;
 using Catch::Matchers::ContainsSubstring;
@@ -111,6 +113,117 @@ TEST_CASE("CustomisationGenerator handles yescrypt password format", "[customiza
     REQUIRE_THAT(scriptStr.toStdString(), ContainsSubstring("/usr/lib/userconf-pi/userconf"));
     REQUIRE_THAT(scriptStr.toStdString(), ContainsSubstring("$y$j9T$"));
     REQUIRE_THAT(scriptStr.toStdString(), ContainsSubstring("echo \"$FIRSTUSER:$y$j9T$"));
+}
+
+// Regression test for issue #1627. A password pasted from a browser or password
+// manager arrives with a trailing newline, because Qt's single-line text fields
+// insert clipboard content verbatim. PAM discards the line terminator when
+// reading a password, so hashing the raw value yields a hash that can never be
+// matched at login. cryptPassword() must therefore strip CR/LF before hashing.
+//
+// Verified the way PAM would: re-derive the hash from the *clean* password using
+// the stored hash as the salt setting, and require that it reproduces the hash
+// that was generated from the newline-bearing input.
+TEST_CASE("cryptPassword strips CR/LF so pasted passwords still authenticate",
+          "[customization][password]") {
+    const QByteArray clean = "correct horse battery staple";
+
+    SECTION("sha256crypt (pre-2023 OS)") {
+        const QString releaseDate = QStringLiteral("2022-09-22");
+        REQUIRE_FALSE(CustomisationGenerator::osUsesYescrypt(releaseDate));
+
+        for (const QByteArray &suffix : {QByteArray("\n"), QByteArray("\r\n"), QByteArray("\r")}) {
+            const QString hash = CustomisationGenerator::cryptPassword(clean + suffix, releaseDate);
+            REQUIRE(hash.startsWith(QStringLiteral("$5$")));
+            const QByteArray setting = hash.toUtf8();
+            REQUIRE(QString::fromUtf8(sha256_crypt(clean.constData(), setting.constData())) == hash);
+        }
+    }
+
+    SECTION("yescrypt (2023+ OS)") {
+        const QString releaseDate = QStringLiteral("2024-03-15");
+        REQUIRE(CustomisationGenerator::osUsesYescrypt(releaseDate));
+
+        for (const QByteArray &suffix : {QByteArray("\n"), QByteArray("\r\n"), QByteArray("\r")}) {
+            const QString hash = CustomisationGenerator::cryptPassword(clean + suffix, releaseDate);
+            REQUIRE(CustomisationGenerator::isYescryptHash(hash));
+            const QByteArray setting = hash.toUtf8();
+            REQUIRE(QString::fromUtf8(yescrypt_crypt(clean.constData(), setting.constData())) == hash);
+        }
+    }
+
+    SECTION("a genuinely different password still does not authenticate") {
+        const QString releaseDate = QStringLiteral("2024-03-15");
+        const QString hash = CustomisationGenerator::cryptPassword(clean + "\n", releaseDate);
+        const QByteArray setting = hash.toUtf8();
+        REQUIRE(QString::fromUtf8(yescrypt_crypt("wrong password", setting.constData())) != hash);
+    }
+
+    SECTION("interior CR/LF is removed too, not just a trailing terminator") {
+        // A multi-line clipboard paste collapses to a single line rather than
+        // being silently truncated at the first newline.
+        const QString releaseDate = QStringLiteral("2024-03-15");
+        const QString hash = CustomisationGenerator::cryptPassword("ab\ncd", releaseDate);
+        const QByteArray setting = hash.toUtf8();
+        REQUIRE(QString::fromUtf8(yescrypt_crypt("abcd", setting.constData())) == hash);
+        REQUIRE(QString::fromUtf8(yescrypt_crypt("ab", setting.constData())) != hash);
+    }
+}
+
+// Companion to the test above, for the Wi-Fi passphrase rather than the account
+// password. Here a stray newline does more than corrupt the derivation: the
+// 8..63 passphrase-length test decides whether the value is treated as a
+// passphrase to hash or as an already-computed 64-hex PMK to pass through, so a
+// single extra character can flip the branch and emit the user's plaintext where
+// a PMK is expected.
+TEST_CASE("resolveWifiPskCrypt strips CR/LF before classifying by length",
+          "[customization][wifi][password]") {
+    const QByteArray ssid = "TestNet";
+
+    // resolveWifiPskCrypt is private, so drive it through generateSystemdScript
+    // and read back the PSK it emits into the wpa_supplicant stanza.
+    auto pskFor = [&](const QString &plaintext) {
+        QVariantMap settings;
+        settings["wifiConfigured"] = true;
+        settings["wifiSSID"] = QString::fromUtf8(ssid);
+        settings["wifiPassword"] = plaintext;
+        const QString script = QString::fromUtf8(CustomisationGenerator::generateSystemdScript(settings));
+        static const QRegularExpression pskRe(QStringLiteral("(?m)^\\s*psk=(\\S*)\\s*$"));
+        const QRegularExpressionMatch m = pskRe.match(script);
+        REQUIRE(m.hasMatch());
+        return m.captured(1);
+    };
+
+    SECTION("a trailing newline does not change the derived PSK") {
+        const QString expected = pskFor(QStringLiteral("hunter2hunter2"));
+        REQUIRE_FALSE(expected.isEmpty());
+        REQUIRE(pskFor(QStringLiteral("hunter2hunter2\n")) == expected);
+        REQUIRE(pskFor(QStringLiteral("hunter2hunter2\r\n")) == expected);
+    }
+
+    SECTION("a 63-character passphrase is still hashed, not passed through") {
+        const QString maxLen(63, QLatin1Char('a'));
+        const QString expected = pskFor(maxLen);
+        // A derived PSK is 32 bytes rendered as hex; the plaintext must not survive.
+        REQUIRE(expected.length() == 64);
+        REQUIRE(expected != maxLen);
+        // Without stripping, 63 + 1 == 64 would take the pass-through branch.
+        REQUIRE(pskFor(maxLen + "\n") == expected);
+    }
+
+    SECTION("a too-short passphrase is not inflated into a valid length") {
+        const QString tooShort(7, QLatin1Char('a'));
+        // 7 chars is below the WPA minimum, so it is passed through unchanged
+        // rather than hashed. Adding a newline must not make it look like 8.
+        REQUIRE(pskFor(tooShort) == tooShort);
+        REQUIRE(pskFor(tooShort + "\n") == tooShort);
+    }
+
+    SECTION("a real 64-hex PMK is still passed through untouched") {
+        const QString pmk(64, QLatin1Char('a'));
+        REQUIRE(pskFor(pmk) == pmk);
+        REQUIRE(pskFor(pmk + "\n") == pmk);
+    }
 }
 
 TEST_CASE("CustomisationGenerator handles sha256crypt password format", "[customization][password]") {
@@ -876,6 +989,7 @@ TEST_CASE("CustomisationGenerator cloud-init handles SSH public key only (no use
     REQUIRE_THAT(yaml.toStdString(), ContainsSubstring("lock_passwd: true"));
     // SSH keys alone should NOT grant passwordless sudo — requires explicit opt-in
     REQUIRE_THAT(yaml.toStdString(), !ContainsSubstring("sudo: ALL=(ALL) NOPASSWD:ALL"));
+    REQUIRE_THAT(yaml.toStdString(), ContainsSubstring("  sudo: null"));
 }
 
 TEST_CASE("CustomisationGenerator handles multiple SSH keys in .pub file", "[customization][ssh]") {
@@ -1091,6 +1205,7 @@ TEST_CASE("CustomisationGenerator generates cloud-init user-data with SSH keys",
     REQUIRE_THAT(yaml.toStdString(), ContainsSubstring("lock_passwd: true"));
     // SSH keys alone should NOT grant passwordless sudo — requires explicit opt-in
     REQUIRE_THAT(yaml.toStdString(), !ContainsSubstring("sudo: ALL=(ALL) NOPASSWD:ALL"));
+    REQUIRE_THAT(yaml.toStdString(), ContainsSubstring("  sudo: null"));
     // Password authentication should be explicitly disabled when using public-key auth
     REQUIRE_THAT(yaml.toStdString(), ContainsSubstring("ssh_pwauth: false"));
 }
@@ -1112,6 +1227,8 @@ TEST_CASE("CustomisationGenerator cloud-init passwordless sudo when explicitly e
     REQUIRE_THAT(yaml.toStdString(), ContainsSubstring("testuser ALL=(ALL) NOPASSWD:ALL"));
     REQUIRE_THAT(yaml.toStdString(), ContainsSubstring("/etc/sudoers.d/010_testuser-nopasswd"));
     REQUIRE_THAT(yaml.toStdString(), ContainsSubstring("chmod"));
+    // The opt-in must not also emit the suppressing key
+    REQUIRE_THAT(yaml.toStdString(), !ContainsSubstring("sudo: null"));
 }
 
 TEST_CASE("CustomisationGenerator cloud-init no passwordless sudo by default", "[cloudinit][userdata][sudo]") {
@@ -1124,6 +1241,13 @@ TEST_CASE("CustomisationGenerator cloud-init no passwordless sudo by default", "
 
     REQUIRE_THAT(yaml.toStdString(), ContainsSubstring("  name: testuser"));
     REQUIRE_THAT(yaml.toStdString(), !ContainsSubstring("sudo: ALL=(ALL) NOPASSWD:ALL"));
+    // Regression test: the singular `user:` block is merged over the distro's
+    // default_user from /etc/cloud/cloud.cfg, which carries
+    // `sudo: ["ALL=(ALL) NOPASSWD:ALL"]` on every variant including
+    // raspberry-pi-os. Silence alone therefore inherits passwordless sudo (via
+    // /etc/sudoers.d/90-cloud-init-users), so the key must be set to null.
+    REQUIRE_THAT(yaml.toStdString(), ContainsSubstring("  sudo: null"));
+    REQUIRE_THAT(yaml.toStdString(), !ContainsSubstring("/etc/sudoers.d/010_testuser-nopasswd"));
 }
 
 TEST_CASE("CustomisationGenerator systemd script passwordless sudo", "[customization][sudo]") {
@@ -1338,19 +1462,12 @@ TEST_CASE("CustomisationGenerator cloud-init WiFi country only (no SSID)", "[clo
     REQUIRE_THAT(yaml.toStdString(), ContainsSubstring("rfkill, unblock, wifi"));
     REQUIRE_THAT(yaml.toStdString(), ContainsSubstring("/var/lib/systemd/rfkill/*:wlan"));
     
-    // Network config should include eth0 for DHCP but no WiFi when there's no SSID
-    // The regulatory domain is set via cmdline parameter (cfg80211.ieee80211_regdom) instead.
+    // A country code alone cannot produce a wifis: block — cloud-init requires at
+    // least one access-point — and without one there is nothing to write, so no
+    // network-config is emitted. The regulatory domain is applied via the cmdline
+    // parameter (cfg80211.ieee80211_regdom) instead.
     QByteArray netcfg = CustomisationGenerator::generateCloudInitNetworkConfig(settings, false);
-    QString netcfgYaml = QString::fromUtf8(netcfg);
-    
-    // Should have eth0 configuration with DHCP v4 and v6
-    REQUIRE_THAT(netcfgYaml.toStdString(), ContainsSubstring("ethernets:"));
-    REQUIRE_THAT(netcfgYaml.toStdString(), ContainsSubstring("eth0:"));
-    REQUIRE_THAT(netcfgYaml.toStdString(), ContainsSubstring("dhcp4: true"));
-    REQUIRE_THAT(netcfgYaml.toStdString(), ContainsSubstring("dhcp6: true"));
-    
-    // Should NOT have wifis section (no SSID configured)
-    REQUIRE_THAT(netcfgYaml.toStdString(), !ContainsSubstring("wifis:"));
+    REQUIRE(netcfg.isEmpty());
 }
 
 TEST_CASE("CustomisationGenerator generates cloud-init network-config with special characters in SSID", "[cloudinit][network][negative]") {
@@ -1451,13 +1568,10 @@ TEST_CASE("Independent step: Hostname only", "[cloudinit][independent][hostname]
     REQUIRE_THAT(yaml.toStdString(), !ContainsSubstring("keyboard:"));
     REQUIRE_THAT(yaml.toStdString(), !ContainsSubstring("rpi:"));
     
-    // Network config has eth0 with DHCP but no WiFi
-    QString netcfgYaml = QString::fromUtf8(netcfg);
-    REQUIRE_THAT(netcfgYaml.toStdString(), ContainsSubstring("ethernets:"));
-    REQUIRE_THAT(netcfgYaml.toStdString(), ContainsSubstring("eth0:"));
-    REQUIRE_THAT(netcfgYaml.toStdString(), ContainsSubstring("dhcp4: true"));
-    REQUIRE_THAT(netcfgYaml.toStdString(), ContainsSubstring("dhcp6: true"));
-    REQUIRE_THAT(netcfgYaml.toStdString(), !ContainsSubstring("wifis:"));
+    // No Wi-Fi here, so no network-config is emitted at all. eth0 DHCP is only
+    // written alongside a wifis: block, because a network-config file replaces
+    // the distro default and would otherwise take wired ethernet with it.
+    REQUIRE(netcfg.isEmpty());
 }
 
 TEST_CASE("Independent step: Timezone only", "[cloudinit][independent][locale]") {
@@ -1479,13 +1593,10 @@ TEST_CASE("Independent step: Timezone only", "[cloudinit][independent][locale]")
     REQUIRE_THAT(yaml.toStdString(), !ContainsSubstring("keyboard:"));
     REQUIRE_THAT(yaml.toStdString(), !ContainsSubstring("rpi:"));
     
-    // Network config has eth0 with DHCP but no WiFi
-    QString netcfgYaml = QString::fromUtf8(netcfg);
-    REQUIRE_THAT(netcfgYaml.toStdString(), ContainsSubstring("ethernets:"));
-    REQUIRE_THAT(netcfgYaml.toStdString(), ContainsSubstring("eth0:"));
-    REQUIRE_THAT(netcfgYaml.toStdString(), ContainsSubstring("dhcp4: true"));
-    REQUIRE_THAT(netcfgYaml.toStdString(), ContainsSubstring("dhcp6: true"));
-    REQUIRE_THAT(netcfgYaml.toStdString(), !ContainsSubstring("wifis:"));
+    // No Wi-Fi here, so no network-config is emitted at all. eth0 DHCP is only
+    // written alongside a wifis: block, because a network-config file replaces
+    // the distro default and would otherwise take wired ethernet with it.
+    REQUIRE(netcfg.isEmpty());
 }
 
 TEST_CASE("Independent step: Keyboard only", "[cloudinit][independent][locale]") {
@@ -1509,13 +1620,10 @@ TEST_CASE("Independent step: Keyboard only", "[cloudinit][independent][locale]")
     REQUIRE_THAT(yaml.toStdString(), !ContainsSubstring("timezone:"));
     REQUIRE_THAT(yaml.toStdString(), !ContainsSubstring("rpi:"));
     
-    // Network config has eth0 with DHCP but no WiFi
-    QString netcfgYaml = QString::fromUtf8(netcfg);
-    REQUIRE_THAT(netcfgYaml.toStdString(), ContainsSubstring("ethernets:"));
-    REQUIRE_THAT(netcfgYaml.toStdString(), ContainsSubstring("eth0:"));
-    REQUIRE_THAT(netcfgYaml.toStdString(), ContainsSubstring("dhcp4: true"));
-    REQUIRE_THAT(netcfgYaml.toStdString(), ContainsSubstring("dhcp6: true"));
-    REQUIRE_THAT(netcfgYaml.toStdString(), !ContainsSubstring("wifis:"));
+    // No Wi-Fi here, so no network-config is emitted at all. eth0 DHCP is only
+    // written alongside a wifis: block, because a network-config file replaces
+    // the distro default and would otherwise take wired ethernet with it.
+    REQUIRE(netcfg.isEmpty());
 }
 
 TEST_CASE("Independent step: Locale (timezone + keyboard)", "[cloudinit][independent][locale]") {
@@ -1567,13 +1675,10 @@ TEST_CASE("Independent step: User credentials only (no SSH)", "[cloudinit][indep
     REQUIRE_THAT(yaml.toStdString(), !ContainsSubstring("keyboard:"));
     REQUIRE_THAT(yaml.toStdString(), !ContainsSubstring("rpi:"));
     
-    // Network config has eth0 with DHCP but no WiFi
-    QString netcfgYaml = QString::fromUtf8(netcfg);
-    REQUIRE_THAT(netcfgYaml.toStdString(), ContainsSubstring("ethernets:"));
-    REQUIRE_THAT(netcfgYaml.toStdString(), ContainsSubstring("eth0:"));
-    REQUIRE_THAT(netcfgYaml.toStdString(), ContainsSubstring("dhcp4: true"));
-    REQUIRE_THAT(netcfgYaml.toStdString(), ContainsSubstring("dhcp6: true"));
-    REQUIRE_THAT(netcfgYaml.toStdString(), !ContainsSubstring("wifis:"));
+    // No Wi-Fi here, so no network-config is emitted at all. eth0 DHCP is only
+    // written alongside a wifis: block, because a network-config file replaces
+    // the distro default and would otherwise take wired ethernet with it.
+    REQUIRE(netcfg.isEmpty());
 }
 
 TEST_CASE("Independent step: WiFi only", "[cloudinit][independent][wifi]") {
@@ -1635,13 +1740,10 @@ TEST_CASE("Independent step: SSH with password auth only", "[cloudinit][independ
     REQUIRE_THAT(yaml.toStdString(), !ContainsSubstring("keyboard:"));
     REQUIRE_THAT(yaml.toStdString(), !ContainsSubstring("rpi:"));
     
-    // Network config has eth0 with DHCP but no WiFi
-    QString netcfgYaml = QString::fromUtf8(netcfg);
-    REQUIRE_THAT(netcfgYaml.toStdString(), ContainsSubstring("ethernets:"));
-    REQUIRE_THAT(netcfgYaml.toStdString(), ContainsSubstring("eth0:"));
-    REQUIRE_THAT(netcfgYaml.toStdString(), ContainsSubstring("dhcp4: true"));
-    REQUIRE_THAT(netcfgYaml.toStdString(), ContainsSubstring("dhcp6: true"));
-    REQUIRE_THAT(netcfgYaml.toStdString(), !ContainsSubstring("wifis:"));
+    // No Wi-Fi here, so no network-config is emitted at all. eth0 DHCP is only
+    // written alongside a wifis: block, because a network-config file replaces
+    // the distro default and would otherwise take wired ethernet with it.
+    REQUIRE(netcfg.isEmpty());
 }
 
 TEST_CASE("Independent step: SSH with public keys only", "[cloudinit][independent][ssh]") {
@@ -1692,13 +1794,10 @@ TEST_CASE("Independent step: Interfaces only (I2C)", "[cloudinit][independent][i
     REQUIRE_THAT(yaml.toStdString(), !ContainsSubstring("timezone:"));
     REQUIRE_THAT(yaml.toStdString(), !ContainsSubstring("keyboard:"));
     
-    // Network config has eth0 with DHCP but no WiFi
-    QString netcfgYaml = QString::fromUtf8(netcfg);
-    REQUIRE_THAT(netcfgYaml.toStdString(), ContainsSubstring("ethernets:"));
-    REQUIRE_THAT(netcfgYaml.toStdString(), ContainsSubstring("eth0:"));
-    REQUIRE_THAT(netcfgYaml.toStdString(), ContainsSubstring("dhcp4: true"));
-    REQUIRE_THAT(netcfgYaml.toStdString(), ContainsSubstring("dhcp6: true"));
-    REQUIRE_THAT(netcfgYaml.toStdString(), !ContainsSubstring("wifis:"));
+    // No Wi-Fi here, so no network-config is emitted at all. eth0 DHCP is only
+    // written alongside a wifis: block, because a network-config file replaces
+    // the distro default and would otherwise take wired ethernet with it.
+    REQUIRE(netcfg.isEmpty());
 }
 
 TEST_CASE("Independent step: Interfaces only (SPI)", "[cloudinit][independent][interfaces]") {
@@ -1794,13 +1893,10 @@ TEST_CASE("Independent step: Pi Connect only (with required user)", "[cloudinit]
     REQUIRE_THAT(yaml.toStdString(), !ContainsSubstring("keyboard:"));
     REQUIRE_THAT(yaml.toStdString(), !ContainsSubstring("rpi:"));
     
-    // Network config has eth0 with DHCP but no WiFi
-    QString netcfgYaml = QString::fromUtf8(netcfg);
-    REQUIRE_THAT(netcfgYaml.toStdString(), ContainsSubstring("ethernets:"));
-    REQUIRE_THAT(netcfgYaml.toStdString(), ContainsSubstring("eth0:"));
-    REQUIRE_THAT(netcfgYaml.toStdString(), ContainsSubstring("dhcp4: true"));
-    REQUIRE_THAT(netcfgYaml.toStdString(), ContainsSubstring("dhcp6: true"));
-    REQUIRE_THAT(netcfgYaml.toStdString(), !ContainsSubstring("wifis:"));
+    // No Wi-Fi here, so no network-config is emitted at all. eth0 DHCP is only
+    // written alongside a wifis: block, because a network-config file replaces
+    // the distro default and would otherwise take wired ethernet with it.
+    REQUIRE(netcfg.isEmpty());
 }
 
 // =============================================================================
@@ -1981,26 +2077,14 @@ TEST_CASE("CustomisationGenerator handles empty cloud-init settings gracefully",
     
     QByteArray userdata = CustomisationGenerator::generateCloudInitUserData(settings);
     QByteArray netcfg = CustomisationGenerator::generateCloudInitNetworkConfig(settings);
-    QString userdataYaml = QString::fromUtf8(userdata);
-    
-    // User data should only have the always-present manage_resolv_conf setting
-    REQUIRE_THAT(userdataYaml.toStdString(), ContainsSubstring("manage_resolv_conf: false"));
-    // Should NOT have any user-specific configuration
-    REQUIRE_THAT(userdataYaml.toStdString(), !ContainsSubstring("hostname:"));
-    REQUIRE_THAT(userdataYaml.toStdString(), !ContainsSubstring("user:"));
-    REQUIRE_THAT(userdataYaml.toStdString(), !ContainsSubstring("enable_ssh:"));
-    REQUIRE_THAT(userdataYaml.toStdString(), !ContainsSubstring("timezone:"));
-    REQUIRE_THAT(userdataYaml.toStdString(), !ContainsSubstring("keyboard:"));
-    REQUIRE_THAT(userdataYaml.toStdString(), !ContainsSubstring("rpi:"));
-    
-    // Network config should still have eth0 with DHCP (always generated)
-    QString netcfgYaml = QString::fromUtf8(netcfg);
-    REQUIRE_THAT(netcfgYaml.toStdString(), ContainsSubstring("network:"));
-    REQUIRE_THAT(netcfgYaml.toStdString(), ContainsSubstring("ethernets:"));
-    REQUIRE_THAT(netcfgYaml.toStdString(), ContainsSubstring("eth0:"));
-    REQUIRE_THAT(netcfgYaml.toStdString(), ContainsSubstring("dhcp4: true"));
-    REQUIRE_THAT(netcfgYaml.toStdString(), ContainsSubstring("dhcp6: true"));
-    REQUIRE_THAT(netcfgYaml.toStdString(), !ContainsSubstring("wifis:"));
+
+    // Nothing configured means nothing written. Both generators used to emit a
+    // baseline (manage_resolv_conf, and eth0 DHCP) unconditionally, which made
+    // the fastboot and download paths write meta-data/network-config even when
+    // the user had skipped customisation — and older fastboot gadgets failed on
+    // that write. An empty payload is what tells those paths to skip the file.
+    REQUIRE(userdata.isEmpty());
+    REQUIRE(netcfg.isEmpty());
 }
 
 TEST_CASE("CustomisationGenerator cloud-init handles empty Pi Connect token", "[cloudinit][negative]") {

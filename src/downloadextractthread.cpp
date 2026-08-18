@@ -4,7 +4,7 @@
  */
 
 #include "downloadextractthread.h"
-#include "block_batcher.h" // UNRAID: coalesces libarchive data blocks into large writes
+#include "block_batcher.h"
 #include "unraid/archive_write_result.h" // UNRAID: write warnings are terminal for boot media
 #include "unraid/unraid_postwrite.h" // UNRAID: post-extract customisation
 #include "config.h"
@@ -923,7 +923,7 @@ void DownloadExtractThread::extractMultiFileRun()
         // Log the compression filter(s) being used
         _logCompressionFilters(a);
 
-        // UNRAID: coalesce libarchive's data blocks into large sequential writes.
+        // Coalesce libarchive's data blocks into large sequential writes.
         //
         // archive_write_data_block() issues one write per block libarchive hands
         // us, and its per-call overhead dominates when the blocks are small. This
@@ -1012,6 +1012,13 @@ void DownloadExtractThread::extractMultiFileRun()
 
         // UNRAID: records what libarchive actually handed us, so the value of the
         // batching above can be judged from a log rather than assumed.
+        if (blockCount > 0) {
+            qDebug() << "Extraction:" << blockCount << "data blocks,"
+                     << (blockBytes / blockCount) << "bytes average, batched into"
+                     << kExtractWriteBufferSize << "byte writes";
+        }
+
+        // Record what libarchive handed us so batching can be assessed from logs.
         if (blockCount > 0) {
             qDebug() << "Extraction:" << blockCount << "data blocks,"
                      << (blockBytes / blockCount) << "bytes average, batched into"

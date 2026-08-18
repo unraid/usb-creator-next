@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  * Copyright (C) 2026 Lime Technology, Inc.
  *
- * UNRAID: coalesces contiguous data blocks into larger writes.
+ * Coalesces contiguous data blocks into larger writes.
  *
  * libarchive hands extraction one data block at a time and archive_write_data_block()
  * charges meaningful per-call overhead, so many small blocks are far slower than a few

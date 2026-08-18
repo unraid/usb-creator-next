@@ -168,10 +168,21 @@ ImageWriter::ImageWriter(QObject *parent)
     _debugIPv4Only = false;     // Use both IPv4 and IPv6 by default
     _debugSkipEndOfDevice = false; // Normal behavior; enable for counterfeit cards
     _debugIgnoreDeviceLimits = false; // Use device-reported I/O limits by default
-    _debugRpiboot = false;          // Rpiboot/fastboot support disabled by default
+    // Rpiboot/fastboot support is off by default, but sticky once turned on:
+    // the people who need it (CM provisioning) want it every session, and
+    // re-entering the secret menu on every launch is needless friction.
+    _debugRpiboot = _settings.value(QStringLiteral("debug_rpiboot"), false).toBool();
     _debugForceSecureBoot = false;  // No UI override; CLI flag still wins
     _debugSignFastbootGadget = false; // CM5 special-reprovision-device (SBR then fastboot)
-    
+
+    // Propagate a restored rpiboot setting to the poll thread; these only set
+    // atomics, so it is safe before polling starts.
+    if (_debugRpiboot) {
+        _drivelist.setRpibootEnabled(true);
+        _drivelist.setFastbootScanEnabled(true);
+        qDebug() << "Debug: Rpiboot/fastboot support enabled from saved settings";
+    }
+
     // Calculate optimal async queue depth based on system memory
     _debugAsyncQueueDepth = SystemMemoryManager::instance().getOptimalAsyncQueueDepth();
     
@@ -3898,6 +3909,9 @@ void ImageWriter::setDebugRpiboot(bool enabled)
         _debugRpiboot = enabled;
         _drivelist.setRpibootEnabled(enabled);
         _drivelist.setFastbootScanEnabled(enabled);
+        // Sticky across runs — restored in the constructor.
+        _settings.setValue(QStringLiteral("debug_rpiboot"), enabled);
+        _settings.sync();
         qDebug() << "Debug: Rpiboot/fastboot support" << (enabled ? "enabled" : "disabled");
     }
 }
@@ -4184,14 +4198,20 @@ bool ImageWriter::savedUserPasswordUsableWithCurrentOs(const QString &cryptHash)
 
 QString ImageWriter::deriveWifiPsk(const QString &ssid, const QString &plaintext)
 {
-    if (plaintext.isEmpty())
+    // Strip CR/LF before measuring the length. ImTextField scrubs control
+    // characters out of the field, so the UI should never send them, but this is
+    // the same trust boundary cryptPassword() guards: a trailing newline would
+    // push a 63-character passphrase to 64 and flip the branch below, returning
+    // the plaintext verbatim as though it were a pre-computed PSK.
+    const QString password = rpi_imager::CustomisationGenerator::stripLineTerminators(plaintext);
+    if (password.isEmpty())
         return QString();
     // Passphrase length per WPA spec is 8..63; anything else is taken to be a
     // pre-computed PSK and returned verbatim.
-    const bool isPassphrase = (plaintext.length() >= 8 && plaintext.length() < 64);
+    const bool isPassphrase = (password.length() >= 8 && password.length() < 64);
     return isPassphrase
-        ? rpi_imager::CustomisationGenerator::pbkdf2(plaintext.toUtf8(), ssid.toUtf8())
-        : plaintext;
+        ? rpi_imager::CustomisationGenerator::pbkdf2(password.toUtf8(), ssid.toUtf8())
+        : password;
 }
 
 QString ImageWriter::wifiSsidOctetsBase64(const QString &ssid) const
@@ -4508,8 +4528,16 @@ bool ImageWriter::isValidRepoUrl(const QString &url) const
     // a SAS token: ".../manifest.json?sv=...&sig=...") are accepted. The path
     // portion excludes '?' and '#' so the extension must appear before any
     // query/fragment rather than merely somewhere in the URL.
+    //
+    // Anchored with \A..\z rather than ^..$: PCRE2 lets '$' match immediately
+    // before a newline at the end of the subject, so "...repo.json\n" matched
+    // despite '\n' being excluded from every character class above. That is
+    // exactly what a URL copied out of a browser looks like, and it reached
+    // refreshOsListFrom() as a %0A-suffixed URL (issue #1687). This also guards
+    // the deep-link "repo=" path, which never passes through a text field.
     static const QRegularExpression repoUrlRe(
-        QStringLiteral("^https?://[^ \\t\\r\\n?#]+\\.(json|" MANIFEST_EXTENSION ")([?#][^ \\t\\r\\n]*)?$"),
+        QRegularExpression::anchoredPattern(
+            QStringLiteral("https?://[^ \\t\\r\\n?#]+\\.(json|" MANIFEST_EXTENSION ")([?#][^ \\t\\r\\n]*)?")),
         QRegularExpression::CaseInsensitiveOption);
     return repoUrlRe.match(url).hasMatch();
 }
