@@ -32,20 +32,44 @@ jobs:
         with:
           fetch-depth: 0
 
+      # A stalled apt mirror on the hosted runner has hung this step for 40+
+      # minutes more than once (it normally finishes in well under two), which
+      # burns the job's whole time budget before a compiler ever runs. Kill an
+      # attempt that stops making progress and retry instead of waiting it out.
+      # GitHub's runners point at the azure.archive.ubuntu.com mirrors, which is
+      # what stalls, so the retry falls back to the canonical archive.
       - name: Install build and E2E dependencies
+        timeout-minutes: 20
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            build-essential cloud-image-utils cmake curl fuse libfuse2 \
-            libfontconfig1-dev libfreetype-dev libgl1-mesa-dev libgnutls28-dev \
-            libudev-dev libx11-dev libx11-xcb-dev libxcb-cursor-dev \
-            libxcb-glx0-dev libxcb-icccm4-dev libxcb-image0-dev \
-            libxcb-keysyms1-dev libxcb-randr0-dev libxcb-render-util0-dev \
-            libxcb-shape0-dev libxcb-shm0-dev libxcb-sync-dev libxcb-util-dev \
-            libxcb-xfixes0-dev libxcb-xkb-dev libxcb1-dev libxext-dev \
-            libxfixes-dev libxi-dev libxkbcommon-dev libxkbcommon-x11-dev \
-            libxrender-dev mtools parted qemu-system-x86 qemu-utils xz-utils zip
-          if [ -e /dev/kvm ]; then sudo chmod 666 /dev/kvm; fi
+          set -uo pipefail
+          packages="build-essential cloud-image-utils cmake curl fuse libfuse2 libfontconfig1-dev libfreetype-dev libgl1-mesa-dev libgnutls28-dev libudev-dev libx11-dev libx11-xcb-dev libxcb-cursor-dev libxcb-glx0-dev libxcb-icccm4-dev libxcb-image0-dev libxcb-keysyms1-dev libxcb-randr0-dev libxcb-render-util0-dev libxcb-shape0-dev libxcb-shm0-dev libxcb-sync-dev libxcb-util-dev libxcb-xfixes0-dev libxcb-xkb-dev libxcb1-dev libxext-dev libxfixes-dev libxi-dev libxkbcommon-dev libxkbcommon-x11-dev libxrender-dev mtools parted qemu-system-x86 qemu-utils xz-utils zip"
+
+          apt_try() {
+            # shellcheck disable=SC2086  # $packages must word-split into arguments
+            sudo timeout 300 apt-get update && \
+            sudo timeout 600 apt-get install -y --no-install-recommends $packages
+          }
+
+          for attempt in 1 2 3; do
+            if apt_try; then
+              echo "apt succeeded on attempt $attempt"
+              if [ -e /dev/kvm ]; then sudo chmod 666 /dev/kvm; fi
+              exit 0
+            fi
+            echo "::warning::apt attempt $attempt stalled or failed - retrying"
+            # A killed apt leaves its locks and a half-applied dpkg state behind.
+            sudo pkill -9 -f 'apt-get|dpkg' || true
+            sudo rm -f /var/lib/apt/lists/lock /var/cache/apt/archives/lock /var/lib/dpkg/lock*
+            sudo dpkg --configure -a || true
+            if [ "$attempt" = 1 ]; then
+              echo "Switching off the azure mirrors for the retry"
+              sudo sed -i 's|//azure.archive.ubuntu.com|//archive.ubuntu.com|g' /etc/apt/sources.list
+            fi
+            sleep 15
+          done
+
+          echo "::error::apt-get failed after 3 attempts"
+          exit 1
 
       - name: Install Qt 6.11.1
         run: |
