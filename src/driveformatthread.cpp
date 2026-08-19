@@ -112,12 +112,29 @@ void DriveFormatThread::run()
     QElapsedTimer formatTimer;
     formatTimer.start();
     
-    rpi_imager::DiskFormatter formatter;
-    // UNRAID: Unraid images must land on a volume labelled UNRAID.
-    if (!_volumeLabel.isEmpty()) {
-        formatter.SetVolumeLabelOverride(_volumeLabel.toStdString()); // UNRAID
-    }
-    auto formatResult = formatter.FormatDrive(_device.toStdString());
+    // UNRAID: scoped so the formatter is destroyed -- and the physical drive
+    // handle with it -- before the post-format rescan below.
+    //
+    // FormatDrive() opens the device and never closes it; the handle lives until
+    // ~DiskFormatter destroys file_ops_. That was harmless while physical drives
+    // opened write-shared, but the upstream 2.0.11-rc2 rework opens them with
+    // FILE_SHARE_READ and no FILE_SHARE_WRITE, so a second opener asking for
+    // write access is refused. rescanDisk() asks for GENERIC_READ | GENERIC_WRITE,
+    // so with the formatter still alive Windows answers ERROR_SHARING_VIOLATION
+    // (32), IOCTL_DISK_UPDATE_PROPERTIES never runs, and the FAT32 volume we just
+    // wrote never appears -- the write then dies at "No volume found on disk N".
+    //
+    // Upstream keeps this same order at its own refreshDiskView() call site in
+    // DownloadThread::_onDownloadError(): "Drop the device handle before asking
+    // the OS to refresh its view of the disk."
+    auto formatResult = [this]() {
+        rpi_imager::DiskFormatter formatter;
+        // UNRAID: Unraid images must land on a volume labelled UNRAID.
+        if (!_volumeLabel.isEmpty()) {
+            formatter.SetVolumeLabelOverride(_volumeLabel.toStdString()); // UNRAID
+        }
+        return formatter.FormatDrive(_device.toStdString());
+    }();
 
     quint32 formatDurationMs = static_cast<quint32>(formatTimer.elapsed());
     
