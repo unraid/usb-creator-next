@@ -2,16 +2,26 @@ Source: rpi-imager
 Section: admin
 Priority: optional
 Maintainer: Tom Dewey <tom.dewey@raspberrypi.com>
-Build-Depends: debhelper-compat (= 13), cmake, libgnutls28-dev, dh-exec
+Build-Depends: debhelper-compat (= 13), cmake, libgnutls28-dev, liburing-dev, dh-exec
 Standards-Version: 4.1.2
 Homepage: https://www.raspberrypi.com/software
 
 Package: rpi-imager
 Build-Profiles: <desktop>
-Architecture: amd64 arm64
+Architecture: amd64 arm64 armhf
 Depends: ${shlibs:Depends}, ${misc:Depends}, dosfstools, fdisk, fuse, libfuse2,
          util-linux (>= 2.37), pkexec,
-         libfontconfig1, libx11-6, libegl1, libgl1
+         libstdc++6, libatomic1,
+         libfontconfig1, libfreetype6,
+         libx11-6, libx11-xcb1, libxcb1, libxcb-cursor0, libxcb-glx0,
+         libxcb-icccm4, libxcb-image0, libxcb-keysyms1, libxcb-randr0,
+         libxcb-render0, libxcb-render-util0, libxcb-shape0, libxcb-shm0,
+         libxcb-sync1, libxcb-xfixes0, libxcb-xkb1,
+         libxkbcommon0, libxkbcommon-x11-0,
+         libwayland-client0, libwayland-cursor0,
+         libegl1, libgl1, libopengl0,
+         libdbus-1-3,
+         libdrm2, libgbm1, libinput10, libudev1
 Recommends: udisks2
 Conflicts: rpi-imager-embedded
 Description: Raspberry Pi Imaging utility
@@ -20,9 +30,18 @@ Description: Raspberry Pi Imaging utility
 Package: rpi-imager-embedded
 Build-Profiles: <embedded>
 Architecture: arm64
-Depends: ${shlibs:Depends}, ${misc:Depends},
-         dosfstools, fdisk, util-linux (>= 2.37), libdrm2,
-         libinput10, libudev1
+# The package vendors Qt and its support libraries under /opt for the
+# pi-gen-micro netboot image, which carries almost nothing. create-embedded.sh
+# assembles the .deb with dh_gencontrol/dh_md5sums/dh_builddeb and runs no
+# dh_shlibdeps (it would demand the bundled libraries from the target). This
+# list is therefore explicit and minimal -- only what genuinely comes from the
+# host. The embedded Qt is built -no-opengl -no-dbus, so there is deliberately
+# NO libegl1/libgl1/libx11-6 (Mesa/X11 are far too large for the image) and no
+# libsystemd0 (no session bus). Keep it in step with the external sonames from
+# embedded_deploy_lib_closure() (debian/lib.sh).
+Depends: dosfstools, fdisk, util-linux (>= 2.37),
+         libc6, libgcc-s1, libstdc++6,
+         libdrm2, libinput10, libudev1
 Suggests: rpi-eeprom, firmware-brcm80211
 Conflicts: rpi-imager
 Description: Raspberry Pi Imaging utility for embedded systems
@@ -38,8 +57,9 @@ Description: Raspberry Pi Imaging utility for embedded systems
 Package: rpi-imager-cli
 Build-Profiles: <cli>
 Architecture: amd64 arm64 armhf
-Depends: ${shlibs:Depends}, ${misc:Depends}, 
-         dosfstools, fdisk, fuse, libfuse2, util-linux (>= 2.37)
+Depends: ${shlibs:Depends}, ${misc:Depends},
+         dosfstools, fdisk, fuse, libfuse2, util-linux (>= 2.37),
+         libstdc++6, libatomic1
 Conflicts: rpi-imager, rpi-imager-embedded
 Description: Raspberry Pi Imaging utility (command-line only)
  A command-line tool for creating bootable media for Raspberry Pi devices.

@@ -78,7 +78,8 @@ WizardStepBase {
                     placeholderText: qsTr("Enter your server name") // UNRAID
                     font.pointSize: Style.fontSizeInput
                     Accessible.description: root.serverNameHelp // UNRAID
-                    
+                    trimWhitespace: true
+
                     validator: RegularExpressionValidator {
                         regularExpression: /^[a-zA-Z0-9][a-zA-Z0-9-]{0,62}$/
                     }
@@ -95,7 +96,7 @@ WizardStepBase {
     
     // Save settings when moving to next step
     onNextClicked: {
-        var hostnameText = fieldHostname.text ? fieldHostname.text.trim() : ""
+        var hostnameText = fieldHostname.value
         
         // Update conserved customization settings (runtime state)
         if (hostnameText.length > 0) {

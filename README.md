@@ -51,6 +51,8 @@ The fork is deliberately kept small and greppable so upstream releases can be
 merged rather than re-applied by hand. `git grep "UNRAID:"` enumerates the
 entire patch surface; the rules are in [PORTING.md](./PORTING.md).
 
+For the Linux release pipeline — the rootless, multi-architecture chroot build that produces the AppImages and `.deb` packages — see [doc/linux-build.md](./doc/linux-build.md).
+
 ## Other notes
 
 ### Custom repository

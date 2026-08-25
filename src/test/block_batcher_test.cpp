@@ -2,8 +2,8 @@
  * SPDX-License-Identifier: Apache-2.0
  * Copyright (C) 2026 Lime Technology, Inc.
  *
- * UNRAID: tests for BlockBatcher, which coalesces libarchive's data blocks into
- * larger writes during multi-file extraction.
+ * Tests for BlockBatcher, which coalesces libarchive's data blocks into larger
+ * writes during multi-file extraction.
  *
  * The risk being covered is silent corruption: batching must never change which
  * bytes land at which offset. Sparse files are the dangerous case -- a gap in
