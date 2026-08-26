@@ -12,8 +12,8 @@ Architecture: amd64 arm64 armhf
 # The bundled AppImage runtime is AppImage/type2-runtime, which links libfuse3
 # and squashfuse statically (static-PIE, no DT_NEEDED at all). All it wants from
 # the system is a fusermount helper on $PATH, and every provider of `fuse`
-# ships /usr/bin/fusermount: fuse 2.9.9 on bookworm, fuse3 (Provides: fuse,
-# Breaks: fuse) on either suite, and trixie's transitional fuse -> fuse3.
+# ships /usr/bin/fusermount: fuse 2.9.9 on bookworm, fuse3 through its
+# suite-specific package relationships, and trixie's transitional fuse -> fuse3.
 # Do NOT put libfuse2 back. Trixie renamed it libfuse2t64 for the 64-bit time_t
 # transition and, on 32-bit architectures, libfuse2t64 only Replaces libfuse2 --
 # it deliberately does not Provide it, because the ABI genuinely changed. A
