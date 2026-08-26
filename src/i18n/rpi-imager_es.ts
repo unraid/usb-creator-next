@@ -1026,8 +1026,8 @@ Please check the device and try again.</source>
 
 Esto podría deberse a:
 • El dispositivo se desconectó o dejó de responder
-•El dispositivo está lleno o protegido contra escritura
-•Falla de hardware o sectores defectuosos
+• El dispositivo está lleno o protegido contra escritura
+• Falla de hardware o sectores defectuosos
 
 Verifique el dispositivo e inténtelo nuevamente.</translation>
     </message>
@@ -1159,7 +1159,7 @@ Algunas escrituras no se pudieron completar. Esto podría deberse a:
     </message>
     <message>
         <source>final flush</source>
-        <translation>descarga final</translation>
+        <translation>vaciado final</translation>
     </message>
     <message>
         <source>final sync</source>
