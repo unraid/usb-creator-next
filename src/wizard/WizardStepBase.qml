@@ -172,7 +172,7 @@ FocusScope {
                 // ellipsis it doesn't need.
                 Layout.fillWidth: true
                 Layout.minimumWidth: Style.buttonWidthSkip
-                Layout.maximumWidth: Math.ceil(implicitWidth)
+                Layout.maximumWidth: Math.max(Style.buttonWidthSkip, Math.ceil(implicitWidth))
                 Layout.preferredHeight: Style.buttonHeightStandard
                 onClicked: root.skipClicked()
                 // Tab order among action buttons: next -> back -> skip -> wrap to first field
