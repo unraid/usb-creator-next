@@ -805,7 +805,7 @@ void DownloadExtractThread::extractMultiFileRun()
         else
             fatpartition += "1";
 
-        // UNRAID: the partition node for the freshly written table may not
+        // The partition node for the freshly written table may not
         // exist yet. The kernel re-reads the table when the last writer
         // closes the whole-disk device, but the exclusive (O_EXCL) open used
         // during formatting means that re-read can fail with EBUSY and only
@@ -1009,14 +1009,6 @@ void DownloadExtractThread::extractMultiFileRun()
         // after its last data block, so this is part of the write operation and
         // must succeed before finalisation or a success signal is allowed.
         Unraid::requireArchiveWriteSuccess(archive_write_close(ext), archive_error_string(ext));
-
-        // UNRAID: records what libarchive actually handed us, so the value of the
-        // batching above can be judged from a log rather than assumed.
-        if (blockCount > 0) {
-            qDebug() << "Extraction:" << blockCount << "data blocks,"
-                     << (blockBytes / blockCount) << "bytes average, batched into"
-                     << kExtractWriteBufferSize << "byte writes";
-        }
 
         // Record what libarchive handed us so batching can be assessed from logs.
         if (blockCount > 0) {
