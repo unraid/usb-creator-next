@@ -641,7 +641,7 @@ begin
   // reconnected gets relocated instead. Hence the log lines.
   if not DirExists(AddBackslash(Root)) then begin
     Log('Recorded install directory is unreachable: ' + Dir);
-    Dir := ExpandConstant('{autopf}\{#MyAppPublisher}\Imager');  // matches DefaultDirName
+    Dir := ExpandConstant('{autopf}\{#MyAppPublisher}\@IMAGER_WIN_INSTALL_SUBDIR@');  // matches DefaultDirName
     Log('Falling back to default install directory: ' + Dir);
     WizardForm.DirEdit.Text := Dir;
   end;
