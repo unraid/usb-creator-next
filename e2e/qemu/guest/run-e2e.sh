@@ -50,9 +50,23 @@ sleep 2
 # Creator reinterpret this headless process as a desktop sudo relaunch and
 # replace the working isolated D-Bus address with a nonexistent login bus.
 unset SUDO_USER SUDO_UID SUDO_GID
-UNRAID_DEV_IMAGE=/opt/usb-creator-e2e/unraid-dev-image.zip \
-  /opt/usb-creator-e2e/squashfs-root/AppRun --debug \
-  >artifacts/creator.log 2>&1 &
+creator_args=(--debug)
+if [[ -f /opt/usb-creator-e2e/ready-image.json ]]; then
+  python3 - <<'PYREADY'
+import json, pathlib
+root=pathlib.Path('/opt/usb-creator-e2e')
+meta=json.loads((root/'ready-image.json').read_text())
+entry={key:meta[key] for key in ('extract_size','extract_sha256','image_download_size','init_format')}
+entry.update(name='Unraid (development image)', description='Ready-to-boot USB image under test',
+             url=(root/'ready-image.img.zst').as_uri(), contains_multiple_files=False)
+(root/'ready-catalog.json').write_text(json.dumps({'os_list':[entry]}))
+PYREADY
+  creator_args+=(--repo /opt/usb-creator-e2e/ready-catalog.json)
+  export USB_CREATOR_WRITE_TIMEOUT=1800
+else
+  export UNRAID_DEV_IMAGE=/opt/usb-creator-e2e/unraid-dev-image.zip
+fi
+/opt/usb-creator-e2e/squashfs-root/AppRun "${creator_args[@]}" >artifacts/creator.log 2>&1 &
 creator_pid=$!
 
 python3 /opt/usb-creator-e2e/drive_creator.py \

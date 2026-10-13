@@ -32,7 +32,8 @@ namespace {
         // UNRAID: an Unraid release is a multi-file zip laid onto a FAT32 volume,
         // customised by src/unraid/unraid_postwrite.cpp. Without this every entry
         // in the Unraid feed is pruned here and the OS list comes up empty.
-        QStringLiteral("UNRAID")
+        QStringLiteral("UNRAID"),
+        QStringLiteral("UNRAID-RAW") // UNRAID: preinstalled compressed disk image
     };
 
     // Validate init_format value and return true if valid

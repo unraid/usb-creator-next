@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -245,7 +246,7 @@ def main() -> int:
         click(app, "Write", roles=("push button", "button"))
         click(app, "I understand, erase and write", roles=("push button", "button"), timeout=15)
 
-        wait_for(app, "Write complete!", roles=("heading",), timeout=180)
+        wait_for(app, "Write complete!", roles=("heading",), timeout=int(os.environ.get("USB_CREATOR_WRITE_TIMEOUT", "180")))
         shot(
             args.screenshots,
             args.manifest,

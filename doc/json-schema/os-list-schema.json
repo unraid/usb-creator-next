@@ -449,6 +449,8 @@
                                     "cloudinit",
                                     "cloudinit-rpi",
                                     "rpi-preseed",
+                                    "UNRAID",
+                                    "UNRAID-RAW",
                                     "none"
                                 ]
                             },

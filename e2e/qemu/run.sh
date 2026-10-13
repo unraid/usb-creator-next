@@ -6,18 +6,20 @@ repo_root=$(cd "$script_dir/../.." && pwd)
 
 appimage=
 dev_image=
+ready_metadata=
 artifacts_root="$repo_root/build/e2e-qemu"
 cache=${USB_CREATOR_E2E_CACHE:-"$HOME/.cache/unraid-usb-creator-e2e"}
 
 usage() {
     cat <<'EOF'
-usage: e2e/qemu/run.sh --appimage PATH --dev-image PATH [--artifacts PATH]
+usage: e2e/qemu/run.sh --appimage PATH --dev-image PATH [--ready-metadata IMAGE_JSON] [--artifacts PATH]
 EOF
 }
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --appimage) appimage=${2:?}; shift 2 ;;
+        --ready-metadata) ready_metadata=${2:?}; shift 2 ;;
         --dev-image) dev_image=${2:?}; shift 2 ;;
         --artifacts) artifacts_root=${2:?}; shift 2 ;;
         -h|--help) usage; exit 0 ;;
@@ -35,6 +37,10 @@ for command in cloud-localds curl mcopy mdir mlabel parted qemu-img \
         exit 2
     }
 done
+
+if [[ -n "$ready_metadata" ]]; then
+    command -v zstd >/dev/null || { echo "Missing required command: zstd" >&2; exit 2; }
+fi
 
 mkdir -p "$cache" "$artifacts_root"
 cache=$(cd "$cache" && pwd)
@@ -79,7 +85,21 @@ target="$state/target.raw"
 seed="$state/seed.img"
 key="$state/id_ed25519"
 qemu-img create -q -f qcow2 -F qcow2 -b "$base_image" "$overlay" 24G
-qemu-img create -q -f raw "$target" 2G
+target_size=2147483648
+if [[ -n "$ready_metadata" ]]; then
+    target_size=$(python3 - "$ready_metadata" "$dev_image" <<'PYMETA'
+import hashlib, json, pathlib, sys
+meta=json.loads(pathlib.Path(sys.argv[1]).read_text())
+with open(sys.argv[2],'rb') as stream: digest=hashlib.file_digest(stream,'sha256').hexdigest()
+assert meta['schema']=='unraid.ready-image.v1' and meta['init_format']=='UNRAID-RAW'
+assert digest==meta['image_download_sha256']
+size=meta['extract_size']
+assert isinstance(size,int) and 0<size<=128*1024**3
+print(size+1048576)
+PYMETA
+    )
+fi
+qemu-img create -q -f raw "$target" "$target_size"
 ssh-keygen -q -t ed25519 -N '' -f "$key"
 public_key=$(<"$key.pub")
 
@@ -167,7 +187,12 @@ capture_id=${USB_CREATOR_CAPTURE_ID:-${GITHUB_SHA:-local}}
 }
 printf '%s\n' "$capture_id" >"$state/capture-id"
 scp "${scp_opts[@]}" "$appimage" e2e@127.0.0.1:/opt/usb-creator-e2e/creator.AppImage
-scp "${scp_opts[@]}" "$dev_image" e2e@127.0.0.1:/opt/usb-creator-e2e/unraid-dev-image.zip
+if [[ -n "$ready_metadata" ]]; then
+    scp "${scp_opts[@]}" "$dev_image" e2e@127.0.0.1:/opt/usb-creator-e2e/ready-image.img.zst
+    scp "${scp_opts[@]}" "$ready_metadata" e2e@127.0.0.1:/opt/usb-creator-e2e/ready-image.json
+else
+    scp "${scp_opts[@]}" "$dev_image" e2e@127.0.0.1:/opt/usb-creator-e2e/unraid-dev-image.zip
+fi
 scp "${scp_opts[@]}" "$state/capture-id" e2e@127.0.0.1:/opt/usb-creator-e2e/capture-id
 scp "${scp_opts[@]}" "$script_dir/guest/drive_creator.py" "$script_dir/guest/run-e2e.sh" e2e@127.0.0.1:/opt/usb-creator-e2e/
 
@@ -196,5 +221,9 @@ wait "$qemu_pid" || true
 qemu_pid=
 
 cp --sparse=always "$target" "$artifacts/target.raw"
-"$script_dir/verify-image.sh" "$artifacts/target.raw" "$dev_image" | tee "$artifacts/verification.txt"
+if [[ -n "$ready_metadata" ]]; then
+    python3 "$script_dir/verify-ready-image.py" "$artifacts/target.raw" "$dev_image" "$ready_metadata" | tee "$artifacts/verification.txt"
+else
+    "$script_dir/verify-image.sh" "$artifacts/target.raw" "$dev_image" | tee "$artifacts/verification.txt"
+fi
 echo "E2E evidence: $artifacts"

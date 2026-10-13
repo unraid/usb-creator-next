@@ -821,3 +821,10 @@ add_custom_target(test_block_batcher
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     COMMENT "Running block batcher tests"
 )
+
+# UNRAID: the raw-image handoff has no host ZFS or platform dependencies.
+add_executable(ready_image_settings_test ready_image_settings_test.cpp)
+target_link_libraries(ready_image_settings_test PRIVATE Qt6::Core)
+target_include_directories(ready_image_settings_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+target_compile_features(ready_image_settings_test PRIVATE cxx_std_20)
+add_test(NAME ready_image_settings COMMAND ready_image_settings_test)
