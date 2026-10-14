@@ -38,6 +38,12 @@ class Readback(unittest.TestCase):
                 target.write_bytes(payload)
                 with self.assertRaisesRegex(ValueError, 'Skipping customisation changed'):
                     verifier.verify(target, compressed, metadata)
+                handoff = {'schema': 'unraid.creator.v1', 'settings': {'hostname': 'ready-usb-test', 'dhcp': True}}
+                fat.side_effect = lambda command: json.dumps(handoff).encode() if command[-1] == '::unraid-creator.json' else b'unchanged boot file'
+                verifier.verify(target, compressed, metadata, 'customized')
+                handoff['settings']['dhcp'] = False
+                with self.assertRaisesRegex(ValueError, 'configured UI journey'):
+                    verifier.verify(target, compressed, metadata, 'customized')
 
 
 if __name__ == '__main__':

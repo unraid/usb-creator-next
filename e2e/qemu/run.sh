@@ -7,12 +7,13 @@ repo_root=$(cd "$script_dir/../.." && pwd)
 appimage=
 dev_image=
 ready_metadata=
+customization=skip
 artifacts_root="$repo_root/build/e2e-qemu"
 cache=${USB_CREATOR_E2E_CACHE:-"$HOME/.cache/unraid-usb-creator-e2e"}
 
 usage() {
     cat <<'EOF'
-usage: e2e/qemu/run.sh --appimage PATH --dev-image PATH [--ready-metadata IMAGE_JSON] [--artifacts PATH]
+usage: e2e/qemu/run.sh --appimage PATH --dev-image PATH [--ready-metadata IMAGE_JSON] [--customize] [--artifacts PATH]
 EOF
 }
 
@@ -20,6 +21,7 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --appimage) appimage=${2:?}; shift 2 ;;
         --ready-metadata) ready_metadata=${2:?}; shift 2 ;;
+        --customize) customization=customized; shift ;;
         --dev-image) dev_image=${2:?}; shift 2 ;;
         --artifacts) artifacts_root=${2:?}; shift 2 ;;
         -h|--help) usage; exit 0 ;;
@@ -29,6 +31,7 @@ done
 
 test -f "$appimage" || { echo "AppImage not found: $appimage" >&2; exit 2; }
 test -f "$dev_image" || { echo "Development image not found: $dev_image" >&2; exit 2; }
+[[ "$customization" == skip || -n "$ready_metadata" ]] || { echo '--customize requires --ready-metadata' >&2; exit 2; }
 
 for command in cloud-localds curl mcopy mdir mlabel parted qemu-img \
     qemu-system-x86_64 scp sha256sum ssh ssh-keygen; do
@@ -195,6 +198,10 @@ else
 fi
 scp "${scp_opts[@]}" "$state/capture-id" e2e@127.0.0.1:/opt/usb-creator-e2e/capture-id
 scp "${scp_opts[@]}" "$script_dir/guest/drive_creator.py" "$script_dir/guest/run-e2e.sh" e2e@127.0.0.1:/opt/usb-creator-e2e/
+if [[ "$customization" == customized ]]; then
+    printf '1\n' >"$state/customize"
+    scp "${scp_opts[@]}" "$state/customize" e2e@127.0.0.1:/opt/usb-creator-e2e/customize
+fi
 
 set +e
 ssh "${ssh_opts[@]}" e2e@127.0.0.1 'sudo bash /opt/usb-creator-e2e/run-e2e.sh'
@@ -222,7 +229,7 @@ qemu_pid=
 
 cp --sparse=always "$target" "$artifacts/target.raw"
 if [[ -n "$ready_metadata" ]]; then
-    python3 "$script_dir/verify-ready-image.py" "$artifacts/target.raw" "$dev_image" "$ready_metadata" | tee "$artifacts/verification.txt"
+    python3 "$script_dir/verify-ready-image.py" "$artifacts/target.raw" "$dev_image" "$ready_metadata" "$customization" | tee "$artifacts/verification.txt"
 else
     "$script_dir/verify-image.sh" "$artifacts/target.raw" "$dev_image" | tee "$artifacts/verification.txt"
 fi

@@ -230,7 +230,15 @@ def main() -> int:
         click(app, "Next", roles=("push button", "button"))
 
         wait_for(app, "Customisation: Server name", roles=("heading",))
-        click(app, "Skip customisation", roles=("push button", "button"))
+        if os.environ.get("USB_CREATOR_CUSTOMIZE") == "1":
+            wait_for_unique(app, "Enter your server name", roles=("text",)).text = "ready-usb-test"
+            click(app, "Next", roles=("push button", "button"))
+            wait_for(app, "Customisation: Network", roles=("heading",))
+            click(app, "Next", roles=("push button", "button"))
+            wait_for(app, "Customisation: Wi", roles=("heading",))
+            click(app, "Next", roles=("push button", "button"))
+        else:
+            click(app, "Skip customisation", roles=("push button", "button"))
 
         wait_for(app, "Write image", roles=("heading",))
         shot(

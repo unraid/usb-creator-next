@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify the raw image is unchanged when the GUI skips customisation."""
+"""Verify exact raw writes or an ESP-only Creator settings handoff."""
 import hashlib
 import json
 import os
@@ -10,7 +10,9 @@ import sys
 import tempfile
 
 
-def verify(target, compressed, metadata):
+def verify(target, compressed, metadata, customization='skip'):
+    if customization not in ('skip', 'customized'):
+        raise ValueError('Unknown customisation journey')
     os.environ['MTOOLS_SKIP_CHECK'] = '1'
     os.environ['MTOOLS_FAT_COMPATIBILITY'] = '1'
     expected = json.loads(metadata.read_text())
@@ -64,7 +66,7 @@ def verify(target, compressed, metadata):
         # The native journey explicitly chooses Skip customisation. That path
         # must preserve factory defaults and write the exact source bytes,
         # including the ESP; no Creator settings handoff is expected.
-        if written_digest.hexdigest() != expected['extract_sha256']:
+        if customization == 'skip' and written_digest.hexdigest() != expected['extract_sha256']:
             raise ValueError('Skipping customisation changed the source image')
         target_fat = f'{target}@@{esp_start}'
         for name in ('unraid-ready.json', 'EFI/BOOT/BOOTX64.EFI', 'EFI/BOOT/grubx64.efi',
@@ -73,8 +75,12 @@ def verify(target, compressed, metadata):
             target_bytes = subprocess.check_output(['mtype', '-i', target_fat, f'::{name}'])
             if source_bytes != target_bytes:
                 raise ValueError(f'Creator changed the boot chain: {name}')
-        print('Verified raw Creator write: exact source bytes, BIOS/ZFS payload, EFI chain, and unchanged factory defaults.')
+        if customization == 'customized':
+            settings = json.loads(subprocess.check_output(['mtype', '-i', target_fat, '::unraid-creator.json']))
+            if settings['schema'] != 'unraid.creator.v1' or settings['settings'].get('hostname') != 'ready-usb-test' or settings['settings'].get('dhcp') is not True:
+                raise ValueError('Creator settings do not match the configured UI journey')
+        print(f'Verified raw Creator write: source hash, BIOS/ZFS payload, EFI chain, and {customization} customisation.')
 
 
 if __name__ == '__main__':
-    verify(*(Path(value) for value in sys.argv[1:4]))
+    verify(*(Path(value) for value in sys.argv[1:4]), sys.argv[4] if len(sys.argv) == 5 else 'skip')

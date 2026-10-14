@@ -51,6 +51,9 @@ sleep 2
 # replace the working isolated D-Bus address with a nonexistent login bus.
 unset SUDO_USER SUDO_UID SUDO_GID
 creator_args=(--debug)
+if [[ -f /opt/usb-creator-e2e/customize ]]; then
+  export USB_CREATOR_CUSTOMIZE=1
+fi
 if [[ -f /opt/usb-creator-e2e/ready-image.json ]]; then
   python3 - <<'PYREADY'
 import json, pathlib
