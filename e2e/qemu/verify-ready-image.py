@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify Creator changed only the ready image's FAT setup handoff."""
+"""Verify the raw image is unchanged when the GUI skips customisation."""
 import hashlib
 import json
 import os
@@ -17,6 +17,7 @@ def verify(target, compressed, metadata):
     with tempfile.TemporaryDirectory() as directory, target.open('rb') as written:
         esp = Path(directory) / 'source-esp.img'
         digest = hashlib.sha256()
+        written_digest = hashlib.sha256()
         offset = 0
         process = subprocess.Popen(['zstd', '-d', '--stdout', str(compressed)], stdout=subprocess.PIPE)
         try:
@@ -35,6 +36,7 @@ def verify(target, compressed, metadata):
                     actual = written.read(len(chunk))
                     if len(actual) != len(chunk):
                         raise ValueError('Written image is truncated')
+                    written_digest.update(actual)
                     for begin, finish in ((offset, min(offset + len(chunk), esp_start)),
                                           (max(offset, esp_end), offset + len(chunk))):
                         if finish > begin and actual[begin-offset:finish-offset] != chunk[begin-offset:finish-offset]:
@@ -58,6 +60,11 @@ def verify(target, compressed, metadata):
                     process.kill(); process.wait(timeout=10)
         if digest.hexdigest() != expected['extract_sha256'] or offset != expected['extract_size']:
             raise ValueError('Source image differs from the pinned metadata')
+        # The native journey explicitly chooses Skip customisation. That path
+        # must preserve factory defaults and write the exact source bytes,
+        # including the ESP; no Creator settings handoff is expected.
+        if written_digest.hexdigest() != expected['extract_sha256']:
+            raise ValueError('Skipping customisation changed the source image')
         target_fat = f'{target}@@{esp_start}'
         for name in ('unraid-ready.json', 'EFI/BOOT/BOOTX64.EFI', 'EFI/BOOT/grubx64.efi',
                      'EFI/BOOT/grub.cfg', 'EFI/unraid-os/grub.cfg'):
@@ -65,10 +72,7 @@ def verify(target, compressed, metadata):
             target_bytes = subprocess.check_output(['mtype', '-i', target_fat, f'::{name}'])
             if source_bytes != target_bytes:
                 raise ValueError(f'Creator changed the boot chain: {name}')
-        settings = json.loads(subprocess.check_output(['mtype', '-i', target_fat, '::unraid-creator.json']))
-        if settings['schema'] != 'unraid.creator.v1' or settings['settings'].get('hostname') != 'Tower' or settings['settings'].get('dhcp') is not True:
-            raise ValueError('Creator settings do not match the UI journey')
-        print('Verified raw Creator write: source hash, BIOS/ZFS payload, EFI chain, and FAT settings handoff.')
+        print('Verified raw Creator write: exact source bytes, BIOS/ZFS payload, EFI chain, and unchanged factory defaults.')
 
 
 if __name__ == '__main__':
