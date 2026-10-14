@@ -58,6 +58,7 @@ def verify(target, compressed, metadata):
                 try: process.wait(timeout=10)
                 except subprocess.TimeoutExpired:
                     process.kill(); process.wait(timeout=10)
+            process.stdout.close()
         if digest.hexdigest() != expected['extract_sha256'] or offset != expected['extract_size']:
             raise ValueError('Source image differs from the pinned metadata')
         # The native journey explicitly chooses Skip customisation. That path
