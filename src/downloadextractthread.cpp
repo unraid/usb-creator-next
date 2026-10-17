@@ -479,6 +479,32 @@ static inline void _checkResult(int r, struct archive *a)
     }
 }
 
+// UNRAID: report a failed archive_write_disk() call before turning it into an exception.
+//
+// The result has to be computed by the caller and handed in here, never written out as
+// an argument next to archive_error_string(): C++ leaves the evaluation order of function
+// arguments unspecified, and GCC -- which is what the Windows build uses (win64_mingw /
+// tools_mingw1310) -- evaluates them right to left. Spelled as one expression, the error
+// slot is therefore read *before* the write runs, and archive_write_header() cleared it
+// for this entry a few lines earlier, so the read returns NULL. Every write failure then
+// degrades to the generic fallback message and takes archive_errno()'s Win32-mapped code
+// down with it, which is exactly the code needed to name the real cause. Sequencing the
+// write into its own statement is what makes both of them describe the actual failure.
+//
+// The warning goes through qWarning() so --log-file captures it, matching the entry-header
+// path in extractMultiFileRun(). See https://github.com/unraid/usb-creator-next/issues/122.
+static inline void _requireWriteSucceeded(int result, struct archive *ext, const char *what,
+                                          const char *pathname = nullptr)
+{
+    // Safe to read here: the caller's write has already returned.
+    const char *message = archive_error_string(ext);
+    if (result < ARCHIVE_OK)
+        qWarning() << "Archive" << what << "result" << result << "for"
+                   << (pathname ? pathname : "target drive") << "- errno"
+                   << archive_errno(ext) << ':' << message;
+    Unraid::requireArchiveWriteSuccess(result, message);
+}
+
 // libarchive thread
 void DownloadExtractThread::extractImageRun()
 {
@@ -970,7 +996,8 @@ void DownloadExtractThread::extractMultiFileRun()
           r = archive_write_header(ext, entry);
           if (r < ARCHIVE_OK)
               qWarning() << "Archive entry header result" << r << "for"
-                         << archive_entry_pathname(entry) << ':' << archive_error_string(ext);
+                         << archive_entry_pathname(entry) << "- errno" << archive_errno(ext)
+                         << ':' << archive_error_string(ext);
           Unraid::requireArchiveHeaderSuccess(r, archive_error_string(ext));
           if (archive_entry_size(entry) > 0)
           {
@@ -992,23 +1019,30 @@ void DownloadExtractThread::extractMultiFileRun()
                   ++blockCount;
                   blockBytes += size;
 
-                  Unraid::requireArchiveWriteSuccess(batcher.Add(buff, size, offset),
-                                                     archive_error_string(ext));
+                  // UNRAID: the write gets its own statement so libarchive's error
+                  // slot is read after it, not before -- see _requireWriteSucceeded().
+                  const int writeResult = batcher.Add(buff, size, offset);
+                  _requireWriteSucceeded(writeResult, ext, "data write",
+                                         archive_entry_pathname(entry));
 
                   _bytesWritten += size;
               }
               // The entry's tail is still buffered; it must go out before
               // archive_write_finish_entry() closes the file.
-              Unraid::requireArchiveWriteSuccess(batcher.Flush(), archive_error_string(ext));
+              const int flushResult = batcher.Flush();
+              _requireWriteSucceeded(flushResult, ext, "buffered write flush",
+                                     archive_entry_pathname(entry));
           }
-          Unraid::requireArchiveWriteSuccess(archive_write_finish_entry(ext),
-                                             archive_error_string(ext));
+          const int finishResult = archive_write_finish_entry(ext);
+          _requireWriteSucceeded(finishResult, ext, "entry finish",
+                                 archive_entry_pathname(entry));
         }
 
         // UNRAID: close flushes libarchive's final filesystem state. A drive can vanish
         // after its last data block, so this is part of the write operation and
         // must succeed before finalisation or a success signal is allowed.
-        Unraid::requireArchiveWriteSuccess(archive_write_close(ext), archive_error_string(ext));
+        const int closeResult = archive_write_close(ext);
+        _requireWriteSucceeded(closeResult, ext, "close");
 
         // UNRAID: records what libarchive actually handed us, so the value of the
         // batching above can be judged from a log rather than assumed.
