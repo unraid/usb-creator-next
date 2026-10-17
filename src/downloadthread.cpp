@@ -2716,6 +2716,8 @@ bool DownloadThread::_customizeImage()
         // UNRAID: ready images retain the shared BIOS p1 / FAT ESP p2 layout.
         DeviceWrapperFatPartition *fat = dw.fatPartition(_initFormat == Unraid::kRawInitFormat ? 2 : 1);
         emit eventFatPartitionSetup(static_cast<quint32>(fatTimer.elapsed()), fat != nullptr);
+        if (!fat)
+            throw std::runtime_error("boot partition not found");
 
         // UNRAID: keep ZFS opaque; only the existing GPT/FAT wrapper writes settings.
         if (_initFormat == Unraid::kRawInitFormat) {

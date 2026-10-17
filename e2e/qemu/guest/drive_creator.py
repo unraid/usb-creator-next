@@ -214,8 +214,8 @@ def main() -> int:
 
         wait_for(app, "Select your storage device", roles=("heading",))
         target = wait_for_unique(app, "QEMU", roles=("list item",), timeout=90)
-        if "2 gb" not in (target.name or "").lower():
-            raise RuntimeError(f"Unexpected QEMU target description: {target.name!r}")
+        # The host creates exactly one USB target; ready images need more than 2 GB.
+        # The unique QEMU device check also works for their metadata-sized target.
         target.click()
         shot(
             args.screenshots,

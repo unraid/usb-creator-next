@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import signal
 import struct
 import subprocess
 import sys
@@ -16,12 +17,17 @@ def verify(target, compressed, metadata, customization='skip'):
     os.environ['MTOOLS_SKIP_CHECK'] = '1'
     os.environ['MTOOLS_FAT_COMPATIBILITY'] = '1'
     expected = json.loads(metadata.read_text())
+    def deadline_expired(_signum, _frame):
+        raise TimeoutError('Ready image verification exceeded 30 minutes')
+
     with tempfile.TemporaryDirectory() as directory, target.open('rb') as written:
         esp = Path(directory) / 'source-esp.img'
         digest = hashlib.sha256()
         written_digest = hashlib.sha256()
         offset = 0
         process = subprocess.Popen(['zstd', '-d', '--stdout', str(compressed)], stdout=subprocess.PIPE)
+        previous_handler = signal.signal(signal.SIGALRM, deadline_expired)
+        signal.setitimer(signal.ITIMER_REAL, 1800)
         try:
             first = process.stdout.read(1048576)
             if first[512:520] != b'EFI PART':
@@ -55,6 +61,8 @@ def verify(target, compressed, metadata, customization='skip'):
             if process.wait(timeout=20) != 0:
                 raise ValueError('Source decompression failed')
         finally:
+            signal.setitimer(signal.ITIMER_REAL, 0)
+            signal.signal(signal.SIGALRM, previous_handler)
             if process.poll() is None:
                 process.terminate()
                 try: process.wait(timeout=10)

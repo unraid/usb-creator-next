@@ -27,7 +27,7 @@ writes a host disk.
 Prerequisites on an Ubuntu host:
 
 ```bash
-sudo apt-get install cloud-image-utils curl mtools openssh-client parted qemu-system-x86 qemu-utils zip
+sudo apt-get install cloud-image-utils curl mtools openssh-client parted qemu-system-x86 qemu-utils zip zstd
 ```
 
 Build the AppImage and development image, then run:
