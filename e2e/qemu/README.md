@@ -27,7 +27,7 @@ writes a host disk.
 Prerequisites on an Ubuntu host:
 
 ```bash
-sudo apt-get install cloud-image-utils curl mtools openssh-client parted qemu-system-x86 qemu-utils zip
+sudo apt-get install cloud-image-utils curl mtools openssh-client parted qemu-system-x86 qemu-utils zip zstd
 ```
 
 Build the AppImage and development image, then run:
@@ -75,3 +75,19 @@ path. It does not claim to test macOS Disk Arbitration, the authorization
 dialog, or physical-device eject behavior. QEMU cannot inject an emulated USB
 device into a host macOS process. Those behaviors still require a physical USB
 stick, a USB-gadget device, or a separately maintained macOS guest environment.
+
+## Ready-to-boot ZFS images
+
+Use the OS builder's compressed image and its `image.json` as a pinned pair:
+
+```sh
+e2e/qemu/run.sh --appimage ./unraid-usb-creator.AppImage \
+  --dev-image /path/unraid-ready.img.zst --ready-metadata /path/image.json
+```
+
+The same native UI journey selects a disposable USB sized for the raw image.
+It uses the normal local catalog path with `init_format: UNRAID-RAW`. After
+Creator finishes, verification compares all bytes outside FAT partition 2 with
+the decompressed source, checks the EFI boot files, and reads the settings
+handoff. The resulting `target.raw` is retained for the OS boot test. This
+journey verifies writing and settings; it does not itself boot Unraid.

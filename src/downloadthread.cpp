@@ -8,6 +8,7 @@
 #include "config.h"
 #include "devicewrapper.h"
 #include "devicewrapperfatpartition.h"
+#include "unraid/unraid_postwrite.h" // UNRAID: ready-image FAT settings handoff
 #include "systemmemorymanager.h"
 #include "timeout_utils.h"
 #include "platformquirks.h"
@@ -2159,7 +2160,8 @@ bool DownloadThread::_verifyCustomisation()
     try
     {
         DeviceWrapper dw(_file.get());
-        DeviceWrapperFatPartition *fat = dw.fatPartition(1);
+        // UNRAID: ready images retain the shared BIOS p1 / FAT ESP p2 layout.
+        DeviceWrapperFatPartition *fat = dw.fatPartition(_initFormat == Unraid::kRawInitFormat ? 2 : 1);
         if (!fat)
             throw std::runtime_error("boot partition not found");
 
@@ -2711,8 +2713,24 @@ bool DownloadThread::_customizeImage()
         // Parse FAT partition (can be slow for large partitions)
         QElapsedTimer fatTimer;
         fatTimer.start();
-        DeviceWrapperFatPartition *fat = dw.fatPartition(1);
+        // UNRAID: ready images retain the shared BIOS p1 / FAT ESP p2 layout.
+        DeviceWrapperFatPartition *fat = dw.fatPartition(_initFormat == Unraid::kRawInitFormat ? 2 : 1);
         emit eventFatPartitionSetup(static_cast<quint32>(fatTimer.elapsed()), fat != nullptr);
+        if (!fat)
+            throw std::runtime_error("boot partition not found");
+
+        // UNRAID: keep ZFS opaque; only the existing GPT/FAT wrapper writes settings.
+        if (_initFormat == Unraid::kRawInitFormat) {
+            const auto contract = QJsonDocument::fromJson(fat->readFile("unraid-ready.json")).object();
+            if (contract.value("schema").toString() != "unraid.ready-usb.v1" || fat->fileExists("unraid-state.json"))
+                throw std::runtime_error("This is not a fresh Unraid ready-to-boot image");
+            const QByteArray settings = Unraid::readyImageSettings(_unraidSettings);
+            fat->writeFile("unraid-creator.json", settings);
+            _recordCustomisationWrite("unraid-creator.json", settings);
+            dw.sync();
+            emit eventCustomisation(static_cast<quint32>(customTimer.elapsed()), true, metadata);
+            return true;
+        }
 
         if (!_config.isEmpty())
         {

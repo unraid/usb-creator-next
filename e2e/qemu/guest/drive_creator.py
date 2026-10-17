@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -213,8 +214,8 @@ def main() -> int:
 
         wait_for(app, "Select your storage device", roles=("heading",))
         target = wait_for_unique(app, "QEMU", roles=("list item",), timeout=90)
-        if "2 gb" not in (target.name or "").lower():
-            raise RuntimeError(f"Unexpected QEMU target description: {target.name!r}")
+        # The host creates exactly one USB target; ready images need more than 2 GB.
+        # The unique QEMU device check also works for their metadata-sized target.
         target.click()
         shot(
             args.screenshots,
@@ -229,7 +230,15 @@ def main() -> int:
         click(app, "Next", roles=("push button", "button"))
 
         wait_for(app, "Customisation: Server name", roles=("heading",))
-        click(app, "Skip customisation", roles=("push button", "button"))
+        if os.environ.get("USB_CREATOR_CUSTOMIZE") == "1":
+            wait_for_unique(app, "Enter your server name", roles=("text",)).text = "ready-usb-test"
+            click(app, "Next", roles=("push button", "button"))
+            wait_for(app, "Customisation: Wi", roles=("heading",))
+            click(app, "Next", roles=("push button", "button"))
+            wait_for(app, "Customisation: Network", roles=("heading",))
+            click(app, "Next", roles=("push button", "button"))
+        else:
+            click(app, "Skip customisation", roles=("push button", "button"))
 
         wait_for(app, "Write image", roles=("heading",))
         shot(
@@ -245,7 +254,7 @@ def main() -> int:
         click(app, "Write", roles=("push button", "button"))
         click(app, "I understand, erase and write", roles=("push button", "button"), timeout=15)
 
-        wait_for(app, "Write complete!", roles=("heading",), timeout=180)
+        wait_for(app, "Write complete!", roles=("heading",), timeout=int(os.environ.get("USB_CREATOR_WRITE_TIMEOUT", "180")))
         shot(
             args.screenshots,
             args.manifest,

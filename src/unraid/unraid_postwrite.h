@@ -8,18 +8,37 @@
 #ifndef UNRAID_POSTWRITE_H
 #define UNRAID_POSTWRITE_H
 
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QString>
+#include <QStringList>
 #include <QVariantMap>
 
 namespace Unraid {
 
 /** Init-format marker identifying an Unraid multi-file image. */
 inline constexpr const char *kInitFormat = "UNRAID";
+inline constexpr const char *kRawInitFormat = "UNRAID-RAW";
+
+/** Only supported setup fields cross the FAT handoff into the installed OS. */
+inline QByteArray readyImageSettings(const QVariantMap &settings)
+{
+    QJsonObject values;
+    const QStringList keys = {"hostname", "ipaddr", "netmask", "gateway", "dns",
+                              "wifiSSID", "wifiPassword", "wifiSecurity", "wifiRegion",
+                              "wifiIpaddr", "wifiNetmask", "wifiGateway", "wifiDns"};
+    for (const auto &key : keys) {
+        if (settings.contains(key))
+            values.insert(key, settings.value(key).toString());
+    }
+    values.insert("dhcp", settings.value("dhcp", true).toBool());
+    return QJsonDocument(QJsonObject{{"schema", "unraid.creator.v1"}, {"settings", values}}).toJson(QJsonDocument::Compact);
+}
 
 /**
  * @brief Finish an Unraid flash drive after its zip has been extracted.
  *
- * Unraid does not ship a disk image. It ships a zip of files that is extracted
+ * Legacy Unraid releases ship a zip of files that is extracted
  * onto a freshly-formatted FAT32 volume, after which the drive still has to be
  * made bootable and have its config files personalised. That is what this does:
  *

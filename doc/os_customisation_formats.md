@@ -15,6 +15,7 @@ The currently supported methods are:
  * `"init_format": "cloudinit"` - the OS image allows a standard "cloudinit" style customisation (often used by Ubuntu Server OS images)
  * `"init_format": "cloudinit-rpi"` - the OS image allows an enhanced "cloudinit-rpi" style customisation; for more information, see [Cloud-init on Raspberry Pi OS](https://www.raspberrypi.com/news/cloud-init-on-raspberry-pi-os/)
  * `"init_format": "rpi-preseed"` - the OS image ships the [`rpi-preseed`](https://github.com/raspberrypi/rpi-preseed) package. Imager writes a single `rpi-preseed.toml` file to the FAT boot partition (read from `/boot/firmware/rpi-preseed.toml`), which `rpi-preseed` applies once on first boot. The TOML covers hostname, the operator account and password, SSH, Wi-Fi (written as a NetworkManager connection), locale, Raspberry Pi Connect enrolment and GPIO/hardware interfaces. Unlike the `systemd` and `cloudinit` formats, no `cmdline.txt` entry is added: `rpi-preseed`'s units are gated on the presence of the file.
+ * `"init_format": "UNRAID-RAW"` - a preinstalled Unraid OS disk image. Creator writes `unraid-creator.json` to FAT partition 2 and verifies it from the device. Unraid applies supported hostname, network and Wi-Fi settings during its first boot. ZFS remains opaque to Creator. The image must contain `unraid-ready.json` with schema `unraid.ready-usb.v1`; an already initialized image is rejected. Use `contains_multiple_files: false` and the uncompressed `extract_sha256` and `extract_size`.
 
 ## Raspberry Pi Imager customisations
 

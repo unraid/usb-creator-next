@@ -1,0 +1,15 @@
+{
+  "disposition": "PATCH",
+  "expected_structural_delta": "No new production module or service in Creator; one small FAT settings document shared with the OS initializer; focused integration coverage.",
+  "minimum_design": "Reuse compressed raw writer and GPT FAT access; write and verify a small setup document on partition 2.",
+  "outcome": "Write preinstalled compressed ZFS USB images and hand setup settings to Unraid without host ZFS support.",
+  "reuse_decisions": [
+    {
+      "decision": "extend",
+      "name": "raw image writer and GPT FAT wrapper",
+      "rationale": "Existing verified compression and block writer; only the Unraid settings destination differs."
+    }
+  ],
+  "schema": "limetech.ai-review-marker.v2",
+  "stage": "forecast"
+}

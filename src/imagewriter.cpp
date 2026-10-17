@@ -4037,6 +4037,13 @@ void ImageWriter::applyCustomisationFromSettings(const QVariantMap &settings)
 
     // UNRAID: nothing to generate -- unraid_postwrite.cpp applies these to
     // config/ident.cfg and config/network.cfg once the zip has been extracted.
+    // UNRAID: raw ZFS images hand setup to the OS through their FAT ESP.
+    if (_initFormat == QLatin1String(Unraid::kRawInitFormat)) {
+        _unraidSettings = settings;
+        // The setter logs firstrun. Actual settings stay in _unraidSettings until FAT write.
+        setImageCustomisation(QByteArray(), QByteArray(), QByteArray("unraid-ready-settings"), QByteArray(), QByteArray(), NoAdvancedOptions);
+        return;
+    }
     if (_initFormat == QLatin1String(Unraid::kInitFormat)) {
         _unraidSettings = settings;
         setImageCustomisation(QByteArray(), QByteArray(), QByteArray(), QByteArray(), QByteArray(), NoAdvancedOptions);
