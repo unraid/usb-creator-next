@@ -2721,8 +2721,8 @@ bool DownloadThread::_customizeImage()
 
         // UNRAID: keep ZFS opaque; only the existing GPT/FAT wrapper writes settings.
         if (_initFormat == Unraid::kRawInitFormat) {
-            const auto contract = QJsonDocument::fromJson(fat->readFile("unraid-ready.json")).object();
-            if (contract.value("schema").toString() != "unraid.ready-usb.v1" || fat->fileExists("unraid-state.json"))
+            const bool hasIdentity = fat->fileExists("unraid-state.json") || fat->fileExists("unraid-complete.json");
+            if (!Unraid::isFreshReadyImage(fat->readFile("unraid-ready.json"), hasIdentity))
                 throw std::runtime_error("This is not a fresh Unraid ready-to-boot image");
             const QByteArray settings = Unraid::readyImageSettings(_unraidSettings);
             fat->writeFile("unraid-creator.json", settings);

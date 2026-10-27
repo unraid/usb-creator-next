@@ -7,6 +7,7 @@
 name: Build
 
 on:
+  workflow_dispatch:
   push:
     branches: ["main", "v2.0.10-rebase"]
   pull_request:
@@ -32,6 +33,7 @@ env:
 
 jobs:
   macos:
+    if: github.event_name != 'workflow_dispatch'
     name: macOS DMG
     runs-on: macos-latest
     steps:
@@ -118,6 +120,7 @@ jobs:
           if-no-files-found: error
 
   windows:
+    if: github.event_name != 'workflow_dispatch'
     name: Windows installer
     runs-on: windows-latest
     defaults:
@@ -351,6 +354,14 @@ jobs:
           "$HOME/.local/bin/aqt" install-qt linux desktop "${QT_VERSION}" linux_gcc_64 \
             --archives qtbase qtdeclarative qtsvg qttools icu \
             --outputdir "$HOME/Qt"
+
+      - name: Test ready-image admission and settings
+        run: |
+          qt="$HOME/Qt/${QT_VERSION}/gcc_64"
+          c++ -std=c++20 -fPIC -I src -I "$qt/include" -I "$qt/include/QtCore" \
+            src/test/ready_image_settings_test.cpp -L "$qt/lib" -Wl,-rpath,"$qt/lib" -lQt6Core \
+            -o ready_image_settings_test
+          ./ready_image_settings_test
 
       - name: Build AppImage
         run: |

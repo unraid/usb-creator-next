@@ -20,6 +20,15 @@ namespace Unraid {
 inline constexpr const char *kInitFormat = "UNRAID";
 inline constexpr const char *kRawInitFormat = "UNRAID-RAW";
 
+/** Admit only known fresh templates; the writer keeps the ZFS payload opaque. */
+inline bool isFreshReadyImage(const QByteArray &contract, bool hasIdentity)
+{
+    if (hasIdentity)
+        return false;
+    const QString schema = QJsonDocument::fromJson(contract).object().value("schema").toString();
+    return schema == "unraid.ready-usb.v1" || schema == "unraid.ready-template.v2";
+}
+
 /** Only supported setup fields cross the FAT handoff into the installed OS. */
 inline QByteArray readyImageSettings(const QVariantMap &settings)
 {
