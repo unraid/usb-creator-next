@@ -94,10 +94,12 @@ if [[ -n "$ready_metadata" ]]; then
 import hashlib, json, pathlib, sys
 meta=json.loads(pathlib.Path(sys.argv[1]).read_text())
 with open(sys.argv[2],'rb') as stream: digest=hashlib.file_digest(stream,'sha256').hexdigest()
-assert meta['schema']=='unraid.ready-image.v1' and meta['init_format']=='UNRAID-RAW'
+assert meta['schema'] in ('unraid.ready-image.v1','unraid.ready-image.v2') and meta['init_format']=='UNRAID-RAW'
 assert digest==meta['image_download_sha256']
 size=meta['extract_size']
-assert isinstance(size,int) and 0<size<=128*1024**3
+assert type(size) is int and 0<size<=128*1024**3
+if meta['schema']=='unraid.ready-image.v2':
+    assert 4*1024**3<=size<=64*1024**3 and size%512==0 and meta['profiles']==['usb','nvme']
 print(size+1048576)
 PYMETA
     )

@@ -7,12 +7,38 @@ from pathlib import Path
 import struct
 import subprocess
 import tempfile
+import sys
 import unittest
 from unittest.mock import patch
 
 spec = importlib.util.spec_from_file_location('ready_verify', Path(__file__).with_name('verify-ready-image.py'))
 verifier = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(verifier)
+
+
+class MetadataAdmission(unittest.TestCase):
+    def test_real_gui_metadata_script_accepts_only_versioned_bounded_objects(self):
+        script = Path(__file__).with_name('run.sh').read_text().split("<<'PYMETA'\n", 1)[1].split('\nPYMETA', 1)[0]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            image = root / 'image.zst'
+            image.write_bytes(b'exact fixture')
+            metadata = root / 'image.json'
+            value = {'schema': 'unraid.ready-image.v2', 'init_format': 'UNRAID-RAW',
+                     'extract_size': 4 << 30, 'profiles': ['usb', 'nvme'],
+                     'image_download_sha256': hashlib.sha256(image.read_bytes()).hexdigest()}
+            def run(value):
+                metadata.write_text(json.dumps(value))
+                return subprocess.run([sys.executable, '-c', script, str(metadata), str(image)], capture_output=True, text=True)
+            for schema in ('unraid.ready-image.v1', 'unraid.ready-image.v2'):
+                result = run({**value, 'schema': schema})
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(int(result.stdout), (4 << 30) + (1 << 20))
+            for key, changed in [('schema', 'unraid.ready-image.v3'), ('init_format', 'zip'),
+                                 ('extract_size', True), ('extract_size', 65 << 30),
+                                 ('profiles', ['usb']), ('image_download_sha256', 'changed')]:
+                with self.subTest(key=key, changed=changed):
+                    self.assertNotEqual(run({**value, key: changed}).returncode, 0)
 
 
 class Readback(unittest.TestCase):
