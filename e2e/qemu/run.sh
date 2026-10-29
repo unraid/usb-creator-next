@@ -6,6 +6,7 @@ repo_root=$(cd "$script_dir/../.." && pwd)
 
 appimage=
 dev_image=
+backup_zip=
 ready_metadata=
 customization=skip
 artifacts_root="$repo_root/build/e2e-qemu"
@@ -13,7 +14,7 @@ cache=${USB_CREATOR_E2E_CACHE:-"$HOME/.cache/unraid-usb-creator-e2e"}
 
 usage() {
     cat <<'EOF'
-usage: e2e/qemu/run.sh --appimage PATH --dev-image PATH [--ready-metadata IMAGE_JSON] [--customize] [--artifacts PATH]
+usage: e2e/qemu/run.sh --appimage PATH (--dev-image PATH | --custom-backup ZIP) [--ready-metadata IMAGE_JSON] [--customize] [--artifacts PATH]
 EOF
 }
 
@@ -23,6 +24,7 @@ while [[ $# -gt 0 ]]; do
         --ready-metadata) ready_metadata=${2:?}; shift 2 ;;
         --customize) customization=customized; shift ;;
         --dev-image) dev_image=${2:?}; shift 2 ;;
+        --custom-backup) backup_zip=${2:?}; shift 2 ;;
         --artifacts) artifacts_root=${2:?}; shift 2 ;;
         -h|--help) usage; exit 0 ;;
         *) echo "Unknown argument: $1" >&2; usage >&2; exit 2 ;;
@@ -30,6 +32,13 @@ while [[ $# -gt 0 ]]; do
 done
 
 test -f "$appimage" || { echo "AppImage not found: $appimage" >&2; exit 2; }
+if [[ -n "$backup_zip" ]]; then
+    [[ -z "$dev_image" && -z "$ready_metadata" && "$customization" == skip ]] || {
+        echo '--custom-backup cannot be combined with --dev-image, --ready-metadata or --customize' >&2
+        exit 2
+    }
+    dev_image=$backup_zip
+fi
 test -f "$dev_image" || { echo "Development image not found: $dev_image" >&2; exit 2; }
 [[ "$customization" == skip || -n "$ready_metadata" ]] || { echo '--customize requires --ready-metadata' >&2; exit 2; }
 
@@ -190,7 +199,9 @@ capture_id=${USB_CREATOR_CAPTURE_ID:-${GITHUB_SHA:-local}}
 }
 printf '%s\n' "$capture_id" >"$state/capture-id"
 scp "${scp_opts[@]}" "$appimage" e2e@127.0.0.1:/opt/usb-creator-e2e/creator.AppImage
-if [[ -n "$ready_metadata" ]]; then
+if [[ -n "$backup_zip" ]]; then
+    scp "${scp_opts[@]}" "$backup_zip" e2e@127.0.0.1:/opt/usb-creator-e2e/unraid-backup.zip
+elif [[ -n "$ready_metadata" ]]; then
     scp "${scp_opts[@]}" "$dev_image" e2e@127.0.0.1:/opt/usb-creator-e2e/ready-image.img.zst
     scp "${scp_opts[@]}" "$ready_metadata" e2e@127.0.0.1:/opt/usb-creator-e2e/ready-image.json
 else
@@ -228,7 +239,9 @@ wait "$qemu_pid" || true
 qemu_pid=
 
 cp --sparse=always "$target" "$artifacts/target.raw"
-if [[ -n "$ready_metadata" ]]; then
+if [[ -n "$backup_zip" ]]; then
+    "$script_dir/verify-image.sh" "$artifacts/target.raw" "$backup_zip" backup | tee "$artifacts/verification.txt"
+elif [[ -n "$ready_metadata" ]]; then
     python3 "$script_dir/verify-ready-image.py" "$artifacts/target.raw" "$dev_image" "$ready_metadata" "$customization" | tee "$artifacts/verification.txt"
 else
     "$script_dir/verify-image.sh" "$artifacts/target.raw" "$dev_image" | tee "$artifacts/verification.txt"

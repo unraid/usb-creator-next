@@ -8,8 +8,12 @@ on:
     paths:
       - "e2e/qemu/**"
       - "src/downloadextractthread.cpp"
-      - "src/driveformatthread.cpp"
-      - "src/disk_formatter.cpp"
+      - "src/imagewriter.*"
+      - "src/wizard/OSSelectionStep.qml"
+      - "src/wizard/WizardContainer.qml"
+      - "src/qmlcomponents/ImFileDialog.qml"
+      - "src/driveformatthread.*"
+      - "src/disk_formatter.*"
       - "src/file_operations.*"
       - "src/file_operations_*.cpp"
       - "src/unraid/**"
@@ -71,6 +75,9 @@ jobs:
           echo "::error::apt-get failed after 3 attempts"
           exit 1
 
+      - name: Test backup verification guards
+        run: python3 e2e/qemu/test-verify-backup.py
+
       - name: Install Qt 6.11.1
         run: |
           python3 -m pip install --user "aqtinstall>=3.2.2"
@@ -86,6 +93,9 @@ jobs:
       - name: Create development image
         run: ./src/unraid/tools/make-dev-image.sh
 
+      - name: Create synthetic boot backup
+        run: python3 e2e/qemu/make-backup-fixture.py build/unraid-backup.zip
+
       - name: Run QEMU USB write journey
         env:
           USB_CREATOR_CAPTURE_ID: ${{ github.sha }}-${{ github.run_id }}
@@ -93,6 +103,15 @@ jobs:
           appimage=$(find . -maxdepth 1 -type f -name '*.AppImage' -print -quit)
           test -n "$appimage"
           e2e/qemu/run.sh --appimage "$appimage" --dev-image build/unraid-dev-image.zip
+
+      - name: Restore Custom backup through the file picker
+        env:
+          USB_CREATOR_CAPTURE_ID: ${{ github.sha }}-${{ github.run_id }}-backup
+        run: |
+          appimage=$(find . -maxdepth 1 -type f -name '*.AppImage' -print -quit)
+          test -n "$appimage"
+          e2e/qemu/run.sh --appimage "$appimage" --custom-backup build/unraid-backup.zip \
+            --artifacts build/e2e-custom-backup
 
       - name: Collate accepted documentation captures
         run: python3 e2e/docs/collate.py --evidence build/e2e-qemu --output build/docs-bundle/current
@@ -107,6 +126,10 @@ jobs:
             build/e2e-qemu/**/*.jsonl
             build/e2e-qemu/**/*.txt
             build/e2e-qemu/**/screenshots/*.png
+            build/e2e-custom-backup/**/*.log
+            build/e2e-custom-backup/**/*.jsonl
+            build/e2e-custom-backup/**/*.txt
+            build/e2e-custom-backup/**/screenshots/*.png
           if-no-files-found: warn
 
       - name: Upload accepted documentation bundle
