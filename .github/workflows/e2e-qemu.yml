@@ -76,7 +76,9 @@ jobs:
           exit 1
 
       - name: Test backup verification guards
-        run: python3 e2e/qemu/test-verify-backup.py
+        run: |
+          python3 e2e/qemu/test-drive-creator.py
+          python3 e2e/qemu/test-verify-backup.py
 
       - name: Install Qt 6.11.1
         run: |

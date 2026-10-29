@@ -83,15 +83,16 @@ def wait_for(app, text: str, roles=(), timeout=60):
     raise TimeoutError(f"Timed out waiting for visible accessibility node containing {text!r}")
 
 
-def wait_for_unique(app, text: str, roles=(), timeout=60):
+def wait_for_unique(app, text: str, roles=(), timeout=60, *, exact=False):
     wanted = text.lower()
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         matches = []
         for node in descendants(app):
             try:
+                name = (node.name or "").lower()
                 if (
-                    wanted in (node.name or "").lower()
+                    (wanted == name if exact else wanted in name)
                     and (not roles or node.roleName in roles)
                     and node.showing
                 ):
@@ -116,7 +117,8 @@ def select_custom_backup(app, backup: Path) -> None:
     click(app, "Use custom", roles=("list item",))
     field = wait_for_unique(app, "Enter folder or file path", roles=("text",))
     field.text = str(backup)
-    click(app, "Open", roles=("push button", "button"))
+    # App Options also says "Open application settings" in its accessible name.
+    wait_for_unique(app, "Open", roles=("push button", "button"), exact=True).click()
 
 
 def shot(
