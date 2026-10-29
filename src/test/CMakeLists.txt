@@ -828,3 +828,21 @@ target_link_libraries(ready_image_settings_test PRIVATE Qt6::Core)
 target_include_directories(ready_image_settings_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
 target_compile_features(ready_image_settings_test PRIVATE cxx_std_20)
 add_test(NAME ready_image_settings COMMAND ready_image_settings_test)
+
+# UNRAID: recognize Custom flash backups without enabling customization, and
+# check the volume label in a file image without touching a physical drive.
+add_executable(flash_archive_test
+    flash_archive_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../disk_formatter.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../file_operations.cpp
+    ${PLATFORM_FILE_OPS}
+)
+set_target_properties(flash_archive_test PROPERTIES AUTOMOC ON)
+target_link_libraries(flash_archive_test PRIVATE Catch2::Catch2WithMain Qt6::Core)
+target_include_directories(flash_archive_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+target_compile_features(flash_archive_test PRIVATE cxx_std_20)
+if(APPLE)
+    target_link_libraries(flash_archive_test PRIVATE
+        "-framework Security" "-framework DiskArbitration" "-framework CoreFoundation")
+endif()
+rpi_discover_tests(flash_archive_test)

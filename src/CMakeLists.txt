@@ -506,6 +506,7 @@ if(NOT BUILD_CLI_ONLY)
         wizard/DoneStep.qml
         wizard/components/WizardSectionContainer.qml
         wizard/components/WizardFormLabel.qml
+        wizard/components/WizardFormGrid.qml
         wizard/components/WizardDescriptionText.qml
         wizard/components/SshKeyManager.qml
         # UNRAID: additive brand layer (see PORTING.md)

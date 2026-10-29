@@ -5,6 +5,7 @@
 
 #include "downloadextractthread.h"
 #include "unraid/unraid_postwrite.h" // UNRAID: kInitFormat
+#include "unraid/flash_archive.h" // UNRAID: recognize local flash backups
 #include "imagewriter.h"
 #include "imager_version.h"
 #include "writeprogresswatchdog.h"
@@ -586,6 +587,7 @@ void ImageWriter::setSrc(const QUrl &url, quint64 downloadLen, quint64 extrLen, 
     _extractSizeKnown = false;
     _extrLen = extrLen;
     _multipleFilesInZip = multifilesinzip;
+    _isUnraidArchive = false; // UNRAID: never retain a previous source's label.
     _parentCategory = parentcategory;
     _osName = osname;
     _initFormat = (initFormat == "none") ? "" : initFormat;
@@ -1798,8 +1800,9 @@ void ImageWriter::startWrite()
         static_cast<DownloadExtractThread *>(_thread)->enableMultipleFileExtraction();
         DriveFormatThread *dft = new DriveFormatThread(_dst.toLatin1(), this);
         // UNRAID: Unraid boots by locating the volume labelled UNRAID, and the
-        // bundled make_bootable scripts assume that label too.
-        if (_initFormat == QByteArray(Unraid::kInitFormat))
+        // bundled make_bootable scripts assume that label too. Custom backups
+        // have no init format; detection must not enable their customization.
+        if (_isUnraidArchive || _initFormat == QByteArray(Unraid::kInitFormat))
         {
             dft->setVolumeLabel(Unraid::kInitFormat);
         }
@@ -2975,6 +2978,7 @@ void ImageWriter::_parseCompressedFile()
     struct archive_entry *entry;
     QByteArray fn = _src.toLocalFile().toLatin1();
     int numFiles = 0;
+    Unraid::FlashArchiveContents flashArchive; // UNRAID: inspect names during the existing scan.
     _extrLen = 0;
 
     archive_read_support_filter_all(a);
@@ -2988,12 +2992,18 @@ void ImageWriter::_parseCompressedFile()
             {
               _extrLen += archive_entry_size(entry);
               numFiles++;
+              // UNRAID: only actual boot files identify an Unraid flash backup.
+              if (archive_entry_filetype(entry) == AE_IFREG)
+                  flashArchive.observeFile(QString::fromUtf8(archive_entry_pathname(entry)));
             }
         }
     }
 
     if (numFiles > 1)
         _multipleFilesInZip = true;
+
+    // UNRAID: label-only identity. Keep _initFormat empty to preserve backup settings.
+    _isUnraidArchive = flashArchive.isUnraid();
 
     qDebug() << "Parsed .zip file containing" << numFiles << "files, uncompressed size:" << _extrLen;
 }
@@ -5054,8 +5064,9 @@ void ImageWriter::_continueStartWriteAfterCacheVerification(bool cacheIsValid)
         static_cast<DownloadExtractThread *>(_thread)->enableMultipleFileExtraction();
         DriveFormatThread *dft = new DriveFormatThread(_dst.toLatin1(), this);
         // UNRAID: Unraid boots by locating the volume labelled UNRAID, and the
-        // bundled make_bootable scripts assume that label too.
-        if (_initFormat == QByteArray(Unraid::kInitFormat))
+        // bundled make_bootable scripts assume that label too. Custom backups
+        // have no init format; detection must not enable their customization.
+        if (_isUnraidArchive || _initFormat == QByteArray(Unraid::kInitFormat))
         {
             dft->setVolumeLabel(Unraid::kInitFormat);
         }

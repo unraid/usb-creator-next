@@ -54,7 +54,14 @@ creator_args=(--debug)
 if [[ -f /opt/usb-creator-e2e/customize ]]; then
   export USB_CREATOR_CUSTOMIZE=1
 fi
-if [[ -f /opt/usb-creator-e2e/ready-image.json ]]; then
+driver_args=()
+if [[ -f /opt/usb-creator-e2e/unraid-backup.zip ]]; then
+  # Use the real Custom/file-picker path, without catalog init_format metadata.
+  unset UNRAID_DEV_IMAGE
+  printf '{"os_list":[]}\n' > /opt/usb-creator-e2e/empty-catalog.json
+  creator_args+=(--qml-file-dialogs --repo /opt/usb-creator-e2e/empty-catalog.json)
+  driver_args+=(--custom-backup /opt/usb-creator-e2e/unraid-backup.zip)
+elif [[ -f /opt/usb-creator-e2e/ready-image.json ]]; then
   python3 - <<'PYREADY'
 import json, pathlib
 root=pathlib.Path('/opt/usb-creator-e2e')
@@ -77,7 +84,7 @@ python3 /opt/usb-creator-e2e/drive_creator.py \
   --tree-dump /opt/usb-creator-e2e/artifacts/accessibility-tree.txt \
   --manifest /opt/usb-creator-e2e/artifacts/manifest.jsonl \
   --capture-id "${USB_CREATOR_CAPTURE_ID:?}" \
-  --platform "${USB_CREATOR_CAPTURE_PLATFORM:?}"
+  --platform "${USB_CREATOR_CAPTURE_PLATFORM:?}" "${driver_args[@]}"
 
 kill "$creator_pid" 2>/dev/null || true
 wait "$creator_pid" 2>/dev/null || true
