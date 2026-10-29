@@ -112,6 +112,13 @@ def click(app, text: str, roles=(), timeout=60):
     return node
 
 
+def select_custom_backup(app, backup: Path) -> None:
+    click(app, "Use custom", roles=("list item",))
+    field = wait_for_unique(app, "Enter folder or file path", roles=("text",))
+    field.text = str(backup)
+    click(app, "Open", roles=("push button", "button"))
+
+
 def shot(
     output: Path,
     manifest: Path,
@@ -122,6 +129,7 @@ def shot(
     role: str,
     capture_id: str,
     platform: str,
+    flow: str = "create-unraid-usb",
 ) -> None:
     # A heading becomes visible before the Qt page transition finishes. Wait
     # for the stable frame so evidence never captures a half-rendered page.
@@ -155,10 +163,10 @@ def shot(
             json.dumps(
                 {
                     "category": "unraid-os",
-                    "publicationKey": f"usb-creator:{platform}:create-unraid-usb",
+                    "publicationKey": f"usb-creator:{platform}:{flow}",
                     "captureId": capture_id,
                     "platform": platform,
-                    "flow": "create-unraid-usb",
+                    "flow": flow,
                     "name": name,
                     "frameRole": role,
                     "title": title,
@@ -179,8 +187,10 @@ def main() -> int:
     parser.add_argument("--manifest", type=Path, required=True)
     parser.add_argument("--capture-id", required=True)
     parser.add_argument("--platform", required=True)
+    parser.add_argument("--custom-backup", type=Path)
     args = parser.parse_args()
     args.screenshots.mkdir(parents=True, exist_ok=True)
+    flow = "restore-unraid-backup" if args.custom_backup else "create-unraid-usb"
 
     app = wait_for_app()
     try:
@@ -194,6 +204,7 @@ def main() -> int:
             role="entry",
             capture_id=args.capture_id,
             platform=args.platform,
+            flow=flow,
         )
         click(app, "Next", roles=("push button", "button"))
 
@@ -202,14 +213,20 @@ def main() -> int:
             args.screenshots,
             args.manifest,
             "01-os-selection",
-            title="Choose the development image",
-            caption="The Creator offers the small local Unraid development image for a fast end-to-end write.",
+            title="Choose a boot backup" if args.custom_backup else "Choose the development image",
+            caption=("Use custom restores a ZIP backup without release catalog metadata."
+                     if args.custom_backup else
+                     "The Creator offers the small local Unraid development image for a fast end-to-end write."),
             role="decision",
             capture_id=args.capture_id,
             platform=args.platform,
+            flow=flow,
         )
 
-        click(app, "Unraid (development image)")
+        if args.custom_backup:
+            select_custom_backup(app, args.custom_backup)
+        else:
+            click(app, "Unraid (development image)")
         click(app, "Next", roles=("push button", "button"))
 
         wait_for(app, "Select your storage device", roles=("heading",))
@@ -226,11 +243,15 @@ def main() -> int:
             role="decision",
             capture_id=args.capture_id,
             platform=args.platform,
+            flow=flow,
         )
         click(app, "Next", roles=("push button", "button"))
 
-        wait_for(app, "Customisation: Server name", roles=("heading",))
-        if os.environ.get("USB_CREATOR_CUSTOMIZE") == "1":
+        if args.custom_backup:
+            # Custom restores must skip customization and retain the backup settings.
+            wait_for(app, "Write image", roles=("heading",))
+        elif os.environ.get("USB_CREATOR_CUSTOMIZE") == "1":
+            wait_for(app, "Customisation: Server name", roles=("heading",))
             wait_for_unique(app, "Enter your server name", roles=("text",)).text = "ready-usb-test"
             click(app, "Next", roles=("push button", "button"))
             wait_for(app, "Customisation: Wi", roles=("heading",))
@@ -238,18 +259,24 @@ def main() -> int:
             wait_for(app, "Customisation: Network", roles=("heading",))
             click(app, "Next", roles=("push button", "button"))
         else:
+            wait_for(app, "Customisation: Server name", roles=("heading",))
             click(app, "Skip customisation", roles=("push button", "button"))
 
         wait_for(app, "Write image", roles=("heading",))
+        if args.custom_backup:
+            wait_for(app, args.custom_backup.name)
         shot(
             args.screenshots,
             args.manifest,
             "03-write-summary",
             title="Review the write",
-            caption="The summary identifies the development image and disposable QEMU USB target before erasure.",
+            caption=("The summary identifies the selected ZIP backup and disposable USB target before erasure."
+                     if args.custom_backup else
+                     "The summary identifies the development image and disposable QEMU USB target before erasure."),
             role="instruction",
             capture_id=args.capture_id,
             platform=args.platform,
+            flow=flow,
         )
         click(app, "Write", roles=("push button", "button"))
         click(app, "I understand, erase and write", roles=("push button", "button"), timeout=15)
@@ -260,10 +287,13 @@ def main() -> int:
             args.manifest,
             "04-write-complete",
             title="Confirm the write completed",
-            caption="The Creator reports that the Unraid development image was written successfully.",
+            caption=("The Creator reports that the boot backup was restored successfully."
+                     if args.custom_backup else
+                     "The Creator reports that the Unraid development image was written successfully."),
             role="result",
             capture_id=args.capture_id,
             platform=args.platform,
+            flow=flow,
         )
         return 0
     finally:

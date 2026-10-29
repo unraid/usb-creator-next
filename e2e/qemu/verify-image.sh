@@ -3,6 +3,8 @@ set -euo pipefail
 
 image=${1:?usage: verify-image.sh TARGET_RAW SOURCE_ZIP}
 source_zip=${2:?usage: verify-image.sh TARGET_RAW SOURCE_ZIP}
+mode=${3:-release}
+[[ "$mode" == release || "$mode" == backup ]] || { echo "Unknown verification mode: $mode" >&2; exit 2; }
 test -f "$image"
 test -f "$source_zip"
 
@@ -75,7 +77,29 @@ require_single_assignment() {
     }
 }
 
-require_single_assignment "$verify_dir/ident.cfg" NAME '"Tower"'
-require_single_assignment "$verify_dir/network.cfg" USE_DHCP '"yes"'
+if [[ "$mode" == backup ]]; then
+    # Read every backed-up file through mtools. A label-only fix must not enable
+    # customization, replace server settings, or lose nested plugin files.
+    python3 - "$source_zip" "$mtools_image" "$verify_dir/restored-file" <<'PYBACKUP'
+from pathlib import Path
+import subprocess
+import sys
+from zipfile import ZipFile
 
-echo "Verified QEMU USB image: FAT32 label, source-matching payload, and effective Unraid configuration are correct."
+with ZipFile(sys.argv[1]) as archive:
+    for entry in archive.infolist():
+        if entry.is_dir():
+            continue
+        destination = Path(sys.argv[3])
+        destination.unlink(missing_ok=True)
+        subprocess.run(["mcopy", "-n", "-i", sys.argv[2], "::" + entry.filename, str(destination)], check=True)
+        if destination.read_bytes() != archive.read(entry):
+            raise SystemExit(f"Restored backup differs from source: {entry.filename}")
+print("Verified Custom backup: UNRAID filesystem label and every backed-up file preserved byte for byte.")
+PYBACKUP
+else
+    require_single_assignment "$verify_dir/ident.cfg" NAME '"Tower"'
+    require_single_assignment "$verify_dir/network.cfg" USE_DHCP '"yes"'
+fi
+
+echo "Verified QEMU USB image: FAT32 label, source-matching payload, and Unraid configuration ($mode mode) are correct."
