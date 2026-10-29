@@ -601,6 +601,7 @@ protected:
     SuspendInhibitor *_suspendInhibitor;
     DownloadThread *_thread;
     bool _verifyEnabled, _multipleFilesInZip, _online, _extractSizeKnown;
+    bool _isUnraidArchive = false; // UNRAID: label detection must not enable customization.
     QSettings _settings;
     QMap<QString,QString> _translations;
     QTranslator *_trans;
